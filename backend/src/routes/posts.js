@@ -4,8 +4,9 @@ import {
     getPosts,
     getPost,
     deletePost,
+    executePost,
 } from '../services/postService.js';
-import { addToQueue, removeFromQueue } from '../queues/postQueue.js';
+// import { addToQueue, removeFromQueue } from '../queues/postQueue.js';
 
 const router = express.Router();
 
@@ -36,9 +37,10 @@ router.post('/', async (req, res) => {
             scheduledFor,
         });
 
-        // Se for imediato, adicionar à fila agora
+        // Se for imediato, executar agora (sem fila Redis para simplificar)
         if (!scheduledFor) {
-            await addToQueue(post.id);
+            // Executar em background para não travar a resposta
+            executePost(post.id).catch(err => console.error(`❌ Erro ao executar post ${post.id}:`, err));
         }
 
         res.status(201).json({
@@ -117,7 +119,7 @@ router.delete('/:id', async (req, res) => {
 
         // Remover da fila se estiver agendado
         if (post.status === 'pending') {
-            await removeFromQueue(id);
+            // await removeFromQueue(id);
         }
 
         await deletePost(id);

@@ -5,3 +5,8 @@ node_modules/
 uploads/
 cookies/
 screenshots/
+
+# Python
+venv/
+__pycache__/
+*.pyc

@@ -1,6 +1,6 @@
 import cron from 'node-cron';
-import { getReadyPosts } from './postService.js';
-import { addToQueue } from '../queues/postQueue.js';
+import { getReadyPosts, executePost } from './postService.js';
+// import { addToQueue } from '../queues/postQueue.js';
 
 /**
  * Inicia o scheduler que verifica posts agendados a cada minuto
@@ -17,8 +17,9 @@ export function startScheduler() {
                 console.log(`📅 ${readyPosts.length} post(s) pronto(s) para execução`);
 
                 for (const post of readyPosts) {
-                    console.log(`➕ Adicionando post ${post.id} à fila`);
-                    await addToQueue(post.id);
+                    console.log(`▶️ Executando post ${post.id} diretamente...`);
+                    // Executar diretamente (sem fila Redis por enquanto para simplificar deploy)
+                    executePost(post.id).catch(err => console.error(`❌ Erro ao executar post ${post.id}:`, err));
                 }
             }
         } catch (error) {

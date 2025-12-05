@@ -1,10 +1,12 @@
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import puppeteer from 'puppeteer';
+// import puppeteer from 'puppeteer-extra';
+// import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
-// Adicionar plugin stealth para evitar detecção
-puppeteer.use(StealthPlugin());
+// Não usar stealth plugin por enquanto pois está causando conflitos
+// puppeteer.use(StealthPlugin());
 
 // Diretório para salvar cookies
 const COOKIES_DIR = path.join(process.cwd(), 'cookies');
@@ -27,14 +29,19 @@ const USER_AGENTS = [
  * Cria uma nova instância do navegador com configurações anti-detecção
  */
 export async function createBrowser() {
+    // Caminho explícito do Chrome instalado pelo Puppeteer (versão 143)
+    const chromePath = path.join(
+        os.homedir(),
+        '.cache/puppeteer/chrome/mac_arm-143.0.7499.40/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'
+    );
+
     const browser = await puppeteer.launch({
-        headless: process.env.NODE_ENV === 'production' ? 'new' : false, // Mostra navegador em dev
+        headless: false, // Sempre visível para debug
+        executablePath: chromePath,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-blink-features=AutomationControlled',
-            '--disable-features=IsolateOrigins,site-per-process',
-            '--disable-web-security',
             '--user-agent=' + USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)],
         ],
     });

@@ -1,4 +1,5 @@
 import { db, storage } from '../config/firebase.js';
+import axios from 'axios';
 import { getAccount } from './accountService.js';
 import {
     createStaticPost,
@@ -184,16 +185,40 @@ export async function executePost(postId) {
             fs.mkdirSync(tempDir, { recursive: true });
         }
 
+
+
+        // ... (imports)
+
+        // ... (inside executePost)
+
         for (let i = 0; i < post.mediaUrls.length; i++) {
             const url = post.mediaUrls[i];
             const ext = url.includes('.mp4') ? 'mp4' : 'jpg';
             const localPath = path.join(tempDir, `media_${i}.${ext}`);
 
-            // Baixar arquivo
-            const filePath = url.split('/o/')[1]?.split('?')[0];
-            if (filePath) {
-                const decodedPath = decodeURIComponent(filePath);
-                await storage.file(decodedPath).download({ destination: localPath });
+            if (url.includes('firebasestorage')) {
+                // Baixar do Firebase Storage
+                const filePath = url.split('/o/')[1]?.split('?')[0];
+                if (filePath) {
+                    const decodedPath = decodeURIComponent(filePath);
+                    await storage.file(decodedPath).download({ destination: localPath });
+                    localMediaPaths.push(localPath);
+                }
+            } else {
+                // Baixar URL genérica
+                const response = await axios({
+                    url,
+                    responseType: 'stream',
+                });
+
+                const writer = fs.createWriteStream(localPath);
+                response.data.pipe(writer);
+
+                await new Promise((resolve, reject) => {
+                    writer.on('finish', resolve);
+                    writer.on('error', reject);
+                });
+
                 localMediaPaths.push(localPath);
             }
         }
@@ -203,20 +228,20 @@ export async function executePost(postId) {
 
         switch (post.type) {
             case 'static':
-                result = await createStaticPost(post.accountId, localMediaPaths[0], post.caption);
+                result = await createStaticPost(account.username, account.password, localMediaPaths[0], post.caption);
                 break;
 
             case 'carousel':
-                result = await createCarousel(post.accountId, localMediaPaths, post.caption);
+                result = await createCarousel(account.username, account.password, localMediaPaths, post.caption);
                 break;
 
             case 'video':
             case 'reel':
-                result = await createReel(post.accountId, localMediaPaths[0], post.caption);
+                result = await createReel(account.username, account.password, localMediaPaths[0], post.caption);
                 break;
 
             case 'story':
-                result = await createStory(post.accountId, localMediaPaths[0]);
+                result = await createStory(account.username, account.password, localMediaPaths[0]);
                 break;
 
             default:

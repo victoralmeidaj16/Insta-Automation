@@ -1,33 +1,23 @@
-import { auth } from '../config/firebase.js';
+// import { auth } from '../config/firebase.js';
 
 /**
- * Middleware de autenticação
- * Verifica o token JWT do Firebase Auth
+ * Middleware de autenticação (DESABILITADO)
+ * Hardcodea o userId para permitir acesso sem login
  */
 export async function authenticate(req, res, next) {
     try {
-        const authHeader = req.headers.authorization;
-
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({
-                error: 'Token de autenticação não fornecido',
-            });
-        }
-
-        const token = authHeader.split('Bearer ')[1];
-
-        // Verificar token com Firebase
-        const decodedToken = await auth.verifyIdToken(token);
-
-        // Adicionar userId ao request
-        req.userId = decodedToken.uid;
-        req.user = decodedToken;
+        // Hardcodear userId do usuário criado manualmente
+        req.userId = 'A9NJto9KIOSgYJg8uRj8u5xAvAg1';
+        req.user = {
+            uid: 'A9NJto9KIOSgYJg8uRj8u5xAvAg1',
+            email: 'admin@instabot.com'
+        };
 
         next();
     } catch (error) {
-        console.error('❌ Erro na autenticação:', error);
-        return res.status(401).json({
-            error: 'Token inválido ou expirado',
+        console.error('❌ Erro no middleware:', error);
+        return res.status(500).json({
+            error: 'Erro interno',
         });
     }
 }
