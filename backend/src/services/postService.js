@@ -1,6 +1,6 @@
 import { db, storage } from '../config/firebase.js';
 import axios from 'axios';
-import { getAccount } from './accountService.js';
+import { getAccount, updateAccount } from './accountService.js';
 import {
     createStaticPost,
     createCarousel,
@@ -228,20 +228,20 @@ export async function executePost(postId) {
 
         switch (post.type) {
             case 'static':
-                result = await createStaticPost(account.username, account.password, localMediaPaths[0], post.caption);
+                result = await createStaticPost(account.username, account.password, localMediaPaths[0], post.caption, account.sessionState);
                 break;
 
             case 'carousel':
-                result = await createCarousel(account.username, account.password, localMediaPaths, post.caption);
+                result = await createCarousel(account.username, account.password, localMediaPaths, post.caption, account.sessionState);
                 break;
 
             case 'video':
             case 'reel':
-                result = await createReel(account.username, account.password, localMediaPaths[0], post.caption);
+                result = await createReel(account.username, account.password, localMediaPaths[0], post.caption, account.sessionState);
                 break;
 
             case 'story':
-                result = await createStory(account.username, account.password, localMediaPaths[0]);
+                result = await createStory(account.username, account.password, localMediaPaths[0], account.sessionState);
                 break;
 
             default:
@@ -254,6 +254,15 @@ export async function executePost(postId) {
         // Atualizar status
         if (result.success) {
             await updatePostStatus(postId, 'success', null, new Date());
+
+            // Atualizar sessão da conta se houver
+            if (result.sessionState) {
+                await updateAccount(account.id, {
+                    sessionState: JSON.stringify(result.sessionState),
+                    lastVerified: new Date(),
+                });
+                console.log('🔄 Sessão da conta atualizada');
+            }
 
             // Deletar mídias do Storage após sucesso (economia de espaço)
             for (const url of post.mediaUrls) {

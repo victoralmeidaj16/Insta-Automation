@@ -1,7 +1,7 @@
 import { db } from '../config/firebase.js';
 import { encrypt, decrypt } from '../utils/encryption.js';
 import { login } from '../automation/instagram.js';
-import { deleteCookies } from '../automation/browser.js';
+// import { deleteCookies } from '../automation/browser.js';
 
 /**
  * Adiciona uma nova conta Instagram
@@ -88,6 +88,7 @@ export async function getAccount(accountId) {
             username: data.username,
             email: decrypt(data.email),
             password: decrypt(data.password),
+            sessionState: data.sessionState ? decrypt(data.sessionState) : null, // Descriptografar sessão
             status: data.status,
             stayLoggedIn: data.stayLoggedIn,
             lastVerified: data.lastVerified,
@@ -113,6 +114,9 @@ export async function updateAccount(accountId, updates) {
         if (updates.password) {
             updateData.password = encrypt(updates.password);
         }
+        if (updates.sessionState) {
+            updateData.sessionState = encrypt(updates.sessionState); // Criptografar sessão
+        }
 
         await db.collection('accounts').doc(accountId).update(updateData);
 
@@ -130,7 +134,7 @@ export async function updateAccount(accountId, updates) {
 export async function deleteAccount(accountId) {
     try {
         // Deletar cookies salvos
-        deleteCookies(accountId);
+        // deleteCookies(accountId);
 
         // Deletar do Firestore
         await db.collection('accounts').doc(accountId).delete();
@@ -155,15 +159,20 @@ export async function verifyAccount(accountId) {
         const result = await login(
             accountId,
             account.username,
-            account.password,
-            account.stayLoggedIn
+            account.password
         );
 
-        // Atualizar status
-        await updateAccount(accountId, {
+        // Atualizar status e salvar sessão
+        const updates = {
             status: result.success ? 'active' : 'error',
             lastVerified: new Date(),
-        });
+        };
+
+        if (result.success && result.sessionState) {
+            updates.sessionState = JSON.stringify(result.sessionState); // Salvar estado da sessão
+        }
+
+        await updateAccount(accountId, updates);
 
         return result;
     } catch (error) {
