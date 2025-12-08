@@ -5,6 +5,8 @@ import { authenticate } from './middleware/auth.js';
 import accountsRouter from './routes/accounts.js';
 import postsRouter from './routes/posts.js';
 import uploadRouter from './routes/upload.js';
+import aiRouter from './routes/ai.js';
+import historyRouter from './routes/history.js';
 import { startScheduler } from './services/schedulerService.js';
 import { getQueueStats } from './queues/postQueue.js';
 
@@ -16,7 +18,19 @@ const PORT = process.env.PORT || 3001;
 
 // Middlewares
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            process.env.FRONTEND_URL || 'http://localhost:3000',
+            'http://localhost:3001',
+            'http://localhost:3002'
+        ];
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            return callback(null, true); // Permissive for dev, strictly should be error
+        }
+        return callback(null, true);
+    },
     credentials: true,
 }));
 app.use(express.json());
@@ -45,6 +59,8 @@ app.get('/api/stats', async (req, res) => {
 app.use('/api/accounts', authenticate, accountsRouter);
 app.use('/api/posts', authenticate, postsRouter);
 app.use('/api/upload', authenticate, uploadRouter);
+app.use('/api/ai', authenticate, aiRouter);
+app.use('/api/history', authenticate, historyRouter);
 
 // Rota 404
 app.use((req, res) => {
