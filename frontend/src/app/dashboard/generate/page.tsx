@@ -114,8 +114,14 @@ export default function GeneratePage() {
         setCarouselCards(updatedCards);
 
         try {
+            // Build enhanced prompt with profile template
+            let enhancedPrompt = card.prompt;
+            if (selectedProfile?.aiPreferences?.promptTemplate) {
+                enhancedPrompt = `${selectedProfile.aiPreferences.promptTemplate}\n\n${card.prompt}`;
+            }
+
             const response = await api.post('/api/ai/generate-single-image', {
-                prompt: card.prompt,
+                prompt: enhancedPrompt,
                 aspectRatio
             });
 
@@ -356,6 +362,27 @@ export default function GeneratePage() {
                                         <span style={{ marginLeft: '0.5rem', color: '#a1a1aa' }}>| Estilo: {selectedProfile.aiPreferences.style}</span>
                                     )}
                                 </p>
+                                {selectedProfile.aiPreferences?.promptTemplate && (
+                                    <details style={{ marginTop: '0.75rem' }}>
+                                        <summary style={{ cursor: 'pointer', fontSize: '0.75rem', color: '#a78bfa', userSelect: 'none' }}>
+                                            📋 Ver Prompt Base (será adicionado automaticamente)
+                                        </summary>
+                                        <pre style={{
+                                            marginTop: '0.5rem',
+                                            padding: '0.75rem',
+                                            background: 'rgba(0,0,0,0.3)',
+                                            borderRadius: '0.375rem',
+                                            fontSize: '0.75rem',
+                                            color: '#d4d4d8',
+                                            overflow: 'auto',
+                                            maxHeight: '150px',
+                                            whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-word'
+                                        }}>
+                                            {selectedProfile.aiPreferences.promptTemplate}
+                                        </pre>
+                                    </details>
+                                )}
                             </div>
                         )}
                     </section>

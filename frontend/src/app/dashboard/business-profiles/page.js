@@ -16,12 +16,14 @@ export default function BusinessProfilesPage() {
             primaryColor: '#8e44ad',
             secondaryColor: '#e74c3c',
             logoUrl: '',
-            style: ''
+            style: '',
+            guidelines: '' // New: Brand guidelines document
         },
         aiPreferences: {
             defaultAspectRatio: '1:1',
             style: '',
             tone: '',
+            promptTemplate: '', // New: Base prompt/instructions
             favoritePrompts: []
         }
     });
@@ -48,12 +50,14 @@ export default function BusinessProfilesPage() {
                     primaryColor: '#8e44ad',
                     secondaryColor: '#e74c3c',
                     logoUrl: '',
-                    style: ''
+                    style: '',
+                    guidelines: ''
                 },
                 aiPreferences: {
                     defaultAspectRatio: '1:1',
                     style: '',
                     tone: '',
+                    promptTemplate: '',
                     favoritePrompts: []
                 }
             });
@@ -302,6 +306,42 @@ export default function BusinessProfilesPage() {
                                         })}
                                         placeholder="Ex: Profissional, casual, motivacional"
                                     />
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Prompt Base / Instruções de Geração</label>
+                                    <textarea
+                                        className="input"
+                                        value={formData.aiPreferences.promptTemplate}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            aiPreferences: { ...formData.aiPreferences, promptTemplate: e.target.value }
+                                        })}
+                                        placeholder="Cole aqui seus comandos/exemplos de prompts para geração de imagens desta empresa. Ex: 'Fotografia profissional de produtos esportivos, fundo branco, alta resolução, iluminação natural...'"
+                                        rows={6}
+                                        style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        Este texto será automaticamente adicionado aos seus prompts no AI Generator
+                                    </small>
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Diretrizes da Marca (Guidelines)</label>
+                                    <textarea
+                                        className="input"
+                                        value={formData.branding.guidelines}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            branding: { ...formData.branding, guidelines: e.target.value }
+                                        })}
+                                        placeholder="Cole aqui o documento completo com cores, fontes, estilo visual, exemplos, etc."
+                                        rows={8}
+                                        style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        Documentação completa da identidade visual da empresa
+                                    </small>
                                 </div>
 
                                 <div className="flex gap-md mt-md">
