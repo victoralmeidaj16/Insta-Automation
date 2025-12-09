@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
@@ -11,11 +12,12 @@ export default function DashboardPage() {
     const [stats, setStats] = useState({ accounts: 0, posts: 0, pending: 0 });
     const [loading, setLoading] = useState(true);
     const { user, logout } = useAuth();
+    const { selectedProfile } = useBusinessProfile();
     const router = useRouter();
 
     useEffect(() => {
         loadStats();
-    }, []);
+    }, [selectedProfile]); // Reload when profile changes
 
     const loadStats = async () => {
         try {
@@ -24,11 +26,20 @@ export default function DashboardPage() {
                 api.get('/api/posts'),
             ]);
 
-            const pending = postsRes.data.posts.filter(p => p.status === 'pending').length;
+            // Filter by selected profile if one is active
+            let accounts = accountsRes.data.accounts;
+            let posts = postsRes.data.posts;
+
+            if (selectedProfile) {
+                accounts = accounts.filter(a => a.businessProfileId === selectedProfile.id);
+                posts = posts.filter(p => p.businessProfileId === selectedProfile.id);
+            }
+
+            const pending = posts.filter(p => p.status === 'pending').length;
 
             setStats({
-                accounts: accountsRes.data.accounts.length,
-                posts: postsRes.data.posts.length,
+                accounts: accounts.length,
+                posts: posts.length,
                 pending,
             });
         } catch (error) {
@@ -50,7 +61,16 @@ export default function DashboardPage() {
     return (
         <div style={{ minHeight: '100vh', padding: '2rem' }}>
             <div className="container">
-                <h1 className="mb-lg">Home Page</h1>
+                <div className="flex-between mb-md">
+                    <div>
+                        <h1 style={{ marginBottom: '0.25rem' }}>Home Page</h1>
+                        {selectedProfile && (
+                            <p style={{ fontSize: '0.875rem', color: '#a1a1aa' }}>
+                                🎯 Filtrado por: <strong style={{ color: '#7c3aed' }}>{selectedProfile.name}</strong>
+                            </p>
+                        )}
+                    </div>
+                </div>
 
                 {/* Stats Cards */}
                 <div className="grid grid-3 mb-lg">

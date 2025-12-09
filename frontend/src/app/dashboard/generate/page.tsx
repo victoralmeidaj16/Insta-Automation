@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BackButton from '@/components/BackButton';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -288,8 +289,12 @@ export default function GeneratePage() {
                         </button>
                     </div>
                 </div>
+                <div className="container">
+                    <BackButton />
+                    <Breadcrumbs />
 
-                <h1 className="mb-lg">Ai dark plataform</h1>
+                    <h1 className="mb-lg">Ai dark plataform</h1>
+                </div>
 
                 {/* Business Profile Selector */}
                 {profiles.length > 0 && (
@@ -308,28 +313,30 @@ export default function GeneratePage() {
                                     style={{
                                         cursor: 'pointer',
                                         background: selectedProfile?.id === profile.id
-                                            ? `linear-gradient(135deg, ${profile.branding?.primaryColor}40 0%, ${profile.branding?.secondaryColor}40 100%)`
+                                            ? 'rgba(124, 58, 237, 0.2)'
                                             : 'rgba(255, 255, 255, 0.03)',
-                                        border: `2px solid ${selectedProfile?.id === profile.id ? profile.branding?.primaryColor : 'rgba(255, 255, 255, 0.1)'}`,
+                                        border: `2px solid ${selectedProfile?.id === profile.id ? '#7c3aed' : 'rgba(255, 255, 255, 0.1)'}`,
                                         transition: 'all 0.3s',
                                         textAlign: 'center',
                                         padding: '1rem'
                                     }}
                                 >
                                     <div style={{
-                                        width: '40px',
-                                        height: '40px',
+                                        width: '48px',
+                                        height: '48px',
                                         borderRadius: '50%',
-                                        background: `linear-gradient(135deg, ${profile.branding?.primaryColor} 0%, ${profile.branding?.secondaryColor} 100%)`,
+                                        background: '#7c3aed',
                                         margin: '0 auto 0.75rem',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        fontSize: '1.25rem'
+                                        fontSize: '1.5rem',
+                                        fontWeight: 700,
+                                        color: '#fff'
                                     }}>
-                                        🏢
+                                        {profile.name.charAt(0).toUpperCase()}
                                     </div>
-                                    <h4 style={{ fontSize: '0.875rem', marginBottom: '0.25rem', color: profile.branding?.primaryColor }}>
+                                    <h4 style={{ fontSize: '0.875rem', marginBottom: '0.25rem', color: '#fff' }}>
                                         {profile.name}
                                     </h4>
                                     {selectedProfile?.id === profile.id && (
@@ -342,9 +349,11 @@ export default function GeneratePage() {
                                             ✓ Selecionado
                                         </span>
                                     )}
-                                    <p style={{ fontSize: '0.625rem', color: '#71717a', marginTop: '0.5rem', margin: 0 }}>
-                                        {profile.aiPreferences?.defaultAspectRatio || '1:1'} | {profile.aiPreferences?.style || 'Padrão'}
-                                    </p>
+                                    {profile.aiPreferences?.promptTemplate && (
+                                        <p style={{ fontSize: '0.625rem', color: '#71717a', marginTop: '0.5rem', margin: 0 }}>
+                                            📋 Prompt configurado
+                                        </p>
+                                    )}
                                 </div>
                             ))}
                         </div>

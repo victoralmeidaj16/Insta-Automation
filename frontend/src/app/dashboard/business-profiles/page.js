@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 import BackButton from '@/components/BackButton';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import toast from 'react-hot-toast';
 
 export default function BusinessProfilesPage() {
+    const router = useRouter();
     const { profiles, selectedProfile, setSelectedProfile, createProfile, updateProfile, deleteProfile, loadProfiles } = useBusinessProfile();
     const [showModal, setShowModal] = useState(false);
     const [editingProfile, setEditingProfile] = useState(null);
@@ -92,6 +95,7 @@ export default function BusinessProfilesPage() {
         <div style={{ minHeight: '100vh', padding: '2rem' }}>
             <div className="container">
                 <BackButton />
+                <Breadcrumbs />
                 <div className="flex-between mb-lg">
                     <h1>Perfis de Negócio</h1>
                     <button onClick={() => handleOpenModal()} className="btn btn-primary">
@@ -147,10 +151,21 @@ export default function BusinessProfilesPage() {
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        setSelectedProfile(profile);
+                                        router.push('/dashboard/generate');
+                                    }}
+                                    className="btn btn-primary"
+                                    style={{ padding: '0.5rem 1rem', flex: 1 }}
+                                >
+                                    Usar no AI Generator
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
                                         handleOpenModal(profile);
                                     }}
                                     className="btn btn-secondary"
-                                    style={{ padding: '0.5rem 1rem', flex: 1 }}
+                                    style={{ padding: '0.5rem 1rem' }}
                                 >
                                     Editar
                                 </button>
@@ -160,7 +175,7 @@ export default function BusinessProfilesPage() {
                                         handleDelete(profile.id);
                                     }}
                                     className="btn btn-danger"
-                                    style={{ padding: '0.5rem 1rem', flex: 1 }}
+                                    style={{ padding: '0.5rem 1rem' }}
                                 >
                                     Excluir
                                 </button>

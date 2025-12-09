@@ -29,10 +29,8 @@ function ProfileSwitcher() {
                 style={{
                     padding: '0.5rem 1rem',
                     borderRadius: '0.75rem',
-                    background: selectedProfile
-                        ? `linear-gradient(135deg, ${selectedProfile.branding?.primaryColor || '#7c3aed'} 0%, ${selectedProfile.branding?.secondaryColor || '#a78bfa'} 100%)`
-                        : 'rgba(39, 39, 42, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: selectedProfile ? 'rgba(124, 58, 237, 0.2)' : 'rgba(39, 39, 42, 0.8)',
+                    border: selectedProfile ? '1px solid rgba(124, 58, 237, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
                     color: '#fff',
                     fontSize: '0.875rem',
                     fontWeight: 500,
@@ -46,7 +44,23 @@ function ProfileSwitcher() {
                 }}
             >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span>🏢</span>
+                    {selectedProfile ? (
+                        <span style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            background: '#7c3aed',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.625rem',
+                            fontWeight: 700
+                        }}>
+                            {selectedProfile.name.charAt(0).toUpperCase()}
+                        </span>
+                    ) : (
+                        <span>🌐</span>
+                    )}
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {selectedProfile ? selectedProfile.name : 'Todos os Perfis'}
                     </span>
@@ -122,12 +136,19 @@ function ProfileSwitcher() {
                             }}
                         >
                             <span style={{
-                                width: '8px',
-                                height: '8px',
+                                width: '20px',
+                                height: '20px',
                                 borderRadius: '50%',
-                                background: profile.branding?.primaryColor || '#8e44ad',
+                                background: '#7c3aed',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.625rem',
+                                fontWeight: 700,
                                 flexShrink: 0
-                            }} />
+                            }}>
+                                {profile.name.charAt(0).toUpperCase()}
+                            </span>
                             <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {profile.name}
                             </span>
