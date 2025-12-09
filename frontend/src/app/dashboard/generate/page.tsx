@@ -271,7 +271,7 @@ export default function GeneratePage() {
                     </div>
                 </div>
 
-                <h1 className="mb-lg">AI Image Generator</h1>
+                <h1 className="mb-lg">Ai dark plataform</h1>
 
                 {view === 'generate' ? (
                     <>

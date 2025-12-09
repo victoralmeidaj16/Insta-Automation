@@ -16,9 +16,9 @@ router.post('/', async (req, res) => {
     try {
         const { username, email, password, stayLoggedIn } = req.body;
 
-        if (!username || !email || !password) {
+        if (!username || !password) {
             return res.status(400).json({
-                error: 'Username, email e password são obrigatórios',
+                error: 'Username e password são obrigatórios',
             });
         }
 

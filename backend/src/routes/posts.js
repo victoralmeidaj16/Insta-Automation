@@ -16,6 +16,7 @@ const router = express.Router();
 router.post('/', async (req, res) => {
     try {
         const { accountId, type, mediaUrls, caption, scheduledFor } = req.body;
+        console.log('📝 Criando post:', { accountId, type, mediaUrlsCount: mediaUrls?.length, caption });
 
         if (!accountId || !type || !mediaUrls || !Array.isArray(mediaUrls)) {
             return res.status(400).json({

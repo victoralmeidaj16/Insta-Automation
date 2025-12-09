@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import BackButton from '@/components/BackButton';
 
 export default function AccountsPage() {
     const [accounts, setAccounts] = useState([]);
@@ -71,6 +72,7 @@ export default function AccountsPage() {
     return (
         <div style={{ minHeight: '100vh', padding: '2rem' }}>
             <div className="container">
+                <BackButton />
                 <div className="flex-between mb-lg">
                     <h1>Contas Instagram</h1>
                     <button onClick={() => setShowModal(true)} className="btn btn-primary">
@@ -118,8 +120,8 @@ export default function AccountsPage() {
                                     <input className="input" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} required />
                                 </div>
                                 <div className="input-group">
-                                    <label className="input-label">Email</label>
-                                    <input type="email" className="input" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+                                    <label className="input-label">Email (opcional)</label>
+                                    <input type="email" className="input" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                                 </div>
                                 <div className="input-group">
                                     <label className="input-label">Senha</label>

@@ -9,8 +9,18 @@ import { login } from '../automation/instagram.js';
 export async function addAccount(userId, username, email, password, stayLoggedIn = true) {
     try {
         // Criptografar credenciais sensíveis
-        const encryptedEmail = encrypt(email);
+        const encryptedEmail = email ? encrypt(email) : null;
         const encryptedPassword = encrypt(password);
+
+        // Verificar se já existe conta com este username para este usuário
+        const existingQuery = await db.collection('accounts')
+            .where('userId', '==', userId)
+            .where('username', '==', username)
+            .get();
+
+        if (!existingQuery.empty) {
+            throw new Error(`A conta @${username} já está cadastrada.`);
+        }
 
         const accountData = {
             userId,
@@ -55,7 +65,7 @@ export async function getAccounts(userId) {
                 id: doc.id,
                 userId: data.userId,
                 username: data.username,
-                email: decrypt(data.email),
+                email: data.email ? decrypt(data.email) : null,
                 status: data.status,
                 stayLoggedIn: data.stayLoggedIn,
                 lastVerified: data.lastVerified,
@@ -86,7 +96,7 @@ export async function getAccount(accountId) {
             id: doc.id,
             userId: data.userId,
             username: data.username,
-            email: decrypt(data.email),
+            email: data.email ? decrypt(data.email) : null,
             password: decrypt(data.password),
             sessionState: data.sessionState ? decrypt(data.sessionState) : null, // Descriptografar sessão
             status: data.status,

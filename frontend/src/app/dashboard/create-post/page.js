@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import BackButton from '@/components/BackButton';
 
-export default function CreatePostPage() {
+function CreatePostContent() {
     const [accounts, setAccounts] = useState([]);
     const [formData, setFormData] = useState({
         accountId: '',
@@ -13,14 +15,37 @@ export default function CreatePostPage() {
         caption: '',
         scheduledFor: '',
         files: [],
+        externalMediaUrls: [], // New field for URLs passed via query params
     });
     const [previews, setPreviews] = useState([]);
     const [uploading, setUploading] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         loadAccounts();
-    }, []);
+
+        // Check for query params
+        const captionParam = searchParams.get('caption');
+        const mediaUrlsParam = searchParams.get('mediaUrls');
+        const typeParam = searchParams.get('type');
+
+        if (captionParam || mediaUrlsParam) {
+            const externalUrls = mediaUrlsParam ? mediaUrlsParam.split(',') : [];
+            setFormData(prev => ({
+                ...prev,
+                caption: captionParam || prev.caption,
+                type: typeParam || (externalUrls.length > 1 ? 'carousel' : 'static'),
+                externalMediaUrls: externalUrls
+            }));
+
+            if (externalUrls.length > 0) {
+                setPreviews(externalUrls);
+            }
+
+            toast.success('Conteúdo importado do Dark AI Platform!');
+        }
+    }, [searchParams]);
 
     const loadAccounts = async () => {
         try {
@@ -33,7 +58,7 @@ export default function CreatePostPage() {
 
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
-        setFormData({ ...formData, files });
+        setFormData({ ...formData, files, externalMediaUrls: [] }); // Clear external URLs if user selects files
 
         // Create previews
         const newPreviews = files.map(file => URL.createObjectURL(file));
@@ -48,7 +73,7 @@ export default function CreatePostPage() {
             return;
         }
 
-        if (formData.files.length === 0) {
+        if (formData.files.length === 0 && formData.externalMediaUrls.length === 0) {
             toast.error('Adicione pelo menos uma mídia');
             return;
         }
@@ -56,20 +81,25 @@ export default function CreatePostPage() {
         setUploading(true);
 
         try {
-            // Upload files
-            const uploadFormData = new FormData();
-            formData.files.forEach(file => uploadFormData.append('files', file));
+            let mediaUrls = formData.externalMediaUrls;
 
-            const uploadRes = await api.post('/api/upload', uploadFormData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
+            // Only upload if there are local files
+            if (formData.files.length > 0) {
+                const uploadFormData = new FormData();
+                formData.files.forEach(file => uploadFormData.append('files', file));
+
+                const uploadRes = await api.post('/api/upload', uploadFormData, {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                });
+                mediaUrls = uploadRes.data.urls;
+            }
 
             // Create post
             const postData = {
                 accountId: formData.accountId,
                 type: formData.type,
                 caption: formData.caption,
-                mediaUrls: uploadRes.data.urls,
+                mediaUrls: mediaUrls,
                 scheduledFor: formData.scheduledFor || null,
             };
 
@@ -87,6 +117,17 @@ export default function CreatePostPage() {
     return (
         <div style={{ minHeight: '100vh', padding: '2rem' }}>
             <div className="container" style={{ maxWidth: '800px' }}>
+                <div className="flex justify-between items-center mb-lg">
+                    <BackButton />
+                    <Link
+                        href="/dashboard/generate"
+                        className="btn btn-secondary flex items-center gap-2"
+                        style={{ textDecoration: 'none' }}
+                    >
+                        ✨ Gerar com IA
+                    </Link>
+                </div>
+
                 <h1 className="mb-lg">Criar Novo Post</h1>
 
                 <form onSubmit={handleSubmit} className="card-glass" style={{ padding: '2rem' }}>
@@ -113,15 +154,22 @@ export default function CreatePostPage() {
 
                     <div className="input-group">
                         <label className="input-label">Mídia(s)</label>
-                        <input
-                            type="file"
-                            accept="image/*,video/mp4"
-                            multiple={formData.type === 'carousel'}
-                            onChange={handleFileChange}
-                            className="input"
-                            style={{ padding: '0.5rem' }}
-                            required
-                        />
+                        <div className="flex flex-col gap-sm">
+                            <input
+                                type="file"
+                                accept="image/*,video/mp4"
+                                multiple={formData.type === 'carousel'}
+                                onChange={handleFileChange}
+                                className="input"
+                                style={{ padding: '0.5rem' }}
+                                required={formData.externalMediaUrls.length === 0}
+                            />
+                            {formData.externalMediaUrls.length > 0 && (
+                                <div className="text-sm text-success">
+                                    ✅ {formData.externalMediaUrls.length} mídia(s) importada(s) do Dark AI
+                                </div>
+                            )}
+                        </div>
                         {previews.length > 0 && (
                             <div className="flex gap-sm mt-sm" style={{ flexWrap: 'wrap' }}>
                                 {previews.map((url, i) => (
@@ -166,5 +214,13 @@ export default function CreatePostPage() {
                 </form>
             </div>
         </div>
+    );
+}
+
+export default function CreatePostPage() {
+    return (
+        <Suspense fallback={<div>Carregando...</div>}>
+            <CreatePostContent />
+        </Suspense>
     );
 }

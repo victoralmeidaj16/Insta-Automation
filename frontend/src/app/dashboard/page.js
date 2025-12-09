@@ -49,32 +49,8 @@ export default function DashboardPage() {
 
     return (
         <div style={{ minHeight: '100vh', padding: '2rem' }}>
-            {/* Navbar */}
-            <nav className="card-glass flex-between mb-lg" style={{ padding: '1rem 1.5rem' }}>
-                <h2 style={{ fontSize: '1.5rem', background: 'var(--gradient-instagram)', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    📸 InstaBot
-                </h2>
-                <div className="flex gap-md">
-                    <Link href="/dashboard" className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>
-                        Dashboard
-                    </Link>
-                    <Link href="/dashboard/accounts" className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>
-                        Contas
-                    </Link>
-                    <Link href="/dashboard/create-post" className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>
-                        + Novo Post
-                    </Link>
-                    <Link href="/dashboard/posts" className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>
-                        Posts
-                    </Link>
-                    <button onClick={handleLogout} className="btn btn-danger" style={{ padding: '0.5rem 1rem' }}>
-                        Sair
-                    </button>
-                </div>
-            </nav>
-
             <div className="container">
-                <h1 className="mb-lg">Dashboard</h1>
+                <h1 className="mb-lg">Home Page</h1>
 
                 {/* Stats Cards */}
                 <div className="grid grid-3 mb-lg">
@@ -101,9 +77,9 @@ export default function DashboardPage() {
                 <div className="card-glass">
                     <h2 className="mb-md">Ações Rápidas</h2>
                     <div className="grid grid-2">
-                        <Link href="/dashboard/accounts" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-                            <h3>🔐 Gerenciar Contas</h3>
-                            <p>Adicionar, verificar e remover contas Instagram</p>
+                        <Link href="/dashboard/generate" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <h3>✨ AI Generator</h3>
+                            <p>Gerar imagens com IA e agendar posts</p>
                         </Link>
 
                         <Link href="/dashboard/create-post" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -116,10 +92,10 @@ export default function DashboardPage() {
                             <p>Histórico completo de posts e status</p>
                         </Link>
 
-                        <div className="card" style={{ opacity: 0.5 }}>
-                            <h3>📊 Análises</h3>
-                            <p style={{ fontSize: '0.75rem' }}>(Em breve)</p>
-                        </div>
+                        <Link href="/dashboard/accounts" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <h3>🔐 Gerenciar Contas</h3>
+                            <p>Adicionar, verificar e remover contas Instagram</p>
+                        </Link>
                     </div>
                 </div>
 

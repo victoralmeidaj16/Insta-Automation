@@ -55,7 +55,10 @@ router.post('/', upload.array('files', 10), async (req, res) => {
             await fileUpload.makePublic();
 
             // Gerar URL pública
-            const publicUrl = `https://storage.googleapis.com/${storage.name}/${fileName}`;
+            // Gerar URL pública (formato Firebase Storage)
+            // Ex: https://firebasestorage.googleapis.com/v0/b/[BUCKET]/o/[PATH]?alt=media
+            const encodedPath = encodeURIComponent(fileName);
+            const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${storage.name}/o/${encodedPath}?alt=media`;
 
             uploadedUrls.push(publicUrl);
 

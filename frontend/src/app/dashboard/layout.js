@@ -3,16 +3,18 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import DashboardHeader from '@/components/DashboardHeader';
 
 export default function DashboardLayout({ children }) {
     const { user, loading } = useAuth();
     const router = useRouter();
 
-    useEffect(() => {
-        if (!loading && !user) {
-            router.push('/');
-        }
-    }, [user, loading, router]);
+    // Login desabilitado temporariamente
+    // useEffect(() => {
+    //     if (!loading && !user) {
+    //         router.push('/');
+    //     }
+    // }, [user, loading, router]);
 
     if (loading) {
         return (
@@ -22,9 +24,16 @@ export default function DashboardLayout({ children }) {
         );
     }
 
-    if (!user) {
-        return null;
-    }
+    // if (!user) {
+    //     return null;
+    // }
 
-    return <>{children}</>;
+    return (
+        <>
+            <DashboardHeader />
+            <div style={{ paddingTop: '80px' }}>
+                {children}
+            </div>
+        </>
+    );
 }

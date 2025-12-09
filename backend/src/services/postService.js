@@ -191,21 +191,33 @@ export async function executePost(postId) {
 
         // ... (inside executePost)
 
+        console.log(`📦 Processando ${post.mediaUrls.length} mídias...`);
         for (let i = 0; i < post.mediaUrls.length; i++) {
             const url = post.mediaUrls[i];
+            console.log(`🔗 URL ${i}:`, url);
+
             const ext = url.includes('.mp4') ? 'mp4' : 'jpg';
             const localPath = path.join(tempDir, `media_${i}.${ext}`);
 
             if (url.includes('firebasestorage')) {
                 // Baixar do Firebase Storage
-                const filePath = url.split('/o/')[1]?.split('?')[0];
+                const parts = url.split('/o/');
+                if (parts.length < 2) {
+                    console.warn(`⚠️ Formato de URL do Storage inesperado: ${url}`);
+                    continue;
+                }
+                const filePath = parts[1].split('?')[0];
                 if (filePath) {
                     const decodedPath = decodeURIComponent(filePath);
+                    console.log(`⬇️ Baixando do Storage: ${decodedPath}`);
                     await storage.file(decodedPath).download({ destination: localPath });
                     localMediaPaths.push(localPath);
+                } else {
+                    console.warn(`⚠️ Não foi possível extrair caminho do arquivo: ${url}`);
                 }
             } else {
                 // Baixar URL genérica
+                console.log(`⬇️ Baixando via Axios: ${url}`);
                 const response = await axios({
                     url,
                     responseType: 'stream',
@@ -221,6 +233,10 @@ export async function executePost(postId) {
 
                 localMediaPaths.push(localPath);
             }
+        }
+
+        if (localMediaPaths.length === 0) {
+            throw new Error('Nenhuma mídia foi baixada com sucesso.');
         }
 
         // Executar automação baseado no tipo
