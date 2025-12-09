@@ -14,7 +14,7 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
     try {
-        const { username, email, password, stayLoggedIn } = req.body;
+        const { username, email, password, stayLoggedIn, businessProfileId } = req.body;
 
         if (!username || !password) {
             return res.status(400).json({
@@ -27,7 +27,8 @@ router.post('/', async (req, res) => {
             username,
             email,
             password,
-            stayLoggedIn ?? true
+            stayLoggedIn ?? true,
+            businessProfileId
         );
 
         res.status(201).json({

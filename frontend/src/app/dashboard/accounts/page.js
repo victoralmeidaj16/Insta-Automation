@@ -5,11 +5,13 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import BackButton from '@/components/BackButton';
+import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 
 export default function AccountsPage() {
+    const { profiles } = useBusinessProfile();
     const [accounts, setAccounts] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({ username: '', email: '', password: '', stayLoggedIn: true });
+    const [formData, setFormData] = useState({ username: '', email: '', password: '', stayLoggedIn: true, businessProfileId: null });
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -32,7 +34,7 @@ export default function AccountsPage() {
             await api.post('/api/accounts', formData);
             toast.success('Conta adicionada! Verificando login...');
             setShowModal(false);
-            setFormData({ username: '', email: '', password: '', stayLoggedIn: true });
+            setFormData({ username: '', email: '', password: '', stayLoggedIn: true, businessProfileId: null });
             await loadAccounts();
         } catch (error) {
             toast.error(error.message);
@@ -84,7 +86,27 @@ export default function AccountsPage() {
                     {accounts.map(acc => (
                         <div key={acc.id} className="card-glass">
                             <div className="flex-between mb-md">
-                                <h3>@{acc.username}</h3>
+                                <div>
+                                    <h3>@{acc.username}</h3>
+                                    {acc.businessProfileId && profiles.length > 0 && (() => {
+                                        const profile = profiles.find(p => p.id === acc.businessProfileId);
+                                        return profile ? (
+                                            <span
+                                                style={{
+                                                    fontSize: '0.75rem',
+                                                    padding: '0.25rem 0.5rem',
+                                                    borderRadius: '4px',
+                                                    background: `${profile.branding?.primaryColor}20`,
+                                                    color: profile.branding?.primaryColor,
+                                                    marginTop: '0.25rem',
+                                                    display: 'inline-block'
+                                                }}
+                                            >
+                                                🏢 {profile.name}
+                                            </span>
+                                        ) : null;
+                                    })()}
+                                </div>
                                 <span className={`badge badge-${acc.status === 'active' ? 'success' : acc.status === 'error' ? 'error' : 'pending'}`}>
                                     {acc.status}
                                 </span>
@@ -126,6 +148,21 @@ export default function AccountsPage() {
                                 <div className="input-group">
                                     <label className="input-label">Senha</label>
                                     <input type="password" className="input" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
+                                </div>
+                                <div className="input-group">
+                                    <label className="input-label">Perfil de Negócio (opcional)</label>
+                                    <select
+                                        className="input"
+                                        value={formData.businessProfileId || ''}
+                                        onChange={(e) => setFormData({ ...formData, businessProfileId: e.target.value || null })}
+                                    >
+                                        <option value="">Nenhum perfil</option>
+                                        {profiles.map(profile => (
+                                            <option key={profile.id} value={profile.id}>
+                                                {profile.name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="flex gap-md mt-md">
                                     <button type="submit" className="btn btn-primary" disabled={loading}>

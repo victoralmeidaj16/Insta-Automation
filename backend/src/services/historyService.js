@@ -9,7 +9,7 @@ const COLLECTION_NAME = 'ai_history';
  * @returns {Promise<Object>} - Documento criado
  */
 export async function saveToHistory(userId, generationData) {
-    const { mode, prompt, aspectRatio, images, prompts } = generationData;
+    const { mode, prompt, aspectRatio, images, prompts, businessProfileId } = generationData;
 
     if (!userId || !mode || !prompt || !aspectRatio || !images || !Array.isArray(images)) {
         throw new Error('Dados inválidos para salvar no histórico');
@@ -22,6 +22,7 @@ export async function saveToHistory(userId, generationData) {
         aspectRatio,
         images,
         prompts: prompts || [],
+        businessProfileId: businessProfileId || null,
         createdAt: new Date(),
     };
 
@@ -40,7 +41,7 @@ export async function saveToHistory(userId, generationData) {
  * @returns {Promise<Array>} - Lista de itens do histórico
  */
 export async function getHistory(userId, options = {}) {
-    const { limit = 20, offset = 0, mode, aspectRatio } = options;
+    const { limit = 20, offset = 0, mode, aspectRatio, businessProfileId } = options;
 
     let query = db.collection(COLLECTION_NAME)
         .where('userId', '==', userId)
@@ -52,6 +53,9 @@ export async function getHistory(userId, options = {}) {
     }
     if (aspectRatio) {
         query = query.where('aspectRatio', '==', aspectRatio);
+    }
+    if (businessProfileId) {
+        query = query.where('businessProfileId', '==', businessProfileId);
     }
 
     // Aplicar paginação

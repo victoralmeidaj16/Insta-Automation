@@ -22,9 +22,13 @@ export async function createPost(userId, accountId, postData) {
             scheduledFor, // timestamp ou null para imediato
         } = postData;
 
+        // Get account to extract business profile
+        const account = await getAccount(accountId);
+
         const post = {
             userId,
             accountId,
+            businessProfileId: account.businessProfileId || null,
             type,
             mediaUrls,
             caption: caption || '',

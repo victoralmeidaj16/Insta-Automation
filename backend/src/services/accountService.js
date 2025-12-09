@@ -6,7 +6,7 @@ import { login } from '../automation/instagram.js';
 /**
  * Adiciona uma nova conta Instagram
  */
-export async function addAccount(userId, username, email, password, stayLoggedIn = true) {
+export async function addAccount(userId, username, email, password, stayLoggedIn = true, businessProfileId = null) {
     try {
         // Criptografar credenciais sensíveis
         const encryptedEmail = email ? encrypt(email) : null;
@@ -28,6 +28,7 @@ export async function addAccount(userId, username, email, password, stayLoggedIn
             email: encryptedEmail,
             password: encryptedPassword,
             stayLoggedIn,
+            businessProfileId: businessProfileId || null,
             status: 'pending', // pending, active, error, blocked
             lastVerified: null,
             createdAt: new Date(),
@@ -68,6 +69,7 @@ export async function getAccounts(userId) {
                 email: data.email ? decrypt(data.email) : null,
                 status: data.status,
                 stayLoggedIn: data.stayLoggedIn,
+                businessProfileId: data.businessProfileId || null,
                 lastVerified: data.lastVerified,
                 createdAt: data.createdAt,
             });
@@ -101,6 +103,7 @@ export async function getAccount(accountId) {
             sessionState: data.sessionState ? decrypt(data.sessionState) : null, // Descriptografar sessão
             status: data.status,
             stayLoggedIn: data.stayLoggedIn,
+            businessProfileId: data.businessProfileId || null,
             lastVerified: data.lastVerified,
             createdAt: data.createdAt,
         };

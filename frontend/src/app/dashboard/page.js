@@ -96,6 +96,11 @@ export default function DashboardPage() {
                             <h3>🔐 Gerenciar Contas</h3>
                             <p>Adicionar, verificar e remover contas Instagram</p>
                         </Link>
+
+                        <Link href="/dashboard/business-profiles" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <h3>🏢 Perfis de Negócio</h3>
+                            <p>Gerenciar empresas e branding</p>
+                        </Link>
                     </div>
                 </div>
 
