@@ -43,6 +43,14 @@ export default function GeneratePage() {
 
     useEffect(() => {
         fetchScheduledPosts();
+
+        // Load reused prompt from history
+        const reusedPrompt = localStorage.getItem('reusedPrompt');
+        if (reusedPrompt) {
+            setPrompt(reusedPrompt);
+            localStorage.removeItem('reusedPrompt');
+            toast.success('📋 Prompt carregado do histórico!');
+        }
     }, []);
 
     // Auto-load profile preferences when profile is selected

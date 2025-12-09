@@ -30,6 +30,8 @@ export default function BusinessProfilesPage() {
             favoritePrompts: []
         }
     });
+    const [newPromptName, setNewPromptName] = useState('');
+    const [newPromptText, setNewPromptText] = useState('');
 
     useEffect(() => {
         loadProfiles();
@@ -70,25 +72,78 @@ export default function BusinessProfilesPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validation
+        if (!formData.name || formData.name.trim() === '') {
+            toast.error('⚠️ Nome do perfil é obrigatório!');
+            return;
+        }
+
         try {
             if (editingProfile) {
                 await updateProfile(editingProfile.id, formData);
+                toast.success(`✅ Perfil "${formData.name}" atualizado com sucesso!`);
             } else {
                 await createProfile(formData);
+                toast.success(`✅ Perfil "${formData.name}" criado com sucesso!`);
             }
             setShowModal(false);
         } catch (error) {
-            // Error handling done in context
+            toast.error(`❌ Erro ao salvar perfil: ${error.message}`);
         }
     };
 
     const handleDelete = async (profileId) => {
-        if (!confirm('Tem certeza que deseja excluir este perfil? Todas as contas devem ser desvinculadas primeiro.')) return;
+        const profile = profiles.find(p => p.id === profileId);
+        const profileName = profile?.name || 'este perfil';
+
+        if (!confirm(`⚠️ Tem certeza que deseja excluir "${profileName}"?\n\nTodas as contas vinculadas serão desvinculadas automaticamente.`)) {
+            return;
+        }
+
         try {
             await deleteProfile(profileId);
+            toast.success(`✅ Perfil "${profileName}" excluído com sucesso!`);
         } catch (error) {
-            // Error handling done in context
+            toast.error(`❌ Erro ao excluir perfil: ${error.message}`);
         }
+    };
+
+    const handleAddFavoritePrompt = () => {
+        if (!newPromptName.trim() || !newPromptText.trim()) {
+            toast.error('⚠️ Preencha nome e texto do prompt!');
+            return;
+        }
+
+        const newPrompt = {
+            id: Date.now().toString(),
+            name: newPromptName,
+            text: newPromptText,
+            createdAt: new Date().toISOString()
+        };
+
+        setFormData({
+            ...formData,
+            aiPreferences: {
+                ...formData.aiPreferences,
+                favoritePrompts: [...(formData.aiPreferences.favoritePrompts || []), newPrompt]
+            }
+        });
+
+        setNewPromptName('');
+        setNewPromptText('');
+        toast.success('✅ Prompt adicionado à biblioteca!');
+    };
+
+    const handleDeleteFavoritePrompt = (promptId) => {
+        setFormData({
+            ...formData,
+            aiPreferences: {
+                ...formData.aiPreferences,
+                favoritePrompts: formData.aiPreferences.favoritePrompts.filter(p => p.id !== promptId)
+            }
+        });
+        toast.success('Prompt removido da biblioteca');
     };
 
     return (
@@ -271,6 +326,90 @@ export default function BusinessProfilesPage() {
                                         Documentação completa da identidade visual da empresa
                                     </small>
                                 </div>
+
+                                {/* Favorite Prompts Library */}
+                                <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem', fontSize: '1.25rem' }}>📚 Biblioteca de Prompts</h3>
+
+                                <div style={{ background: 'rgba(124, 58, 237, 0.1', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+                                    <div className="input-group">
+                                        <label className="input-label">Nome do Prompt</label>
+                                        <input
+                                            className="input"
+                                            value={newPromptName}
+                                            onChange={(e) => setNewPromptName(e.target.value)}
+                                            placeholder="Ex: Produto com fundo branco"
+                                        />
+                                    </div>
+
+                                    <div className="input-group">
+                                        <label className="input-label">Texto do Prompt</label>
+                                        <textarea
+                                            className="input"
+                                            value={newPromptText}
+                                            onChange={(e) => setNewPromptText(e.target.value)}
+                                            placeholder="Professional product photography, white background, high quality..."
+                                            rows={3}
+                                            style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleAddFavoritePrompt}
+                                        className="btn btn-secondary"
+                                        style={{ width: '100%' }}
+                                    >
+                                        ➕ Adicionar à Biblioteca
+                                    </button>
+                                </div>
+
+                                {formData.aiPreferences.favoritePrompts && formData.aiPreferences.favoritePrompts.length > 0 && (
+                                    <div style={{ marginBottom: '1rem' }}>
+                                        <p style={{ fontSize: '0.875rem', color: '#a1a1aa', marginBottom: '0.5rem' }}>
+                                            Prompts salvos ({formData.aiPreferences.favoritePrompts.length}):
+                                        </p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            {formData.aiPreferences.favoritePrompts.map(prompt => (
+                                                <div
+                                                    key={prompt.id}
+                                                    style={{
+                                                        padding: '0.75rem',
+                                                        background: 'rgba(255,255,255,0.05)',
+                                                        borderRadius: '0.5rem',
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        gap: '0.5rem'
+                                                    }}
+                                                >
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <p style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>
+                                                            {prompt.name}
+                                                        </p>
+                                                        <p style={{
+                                                            fontSize: '0.75rem',
+                                                            color: '#71717a',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                            margin: 0
+                                                        }}>
+                                                            {prompt.text}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteFavoritePrompt(prompt.id)}
+                                                        className="btn btn-danger"
+                                                        style={{ padding: '0.5rem', fontSize: '0.75rem' }}
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="flex gap-md mt-md">
                                     <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
