@@ -216,4 +216,73 @@ router.post('/generate-single-image', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/ai/generate-caption - Gera caption para imagem usando GPT
+ */
+router.post('/generate-caption', async (req, res) => {
+    try {
+        const { prompt, tone = 'casual', includeHashtags = true, language = 'pt' } = req.body;
+
+        console.log('✍️ Gerando caption:', { prompt, tone, includeHashtags });
+
+        if (!prompt) {
+            return res.status(400).json({
+                error: 'Prompt/descrição da imagem é obrigatório',
+            });
+        }
+
+        // Import OpenAI dynamically
+        const { default: OpenAI } = await import('openai');
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+
+        // Tone descriptions
+        const toneInstructions = {
+            casual: 'Tom casual e descontraído, como se estivesse conversando com um amigo',
+            formal: 'Tom profissional e formal, adequado para negócios',
+            motivacional: 'Tom inspirador e motivacional, que engaja e emociona',
+            educativo: 'Tom educativo e informativo, que ensina algo valioso',
+            divertido: 'Tom divertido e bem-humorado, com leveza e criatividade'
+        };
+
+        const toneInstruction = toneInstructions[tone] || toneInstructions.casual;
+
+        const systemMessage = `Você é um especialista em criar captions para Instagram. 
+Crie captions ${language === 'pt' ? 'em português brasileiro' : 'in English'} que:
+- Sejam envolventes e chamem atenção
+- Usem ${toneInstruction}
+- Tenham entre 2-4 linhas
+${includeHashtags ? '- Incluam 5-8 hashtags relevantes no final' : '- NÃO incluam hashtags'}
+- Incentivem engajamento (curtidas, comentários, compartilhamentos)`;
+
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4',
+            messages: [
+                { role: 'system', content: systemMessage },
+                { role: 'user', content: `Crie uma caption para esta imagem/post: ${prompt}` }
+            ],
+            max_tokens: 300,
+            temperature: 0.8,
+        });
+
+        const caption = completion.choices[0].message.content.trim();
+
+        res.json({
+            success: true,
+            caption,
+            tone,
+            includeHashtags,
+            language
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao gerar caption:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar caption',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
 export default router;

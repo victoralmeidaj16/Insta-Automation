@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BackButton from '@/components/BackButton';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import ImageLightbox from '@/components/ImageLightbox';
 import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -40,6 +41,17 @@ export default function GeneratePage() {
     const [scheduledPosts, setScheduledPosts] = useState<Post[]>([]);
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [view, setView] = useState<'generate' | 'calendar'>('generate');
+
+    // Lightbox states
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+    const [lightboxIndex, setLightboxIndex] = useState(0);
+
+    // Caption generation states
+    const [showCaptionGenerator, setShowCaptionGenerator] = useState(false);
+    const [captionTone, setCaptionTone] = useState<'casual' | 'formal' | 'motivacional' | 'educativo' | 'divertido'>('casual');
+    const [generatedCaption, setGeneratedCaption] = useState('');
+    const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
 
     useEffect(() => {
         fetchScheduledPosts();
@@ -171,6 +183,45 @@ export default function GeneratePage() {
         }
 
         router.push(`/dashboard/create-post?${params.toString()}`);
+    };
+
+    // Open lightbox with images
+    const handleOpenLightbox = (images: string[], startIndex: number = 0) => {
+        setLightboxImages(images);
+        setLightboxIndex(startIndex);
+        setLightboxOpen(true);
+    };
+
+    // Generate AI caption
+    const handleGenerateCaption = async () => {
+        const promptText = carouselCards.length > 0
+            ? carouselDescription
+            : prompt;
+
+        if (!promptText) {
+            toast.error('⚠️ Adicione uma descrição primeiro!');
+            return;
+        }
+
+        setIsGeneratingCaption(true);
+        try {
+            const res = await api.post('/api/ai/generate-caption', {
+                prompt: promptText,
+                tone: captionTone,
+                includeHashtags: true,
+                language: 'pt'
+            });
+
+            if (res.data.success) {
+                setGeneratedCaption(res.data.caption);
+                toast.success('✅ Caption gerada com IA!');
+            }
+        } catch (error: any) {
+            console.error('Error generating caption:', error);
+            toast.error(error.response?.data?.error || 'Erro ao gerar caption');
+        } finally {
+            setIsGeneratingCaption(false);
+        }
     };
 
     // Download a single image
@@ -556,13 +607,24 @@ export default function GeneratePage() {
                                                                 <img
                                                                     src={card.image}
                                                                     alt={`Card ${index + 1}`}
+                                                                    onClick={() => {
+                                                                        const allImages = carouselCards
+                                                                            .filter(c => c.image)
+                                                                            .map(c => c.image!);
+                                                                        const imageIndex = allImages.indexOf(card.image!);
+                                                                        handleOpenLightbox(allImages, imageIndex);
+                                                                    }}
                                                                     style={{
                                                                         width: '100%',
                                                                         height: '200px',
                                                                         objectFit: 'cover',
                                                                         borderRadius: '0.5rem',
-                                                                        marginBottom: '0.5rem'
+                                                                        marginBottom: '0.5rem',
+                                                                        cursor: 'pointer',
+                                                                        transition: 'transform 0.2s'
                                                                     }}
+                                                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                                                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                                                 />
                                                                 <button
                                                                     onClick={() => handleDownloadImage(card.image!, index)}
@@ -587,25 +649,32 @@ export default function GeneratePage() {
                                             </div>
 
                                             {carouselCards.some(c => c.image) && (
-                                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
                                                     <button
                                                         onClick={handleDownloadAllImages}
                                                         className="btn btn-secondary"
-                                                        style={{ flex: 1 }}
+                                                        style={{ flex: '1 1 auto' }}
                                                     >
                                                         📥 Baixar Todas ({carouselCards.filter(c => c.image).length} imagens)
                                                     </button>
                                                     <button
+                                                        onClick={() => setShowCaptionGenerator(true)}
+                                                        className="btn"
+                                                        style={{ flex: '1 1 auto', background: '#a78bfa', border: 'none', color: '#fff', cursor: 'pointer' }}
+                                                    >
+                                                        ✍️ Gerar Caption com IA
+                                                    </button>
+                                                    <button
                                                         onClick={handleSaveToHistory}
                                                         className="btn"
-                                                        style={{ flex: 1, background: '#f59e0b', border: 'none', color: '#fff', cursor: 'pointer' }}
+                                                        style={{ flex: '1 1 auto', background: '#f59e0b', border: 'none', color: '#fff', cursor: 'pointer' }}
                                                     >
                                                         💾 Salvar no Histórico
                                                     </button>
                                                     <button
                                                         onClick={handleSendToPost}
                                                         className="btn btn-primary"
-                                                        style={{ flex: 1, background: '#22c55e' }}
+                                                        style={{ flex: '1 1 auto', background: '#22c55e' }}
                                                     >
                                                         🚀 Postar/Agendar ({carouselCards.filter(c => c.image).length} imagens)
                                                     </button>
@@ -637,6 +706,116 @@ export default function GeneratePage() {
                     </>
                 ) : (
                     <p>Calendar view (existing implementation)</p>
+                )}
+
+                {/* AI Caption Generator Modal */}
+                {showCaptionGenerator && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.8)',
+                        zIndex: 1500,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '2rem'
+                    }}
+                        onClick={() => setShowCaptionGenerator(false)}
+                    >
+                        <div
+                            className="card-glass"
+                            style={{ maxWidth: '600px', width: '100%', padding: '2rem' }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex-between mb-md">
+                                <h2>✍️ Gerar Caption com IA</h2>
+                                <button
+                                    onClick={() => setShowCaptionGenerator(false)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#fff',
+                                        fontSize: '1.5rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">Tom da Caption</label>
+                                <select
+                                    className="input"
+                                    value={captionTone}
+                                    onChange={(e) => setCaptionTone(e.target.value as any)}
+                                >
+                                    <option value="casual">😊 Casual - Descontraído e amigável</option>
+                                    <option value="formal">💼 Formal - Profissional e sério</option>
+                                    <option value="motivacional">🔥 Motivacional - Inspirador e energético</option>
+                                    <option value="educativo">📚 Educativo - Informativo e didático</option>
+                                    <option value="divertido">🎉 Divertido - Bem-humorado e criativo</option>
+                                </select>
+                            </div>
+
+                            <button
+                                onClick={handleGenerateCaption}
+                                disabled={isGeneratingCaption}
+                                className="btn btn-primary"
+                                style={{ width: '100%', marginBottom: '1rem' }}
+                            >
+                                {isGeneratingCaption ? '⏳ Gerando Caption...' : '✨ Gerar Caption'}
+                            </button>
+
+                            {generatedCaption && (
+                                <div style={{
+                                    background: 'rgba(124, 58, 237, 0.1)',
+                                    border: '1px solid rgba(124, 58, 237, 0.3)',
+                                    borderRadius: '0.5rem',
+                                    padding: '1rem',
+                                    marginTop: '1rem'
+                                }}>
+                                    <div className="flex-between mb-sm">
+                                        <p style={{ fontSize: '0.875rem', color: '#a78bfa', fontWeight: 600 }}>
+                                            Caption Gerada:
+                                        </p>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(generatedCaption);
+                                                toast.success('📋 Caption copiada!');
+                                            }}
+                                            className="btn btn-secondary"
+                                            style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}
+                                        >
+                                            📋 Copiar
+                                        </button>
+                                    </div>
+                                    <p style={{
+                                        color: '#fff',
+                                        fontSize: '0.875rem',
+                                        lineHeight: '1.6',
+                                        whiteSpace: 'pre-wrap'
+                                    }}>
+                                        {generatedCaption}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Image Lightbox */}
+                {lightboxOpen && (
+                    <ImageLightbox
+                        images={lightboxImages}
+                        currentIndex={lightboxIndex}
+                        onClose={() => setLightboxOpen(false)}
+                        onNavigate={setLightboxIndex}
+                        onDownload={handleDownloadImage}
+                    />
                 )}
             </div>
         </div>
