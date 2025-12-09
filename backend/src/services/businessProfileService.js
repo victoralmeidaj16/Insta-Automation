@@ -63,7 +63,6 @@ export async function getBusinessProfiles(userId) {
     try {
         const snapshot = await db.collection('businessProfiles')
             .where('userId', '==', userId)
-            .orderBy('createdAt', 'desc')
             .get();
 
         const profiles = [];
@@ -72,6 +71,13 @@ export async function getBusinessProfiles(userId) {
                 id: doc.id,
                 ...doc.data()
             });
+        });
+
+        // Sort in JavaScript instead of Firestore
+        profiles.sort((a, b) => {
+            const dateA = a.createdAt?.toDate?.() || new Date(0);
+            const dateB = b.createdAt?.toDate?.() || new Date(0);
+            return dateB - dateA;
         });
 
         return profiles;
