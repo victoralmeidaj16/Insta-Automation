@@ -13,7 +13,7 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
     try {
-        const { mode, prompt, aspectRatio, images, prompts } = req.body;
+        const { mode, prompt, aspectRatio, images, prompts, businessProfileId } = req.body;
 
         console.log('💾 Salvando no histórico:', { userId: req.userId, mode, imagesCount: images?.length });
 
@@ -43,6 +43,7 @@ router.post('/', async (req, res) => {
             aspectRatio,
             images,
             prompts,
+            businessProfileId,
         });
 
         res.status(201).json({
@@ -60,13 +61,14 @@ router.post('/', async (req, res) => {
  */
 router.get('/', async (req, res) => {
     try {
-        const { limit, offset, mode, aspectRatio } = req.query;
+        const { limit, offset, mode, aspectRatio, businessProfileId } = req.query;
 
         const options = {
             limit: limit ? parseInt(limit) : 20,
             offset: offset ? parseInt(offset) : 0,
             mode,
             aspectRatio,
+            businessProfileId,
         };
 
         console.log('📖 Buscando histórico:', { userId: req.userId, options });

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BackButton from '@/components/BackButton';
+import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -22,6 +23,7 @@ interface CarouselCard {
 
 export default function GeneratePage() {
     const router = useRouter();
+    const { profiles, selectedProfile, setSelectedProfile } = useBusinessProfile();
 
     // Simple mode states
     const [prompt, setPrompt] = useState('');
@@ -41,6 +43,16 @@ export default function GeneratePage() {
     useEffect(() => {
         fetchScheduledPosts();
     }, []);
+
+    // Auto-load profile preferences when profile is selected
+    useEffect(() => {
+        if (selectedProfile?.aiPreferences) {
+            const defaultRatio = selectedProfile.aiPreferences.defaultAspectRatio;
+            if (defaultRatio && ['1:1', '4:5', '16:9', '9:16'].includes(defaultRatio)) {
+                setAspectRatio(defaultRatio as '1:1' | '4:5' | '16:9' | '9:16');
+            }
+        }
+    }, [selectedProfile]);
 
     useEffect(() => {
         // Reset carousel when switching modes
@@ -272,6 +284,82 @@ export default function GeneratePage() {
                 </div>
 
                 <h1 className="mb-lg">Ai dark plataform</h1>
+
+                {/* Business Profile Selector */}
+                {profiles.length > 0 && (
+                    <section className="card-glass" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+                        <h3 style={{ marginBottom: '1rem', color: '#a78bfa' }}>Selecionar Perfil de Negócio</h3>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '1rem'
+                        }}>
+                            {profiles.map(profile => (
+                                <div
+                                    key={profile.id}
+                                    onClick={() => setSelectedProfile(profile)}
+                                    className="card"
+                                    style={{
+                                        cursor: 'pointer',
+                                        background: selectedProfile?.id === profile.id
+                                            ? `linear-gradient(135deg, ${profile.branding?.primaryColor}40 0%, ${profile.branding?.secondaryColor}40 100%)`
+                                            : 'rgba(255, 255, 255, 0.03)',
+                                        border: `2px solid ${selectedProfile?.id === profile.id ? profile.branding?.primaryColor : 'rgba(255, 255, 255, 0.1)'}`,
+                                        transition: 'all 0.3s',
+                                        textAlign: 'center',
+                                        padding: '1rem'
+                                    }}
+                                >
+                                    <div style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '50%',
+                                        background: `linear-gradient(135deg, ${profile.branding?.primaryColor} 0%, ${profile.branding?.secondaryColor} 100%)`,
+                                        margin: '0 auto 0.75rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '1.25rem'
+                                    }}>
+                                        🏢
+                                    </div>
+                                    <h4 style={{ fontSize: '0.875rem', marginBottom: '0.25rem', color: profile.branding?.primaryColor }}>
+                                        {profile.name}
+                                    </h4>
+                                    {selectedProfile?.id === profile.id && (
+                                        <span style={{
+                                            fontSize: '0.75rem',
+                                            color: '#4ade80',
+                                            marginTop: '0.5rem',
+                                            display: 'block'
+                                        }}>
+                                            ✓ Selecionado
+                                        </span>
+                                    )}
+                                    <p style={{ fontSize: '0.625rem', color: '#71717a', marginTop: '0.5rem', margin: 0 }}>
+                                        {profile.aiPreferences?.defaultAspectRatio || '1:1'} | {profile.aiPreferences?.style || 'Padrão'}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                        {selectedProfile && (
+                            <div style={{
+                                marginTop: '1rem',
+                                padding: '1rem',
+                                background: `${selectedProfile.branding?.primaryColor}20`,
+                                borderRadius: '0.5rem',
+                                borderLeft: `3px solid ${selectedProfile.branding?.primaryColor}`
+                            }}>
+                                <p style={{ fontSize: '0.875rem', margin: 0 }}>
+                                    🎯 Gerando para: <strong style={{ color: selectedProfile.branding?.primaryColor }}>{selectedProfile.name}</strong>
+                                    {selectedProfile.aiPreferences?.style && (
+                                        <span style={{ marginLeft: '0.5rem', color: '#a1a1aa' }}>| Estilo: {selectedProfile.aiPreferences.style}</span>
+                                    )}
+                                </p>
+                            </div>
+                        )}
+                    </section>
+                )}
 
                 {view === 'generate' ? (
                     <>
