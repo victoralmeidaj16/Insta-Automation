@@ -124,8 +124,8 @@ export default function GeneratePage() {
         }
     };
 
-    // Generate image for a specific card
-    const handleGenerateImageForCard = async (cardIndex: number) => {
+    // Generate image for a specific card with retry logic
+    const handleGenerateImageForCard = async (cardIndex: number, retryCount: number = 0) => {
         const card = carouselCards[cardIndex];
         if (!card || card.image) return;
 
@@ -144,23 +144,61 @@ export default function GeneratePage() {
             const response = await api.post('/api/ai/generate-single-image', {
                 prompt: enhancedPrompt,
                 aspectRatio
+            }, {
+                timeout: 90000 // 90 seconds timeout
             });
 
             if (response.data.success) {
-                updatedCards[cardIndex] = {
+                const newCards = [...carouselCards];
+                newCards[cardIndex] = {
                     ...card,
                     image: response.data.image,
                     isGeneratingImage: false
                 };
-                setCarouselCards(updatedCards);
-                toast.success(`Imagem do card ${cardIndex + 1} gerada!`);
+                setCarouselCards(newCards);
+                toast.success(`✅ Imagem do card ${cardIndex + 1} gerada!`);
             }
         } catch (error: any) {
-            console.error('Error generating image:', error);
-            updatedCards[cardIndex] = { ...card, isGeneratingImage: false };
-            setCarouselCards(updatedCards);
-            toast.error(error.response?.data?.error || 'Erro ao gerar imagem');
+            console.error(`Error generating image for card ${cardIndex + 1}:`, error);
+
+            // Retry logic - max 3 attempts
+            if (retryCount < 2) {
+                const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+                toast.error(`⚠️ Erro no card ${cardIndex + 1}, tentando novamente em ${delay / 1000}s...`);
+
+                setTimeout(() => {
+                    handleGenerateImageForCard(cardIndex, retryCount + 1);
+                }, delay);
+            } else {
+                const newCards = [...carouselCards];
+                newCards[cardIndex] = { ...card, isGeneratingImage: false };
+                setCarouselCards(newCards);
+                toast.error(`❌ Falha ao gerar card ${cardIndex + 1} após 3 tentativas`);
+            }
         }
+    };
+
+    // Generate all carousel images at once
+    const handleGenerateAllImages = async () => {
+        const cardsToGenerate = carouselCards.filter(c => !c.image);
+
+        if (cardsToGenerate.length === 0) {
+            toast.error('Todas as imagens já foram geradas!');
+            return;
+        }
+
+        toast.loading(`🎨 Gerando ${cardsToGenerate.length} imagens...`, { id: 'bulk-generation' });
+
+        // Generate sequentially to avoid rate limits
+        for (let i = 0; i < carouselCards.length; i++) {
+            if (!carouselCards[i].image) {
+                await handleGenerateImageForCard(i);
+                // Small delay between generations
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
+        toast.success(`✅ Todas as imagens foram geradas!`, { id: 'bulk-generation' });
     };
 
     // Send all generated images to create post
@@ -544,12 +582,30 @@ export default function GeneratePage() {
                                         onClick={handleGenerateAllPrompts}
                                         disabled={isGeneratingPrompt || !carouselDescription || carouselCards.length > 0}
                                         className="btn btn-primary"
-                                        style={{ width: '100%', marginBottom: '1rem' }}
+                                        style={{ width: '100%', marginBottom: '0.5rem' }}
                                     >
                                         {isGeneratingPrompt ? `🤖 Gerando ${imageCount} prompts...` :
                                             carouselCards.length > 0 ? `✓ ${imageCount} prompts gerados` :
                                                 `🚀 Gerar ${imageCount} Prompts`}
                                     </button>
+
+                                    {/* Bulk Image Generation Button */}
+                                    {carouselCards.length > 0 && carouselCards.some(c => !c.image) && (
+                                        <button
+                                            onClick={handleGenerateAllImages}
+                                            disabled={carouselCards.every(c => c.isGeneratingImage)}
+                                            className="btn"
+                                            style={{
+                                                width: '100%',
+                                                marginBottom: '1rem',
+                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                border: 'none',
+                                                color: '#fff'
+                                            }}
+                                        >
+                                            🎨 Gerar Todas as Imagens ({carouselCards.filter(c => !c.image).length} pendentes)
+                                        </button>
+                                    )}
 
                                     {/* Carousel Cards */}
                                     {carouselCards.length > 0 && (
