@@ -901,8 +901,101 @@ export default function GeneratePage() {
                                         whiteSpace: 'pre-wrap'
                                     }}>
                                         {generatedCaption}
-                                        <p style={{ fontSize: '0.75rem', color: '#71717a', marginBottom: '0.5rem' }}>Descrição:</p>
-                                        <p style={{ fontSize: '0.875rem', color: '#d4d4d8' }}>{carouselDescription}</p>
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Preview Modal */}
+                {showPreview && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.9)',
+                        zIndex: 1600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '2rem'
+                    }}
+                        onClick={() => setShowPreview(false)}
+                    >
+                        <div
+                            className="card-glass"
+                            style={{ maxWidth: '800px', width: '100%', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex-between mb-md">
+                                <h2>👁️ Preview do Carrossel</h2>
+                                <button
+                                    onClick={() => setShowPreview(false)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#fff',
+                                        fontSize: '1.5rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <p style={{ color: '#a1a1aa', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                                {carouselCards.filter(c => c.image).length} imagens prontas para postar
+                            </p>
+
+                            {/* Images Grid Preview */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                                gap: '1rem',
+                                marginBottom: '1.5rem'
+                            }}>
+                                {carouselCards.filter(c => c.image).map((card, idx) => (
+                                    <div key={idx} style={{ position: 'relative' }}>
+                                        <img
+                                            src={card.image!}
+                                            alt={`Card ${idx + 1}`}
+                                            style={{
+                                                width: '100%',
+                                                height: '200px',
+                                                objectFit: 'cover',
+                                                borderRadius: '0.5rem',
+                                                border: '2px solid rgba(124, 58, 237, 0.3)'
+                                            }}
+                                        />
+                                        <span style={{
+                                            position: 'absolute',
+                                            top: '0.5rem',
+                                            left: '0.5rem',
+                                            background: 'rgba(0,0,0,0.7)',
+                                            color: '#fff',
+                                            padding: '0.25rem 0.5rem',
+                                            borderRadius: '0.25rem',
+                                            fontSize: '0.75rem'
+                                        }}>
+                                            {idx + 1}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Description Preview */}
+                            {carouselDescription && (
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.05)',
+                                    padding: '1rem',
+                                    borderRadius: '0.5rem',
+                                    marginBottom: '1.5rem'
+                                }}>
+                                    <p style={{ fontSize: '0.75rem', color: '#71717a', marginBottom: '0.5rem' }}>Descrição:</p>
+                                    <p style={{ fontSize: '0.875rem', color: '#d4d4d8' }}>{carouselDescription}</p>
                                 </div>
                             )}
 
