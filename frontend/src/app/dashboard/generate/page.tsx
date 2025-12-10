@@ -53,6 +53,9 @@ export default function GeneratePage() {
     const [generatedCaption, setGeneratedCaption] = useState('');
     const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
 
+    // Preview modal state
+    const [showPreview, setShowPreview] = useState(false);
+
     useEffect(() => {
         fetchScheduledPosts();
 
@@ -63,7 +66,37 @@ export default function GeneratePage() {
             localStorage.removeItem('reusedPrompt');
             toast.success('📋 Prompt carregado do histórico!');
         }
+
+        // Load draft from localStorage
+        const savedDraft = localStorage.getItem('carouselDraft');
+        if (savedDraft) {
+            const draft = JSON.parse(savedDraft);
+            setCarouselDescription(draft.description || '');
+            setCarouselCards(draft.cards || []);
+            setAspectRatio(draft.aspectRatio || '1:1');
+            setImageCount(draft.imageCount || 1);
+            toast.success('📄 Rascunho carregado!');
+        }
     }, []);
+
+    // Auto-save draft every 5 seconds
+    useEffect(() => {
+        if (carouselCards.length > 0 || carouselDescription) {
+            const saveInterval = setInterval(() => {
+                const draft = {
+                    description: carouselDescription,
+                    cards: carouselCards,
+                    aspectRatio,
+                    imageCount,
+                    lastSaved: new Date().toISOString()
+                };
+                localStorage.setItem('carouselDraft', JSON.stringify(draft));
+                console.log('💾 Auto-save: Draft saved');
+            }, 5000); // Save every 5 seconds
+
+            return () => clearInterval(saveInterval);
+        }
+    }, [carouselDescription, carouselCards, aspectRatio, imageCount]);
 
     // Auto-load profile preferences when profile is selected
     useEffect(() => {
@@ -210,6 +243,14 @@ export default function GeneratePage() {
             return;
         }
 
+        // Open preview modal first
+        setShowPreview(true);
+    };
+
+    // Confirm and navigate to create post
+    const handleConfirmPost = () => {
+        const images = carouselCards.filter(c => c.image).map(c => c.image!);
+
         const params = new URLSearchParams({
             caption: `Generated carousel: ${carouselDescription.substring(0, 100)}...`,
             mediaUrls: images.join(','),
@@ -219,6 +260,10 @@ export default function GeneratePage() {
         if (selectedDate) {
             params.append('scheduledFor', `${selectedDate}T12:00`);
         }
+
+        // Clear draft after successful send
+        localStorage.removeItem('carouselDraft');
+        toast.success('✅ Rascunho limpo!');
 
         router.push(`/dashboard/create-post?${params.toString()}`);
     };
@@ -856,9 +901,28 @@ export default function GeneratePage() {
                                         whiteSpace: 'pre-wrap'
                                     }}>
                                         {generatedCaption}
-                                    </p>
+                                        <p style={{ fontSize: '0.75rem', color: '#71717a', marginBottom: '0.5rem' }}>Descrição:</p>
+                                        <p style={{ fontSize: '0.875rem', color: '#d4d4d8' }}>{carouselDescription}</p>
                                 </div>
                             )}
+
+                            {/* Action Buttons */}
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button
+                                    onClick={() => setShowPreview(false)}
+                                    className="btn btn-secondary"
+                                    style={{ flex: 1 }}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleConfirmPost}
+                                    className="btn btn-primary"
+                                    style={{ flex: 1, background: '#22c55e' }}
+                                >
+                                    ✅ Confirmar e Criar Post
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
