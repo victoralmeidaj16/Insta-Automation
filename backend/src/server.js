@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { authenticate } from './middleware/auth.js';
+import { loggingMiddleware, errorLoggingMiddleware } from './middleware/logging.js';
 import accountsRouter from './routes/accounts.js';
 import postsRouter from './routes/posts.js';
 import uploadRouter from './routes/upload.js';
@@ -18,6 +19,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middlewares
+app.use(loggingMiddleware); // Add logging middleware first
 app.use(cors({
     origin: function (origin, callback) {
         const allowedOrigins = [
@@ -72,6 +74,7 @@ app.use((req, res) => {
 });
 
 // Error handler global
+app.use(errorLoggingMiddleware); // Log errors before handling
 app.use((error, req, res, next) => {
     console.error('❌ Erro não tratado:', error);
     res.status(500).json({
