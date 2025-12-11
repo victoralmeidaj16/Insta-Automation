@@ -26,6 +26,16 @@ export default function CalendarPage() {
     });
     const [pendingDrop, setPendingDrop] = useState(null);
 
+    // Edit Modal
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingPost, setEditingPost] = useState(null);
+    const [editData, setEditData] = useState({
+        date: null,
+        time: '10:00',
+        type: 'static',
+        caption: ''
+    });
+
     useEffect(() => {
         loadAccounts();
         loadPosts();
@@ -231,6 +241,88 @@ export default function CalendarPage() {
             console.error('❌ Erro completo:', error);
             const errorMsg = error.response?.data?.error || error.message || 'Erro desconhecido';
             toast.error(`❌ Erro ao agendar: ${errorMsg}`);
+        }
+    };
+
+    // Open edit modal for existing post
+    const handleEditPost = (post) => {
+        const postDate = new Date(post.scheduledFor);
+        const hours = String(postDate.getHours()).padStart(2, '0');
+        const minutes = String(postDate.getMinutes()).padStart(2, '0');
+
+        setEditingPost(post);
+        setEditData({
+            date: postDate,
+            time: `${hours}:${minutes}`,
+            type: post.type,
+            caption: post.caption || ''
+        });
+        setShowEditModal(true);
+    };
+
+    // Update existing post
+    const handleUpdatePost = async () => {
+        if (!editingPost) return;
+
+        try {
+            const [hours, minutes] = editData.time.split(':');
+            const scheduledDate = new Date(editData.date);
+            scheduledDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+            const updateData = {
+                type: editData.type,
+                caption: editData.caption,
+                scheduledFor: scheduledDate.toISOString()
+            };
+
+            console.log('📤 Atualizando post:', updateData);
+
+            await api.put(`/api/posts/${editingPost.id}`, updateData);
+
+            toast.success('✅ Post atualizado com sucesso!');
+            await loadPosts();
+
+            setShowEditModal(false);
+            setEditingPost(null);
+            setEditData({
+                date: null,
+                time: '10:00',
+                type: 'static',
+                caption: ''
+            });
+        } catch (error) {
+            console.error('❌ Erro ao atualizar:', error);
+            toast.error(`❌ Erro ao atualizar: ${error.response?.data?.error || error.message}`);
+        }
+    };
+
+    // Delete post
+    const handleDeletePost = async () => {
+        if (!editingPost) return;
+
+        if (!confirm('Tem certeza que deseja excluir este post agendado?')) {
+            return;
+        }
+
+        try {
+            console.log('🗑️ Deletando post:', editingPost.id);
+
+            await api.delete(`/api/posts/${editingPost.id}`);
+
+            toast.success('🗑️ Post excluído com sucesso!');
+            await loadPosts();
+
+            setShowEditModal(false);
+            setEditingPost(null);
+            setEditData({
+                date: null,
+                time: '10:00',
+                type: 'static',
+                caption: ''
+            });
+        } catch (error) {
+            console.error('❌ Erro ao deletar:', error);
+            toast.error(`❌ Erro ao deletar: ${error.response?.data?.error || error.message}`);
         }
     };
 
@@ -471,6 +563,7 @@ export default function CalendarPage() {
                                                     {postsForDate.map(post => (
                                                         <div
                                                             key={post.id}
+                                                            onClick={() => handleEditPost(post)}
                                                             style={{
                                                                 fontSize: '0.65rem',
                                                                 padding: '0.25rem',
@@ -480,9 +573,19 @@ export default function CalendarPage() {
                                                                 overflow: 'hidden',
                                                                 display: 'flex',
                                                                 alignItems: 'center',
-                                                                gap: '0.35rem'
+                                                                gap: '0.35rem',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.2s ease'
                                                             }}
-                                                            title={post.caption || 'Post agendado'}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.background = 'rgba(142, 68, 173, 0.5)';
+                                                                e.currentTarget.style.transform = 'scale(1.02)';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.background = 'rgba(142, 68, 173, 0.3)';
+                                                                e.currentTarget.style.transform = 'scale(1)';
+                                                            }}
+                                                            title="Clique para editar"
                                                         >
                                                             {/* Thumbnail */}
                                                             {post.mediaUrls && post.mediaUrls[0] && (
@@ -666,6 +769,130 @@ export default function CalendarPage() {
                                     }}
                                     className="btn btn-secondary"
                                     style={{ flex: 1 }}
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Edit Post Modal */}
+                {showEditModal && editingPost && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.8)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 2000,
+                        padding: '2rem'
+                    }}>
+                        <div className="card-glass" style={{
+                            maxWidth: '500px',
+                            width: '100%',
+                            padding: '2rem',
+                            position: 'relative'
+                        }}>
+                            <h2 className="mb-md">✏️ Editar Post Agendado</h2>
+
+                            <p style={{
+                                fontSize: '0.875rem',
+                                color: 'var(--text-tertiary)',
+                                marginBottom: '1.5rem'
+                            }}>
+                                ID: <strong style={{ color: '#8e44ad', fontSize: '0.75rem' }}>
+                                    {editingPost.id.substring(0, 8)}...
+                                </strong>
+                            </p>
+
+                            {/* Tipo de Post */}
+                            <div className="input-group">
+                                <label className="input-label">Tipo de Post</label>
+                                <select
+                                    className="input"
+                                    value={editData.type}
+                                    onChange={(e) => setEditData({ ...editData, type: e.target.value })}
+                                >
+                                    <option value="static">📸 Post Estático (1 imagem)</option>
+                                    <option value="carousel">🎠 Carrossel (múltiplas imagens)</option>
+                                    <option value="video">🎥 Vídeo</option>
+                                    <option value="reel">🎬 Reel</option>
+                                    <option value="story">📖 Story</option>
+                                </select>
+                            </div>
+
+                            {/* Horário */}
+                            <div className="input-group">
+                                <label className="input-label">Horário</label>
+                                <input
+                                    type="time"
+                                    className="input"
+                                    value={editData.time}
+                                    onChange={(e) => setEditData({ ...editData, time: e.target.value })}
+                                />
+                                <small style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.25rem', display: 'block' }}>
+                                    Data: {editData.date?.toLocaleDateString('pt-BR')}
+                                </small>
+                            </div>
+
+                            {/* Legenda */}
+                            {editData.type !== 'story' && (
+                                <div className="input-group">
+                                    <label className="input-label">Legenda (opcional)</label>
+                                    <textarea
+                                        className="input"
+                                        value={editData.caption}
+                                        onChange={(e) => setEditData({ ...editData, caption: e.target.value })}
+                                        placeholder="Escreva a legenda do post..."
+                                        rows={4}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Botões */}
+                            <div className="flex gap-md mt-lg" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {/* Atualizar */}
+                                <button
+                                    onClick={handleUpdatePost}
+                                    className="btn btn-primary"
+                                    style={{ width: '100%' }}
+                                >
+                                    ✅ Salvar Alterações
+                                </button>
+
+                                {/* Deletar */}
+                                <button
+                                    onClick={handleDeletePost}
+                                    className="btn"
+                                    style={{
+                                        width: '100%',
+                                        background: '#ef4444',
+                                        border: 'none',
+                                        color: '#fff'
+                                    }}
+                                >
+                                    🗑️ Excluir Post
+                                </button>
+
+                                {/* Cancelar */}
+                                <button
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditingPost(null);
+                                        setEditData({
+                                            date: null,
+                                            time: '10:00',
+                                            type: 'static',
+                                            caption: ''
+                                        });
+                                    }}
+                                    className="btn btn-secondary"
+                                    style={{ width: '100%' }}
                                 >
                                     Cancelar
                                 </button>

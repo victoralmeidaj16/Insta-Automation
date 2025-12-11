@@ -103,6 +103,54 @@ router.get('/:id', async (req, res) => {
 });
 
 /**
+ * PUT /api/posts/:id - Atualizar post agendado
+ */
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { type, caption, scheduledFor } = req.body;
+
+        const post = await getPost(id);
+
+        // Verificar se o post pertence ao usuário
+        if (post.userId !== req.userId) {
+            return res.status(403).json({
+                error: 'Acesso negado',
+            });
+        }
+
+        // Só permite atualizar posts pendentes
+        if (post.status !== 'pending') {
+            return res.status(400).json({
+                error: 'Só é possível atualizar posts pendentes',
+            });
+        }
+
+        // Atualizar no Firestore
+        const db = (await import('../config/firebase.js')).db;
+        const updateData = {
+            updatedAt: new Date()
+        };
+
+        if (type) updateData.type = type;
+        if (caption !== undefined) updateData.caption = caption;
+        if (scheduledFor) updateData.scheduledFor = scheduledFor;
+
+        await db.collection('posts').doc(id).update(updateData);
+
+        const updatedPost = await getPost(id);
+
+        res.json({
+            message: 'Post atualizado com sucesso',
+            post: updatedPost
+        });
+    } catch (error) {
+        console.error('❌ Erro ao atualizar post:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
  * DELETE /api/posts/:id - Cancelar/deletar post
  */
 router.delete('/:id', async (req, res) => {
