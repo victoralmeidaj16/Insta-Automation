@@ -381,6 +381,30 @@ export default function GeneratePage() {
         }
     };
 
+    // Send to calendar media library
+    const handleSendToCalendar = () => {
+        const images = carouselCards.filter(c => c.image).map(c => c.image!);
+
+        if (images.length === 0) {
+            toast.error('Gere pelo menos uma imagem primeiro');
+            return;
+        }
+
+        // Save to localStorage for calendar to pick up
+        const calendarMedia = {
+            type: images.length > 1 ? 'carousel' : 'static',
+            mediaUrls: images,
+            caption: generatedCaption || carouselDescription.substring(0, 100) || '',
+            timestamp: Date.now()
+        };
+
+        localStorage.setItem('pendingCalendarMedia', JSON.stringify(calendarMedia));
+        toast.success(`✅ ${images.length} imagem(ns) pronta(s) para o calendário!`);
+
+        // Navigate to calendar
+        router.push('/dashboard/calendar');
+    };
+
 
     const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const today = new Date();
@@ -771,6 +795,13 @@ export default function GeneratePage() {
                                                         style={{ flex: '1 1 auto', background: '#f59e0b', border: 'none', color: '#fff', cursor: 'pointer' }}
                                                     >
                                                         💾 Salvar no Histórico
+                                                    </button>
+                                                    <button
+                                                        onClick={handleSendToCalendar}
+                                                        className="btn"
+                                                        style={{ flex: '1 1 auto', background: '#8e44ad', border: 'none', color: '#fff', cursor: 'pointer' }}
+                                                    >
+                                                        📅 Enviar para Calendário ({carouselCards.filter(c => c.image).length})
                                                     </button>
                                                     <button
                                                         onClick={handleSendToPost}

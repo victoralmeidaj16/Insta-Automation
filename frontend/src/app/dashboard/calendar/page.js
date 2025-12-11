@@ -29,6 +29,7 @@ export default function CalendarPage() {
     useEffect(() => {
         loadAccounts();
         loadPosts();
+        loadPendingMedia();
     }, []);
 
     useEffect(() => {
@@ -36,6 +37,28 @@ export default function CalendarPage() {
             loadPosts();
         }
     }, [selectedAccount, currentDate]);
+
+    const loadPendingMedia = () => {
+        const pendingMedia = localStorage.getItem('pendingCalendarMedia');
+        if (pendingMedia) {
+            try {
+                const media = JSON.parse(pendingMedia);
+                const newMediaItem = {
+                    id: media.timestamp.toString(),
+                    type: media.type,
+                    mediaUrls: media.mediaUrls,
+                    caption: media.caption,
+                    thumbnail: media.mediaUrls[0]
+                };
+                setMediaLibrary(prev => [...prev, newMediaItem]);
+                localStorage.removeItem('pendingCalendarMedia');
+                toast.success(`✅ ${media.mediaUrls.length} imagem(ns) do AI Generator adicionada(s)!`);
+                console.log('📥 Mídia do AI Generator carregada:', newMediaItem);
+            } catch (error) {
+                console.error('Erro ao carregar mídia pendente:', error);
+            }
+        }
+    };
 
     const loadAccounts = async () => {
         try {
@@ -450,25 +473,73 @@ export default function CalendarPage() {
                                                             key={post.id}
                                                             style={{
                                                                 fontSize: '0.65rem',
-                                                                padding: '0.25rem 0.5rem',
+                                                                padding: '0.25rem',
                                                                 background: 'rgba(142, 68, 173, 0.3)',
                                                                 borderRadius: 'var(--radius-sm)',
                                                                 borderLeft: '3px solid #8e44ad',
                                                                 overflow: 'hidden',
-                                                                textOverflow: 'ellipsis',
-                                                                whiteSpace: 'nowrap'
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.35rem'
                                                             }}
                                                             title={post.caption || 'Post agendado'}
                                                         >
-                                                            {post.type === 'carousel' ? '🎠' :
-                                                                post.type === 'video' ? '🎥' :
-                                                                    post.type === 'reel' ? '🎬' :
-                                                                        post.type === 'story' ? '📖' : '📸'}
-                                                            {' '}
-                                                            {new Date(post.scheduledFor).toLocaleTimeString('pt-BR', {
-                                                                hour: '2-digit',
-                                                                minute: '2-digit'
-                                                            })}
+                                                            {/* Thumbnail */}
+                                                            {post.mediaUrls && post.mediaUrls[0] && (
+                                                                <img
+                                                                    src={post.mediaUrls[0]}
+                                                                    alt="Post"
+                                                                    style={{
+                                                                        width: '28px',
+                                                                        height: '28px',
+                                                                        objectFit: 'cover',
+                                                                        borderRadius: '3px',
+                                                                        flexShrink: 0
+                                                                    }}
+                                                                />
+                                                            )}
+
+                                                            {/* Info */}
+                                                            <div style={{
+                                                                flex: 1,
+                                                                overflow: 'hidden',
+                                                                display: 'flex',
+                                                                flexDirection: 'column',
+                                                                gap: '2px'
+                                                            }}>
+                                                                <div style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.25rem',
+                                                                    whiteSpace: 'nowrap',
+                                                                    overflow: 'hidden',
+                                                                    textOverflow: 'ellipsis'
+                                                                }}>
+                                                                    <span>
+                                                                        {post.type === 'carousel' ? '🎠' :
+                                                                            post.type === 'video' ? '🎥' :
+                                                                                post.type === 'reel' ? '🎬' :
+                                                                                    post.type === 'story' ? '📖' : '📸'}
+                                                                    </span>
+                                                                    <span style={{ fontWeight: '600' }}>
+                                                                        {new Date(post.scheduledFor).toLocaleTimeString('pt-BR', {
+                                                                            hour: '2-digit',
+                                                                            minute: '2-digit'
+                                                                        })}
+                                                                    </span>
+                                                                </div>
+                                                                {post.caption && (
+                                                                    <div style={{
+                                                                        fontSize: '0.6rem',
+                                                                        color: 'rgba(255,255,255,0.7)',
+                                                                        whiteSpace: 'nowrap',
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis'
+                                                                    }}>
+                                                                        {post.caption}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
