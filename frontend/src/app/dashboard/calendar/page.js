@@ -117,6 +117,7 @@ export default function CalendarPage() {
 
     // Drag and Drop handlers
     const handleDragStart = (e, item) => {
+        console.log('🟢 DRAG START:', item);
         setDraggedItem(item);
         e.dataTransfer.effectAllowed = 'copy';
     };
@@ -124,23 +125,25 @@ export default function CalendarPage() {
     const handleDragOver = (e, date) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
+        console.log('🟡 DRAG OVER:', date.toLocaleDateString());
+        // Sempre atualiza - quando mudar de card, atualiza automaticamente
         setHoveredDate(date);
-    };
-
-    const handleDragLeave = () => {
-        setHoveredDate(null);
     };
 
     const handleDrop = async (e, date) => {
         e.preventDefault();
+        e.stopPropagation();
+        console.log('🔴 DROP DISPARADO!', date);
         setHoveredDate(null);
 
         if (!draggedItem || !date) {
+            console.log('❌ Sem draggedItem ou date');
             toast.error('⚠️ Erro ao soltar mídia');
             return;
         }
 
         if (!selectedAccount) {
+            console.log('❌ Sem conta selecionada');
             toast.error('⚠️ Selecione uma conta primeiro');
             return;
         }
@@ -413,7 +416,6 @@ export default function CalendarPage() {
                                     <div
                                         key={index}
                                         onDragOver={(e) => date && !isPast && handleDragOver(e, date)}
-                                        onDragLeave={handleDragLeave}
                                         onDrop={(e) => date && !isPast && handleDrop(e, date)}
                                         style={{
                                             minHeight: '120px',
