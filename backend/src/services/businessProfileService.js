@@ -13,7 +13,7 @@ import { db } from '../config/firebase.js';
  */
 export async function createBusinessProfile(userId, profileData) {
     try {
-        const { name, description, branding, aiPreferences } = profileData;
+        const { name, description, instagram, branding, aiPreferences } = profileData;
 
         // Validate required fields
         if (!name || !userId) {
@@ -24,16 +24,22 @@ export async function createBusinessProfile(userId, profileData) {
             userId,
             name,
             description: description || '',
+            instagram: {
+                username: instagram?.username || '',
+                password: instagram?.password || '' // TODO: Encrypt password before storing
+            },
             branding: {
                 primaryColor: branding?.primaryColor || '#8e44ad',
                 secondaryColor: branding?.secondaryColor || '#e74c3c',
                 logoUrl: branding?.logoUrl || null,
-                style: branding?.style || ''
+                style: branding?.style || '',
+                guidelines: branding?.guidelines || ''
             },
             aiPreferences: {
                 defaultAspectRatio: aiPreferences?.defaultAspectRatio || '1:1',
                 style: aiPreferences?.style || '',
                 tone: aiPreferences?.tone || '',
+                promptTemplate: aiPreferences?.promptTemplate || '',
                 favoritePrompts: aiPreferences?.favoritePrompts || []
             },
             createdAt: new Date(),

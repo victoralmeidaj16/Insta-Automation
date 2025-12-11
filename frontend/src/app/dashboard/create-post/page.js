@@ -155,13 +155,64 @@ function CreatePostContent() {
                     <div className="input-group">
                         <label className="input-label">Mídia(s)</label>
                         <div className="flex flex-col gap-sm">
+                            <label
+                                htmlFor="file-upload"
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.75rem',
+                                    padding: '1.5rem',
+                                    border: '2px dashed rgba(142, 68, 173, 0.4)',
+                                    borderRadius: 'var(--radius-md)',
+                                    background: 'rgba(142, 68, 173, 0.05)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    ':hover': {
+                                        background: 'rgba(142, 68, 173, 0.1)',
+                                        borderColor: 'rgba(142, 68, 173, 0.6)'
+                                    }
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'rgba(142, 68, 173, 0.1)';
+                                    e.currentTarget.style.borderColor = 'rgba(142, 68, 173, 0.6)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'rgba(142, 68, 173, 0.05)';
+                                    e.currentTarget.style.borderColor = 'rgba(142, 68, 173, 0.4)';
+                                }}
+                            >
+                                <svg
+                                    width="32"
+                                    height="32"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    style={{ color: '#8e44ad' }}
+                                >
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ fontSize: '1rem', fontWeight: '500', marginBottom: '0.25rem', color: '#8e44ad' }}>
+                                        {formData.files.length > 0 ? `${formData.files.length} arquivo(s) selecionado(s)` : 'Escolher Arquivo'}
+                                    </p>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                                        Clique ou arraste {formData.type === 'carousel' ? 'seus arquivos' : 'seu arquivo'} aqui
+                                    </p>
+                                </div>
+                            </label>
                             <input
+                                id="file-upload"
                                 type="file"
                                 accept="image/*,video/mp4"
                                 multiple={formData.type === 'carousel'}
                                 onChange={handleFileChange}
-                                className="input"
-                                style={{ padding: '0.5rem' }}
+                                style={{ display: 'none' }}
                                 required={formData.externalMediaUrls.length === 0}
                             />
                             {formData.externalMediaUrls.length > 0 && (
@@ -179,16 +230,18 @@ function CreatePostContent() {
                         )}
                     </div>
 
-                    <div className="input-group">
-                        <label className="input-label">Legenda</label>
-                        <textarea
-                            className="input"
-                            value={formData.caption}
-                            onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
-                            placeholder="Escreva sua legenda aqui..."
-                            rows={4}
-                        />
-                    </div>
+                    {formData.type !== 'story' && (
+                        <div className="input-group">
+                            <label className="input-label">Legenda</label>
+                            <textarea
+                                className="input"
+                                value={formData.caption}
+                                onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
+                                placeholder="Escreva sua legenda aqui..."
+                                rows={4}
+                            />
+                        </div>
+                    )}
 
                     <div className="input-group">
                         <label className="input-label">Agendar (opcional)</label>

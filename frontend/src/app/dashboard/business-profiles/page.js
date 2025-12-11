@@ -15,6 +15,10 @@ export default function BusinessProfilesPage() {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
+        instagram: {
+            username: '',
+            password: ''
+        },
         branding: {
             primaryColor: '#8e44ad',
             secondaryColor: '#e74c3c',
@@ -43,6 +47,7 @@ export default function BusinessProfilesPage() {
             setFormData({
                 name: profile.name,
                 description: profile.description || '',
+                instagram: profile.instagram || { username: '', password: '' },
                 branding: profile.branding || formData.branding,
                 aiPreferences: profile.aiPreferences || formData.aiPreferences
             });
@@ -51,6 +56,10 @@ export default function BusinessProfilesPage() {
             setFormData({
                 name: '',
                 description: '',
+                instagram: {
+                    username: '',
+                    password: ''
+                },
                 branding: {
                     primaryColor: '#8e44ad',
                     secondaryColor: '#e74c3c',
@@ -286,6 +295,40 @@ export default function BusinessProfilesPage() {
                                         placeholder="Breve descrição do negócio"
                                         rows={2}
                                     />
+                                </div>
+
+                                {/* Instagram Credentials */}
+                                <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem', fontSize: '1.25rem' }}>📱 Credenciais do Instagram</h3>
+
+                                <div className="input-group">
+                                    <label className="input-label">Usuário/Email do Instagram</label>
+                                    <input
+                                        className="input"
+                                        type="text"
+                                        value={formData.instagram.username}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            instagram: { ...formData.instagram, username: e.target.value }
+                                        })}
+                                        placeholder="@username ou email@example.com"
+                                    />
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Senha do Instagram</label>
+                                    <input
+                                        className="input"
+                                        type="password"
+                                        value={formData.instagram.password}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            instagram: { ...formData.instagram, password: e.target.value }
+                                        })}
+                                        placeholder="Senha da conta Instagram"
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        🔒 Suas credenciais serão armazenadas de forma segura
+                                    </small>
                                 </div>
 
                                 {/* AI Preferences */}
