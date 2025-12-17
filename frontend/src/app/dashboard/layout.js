@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }) {
                 <BusinessProfileProvider>
                     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
                         <DashboardHeader />
-                        <main>
+                        <main style={{ paddingTop: '80px' }}>
                             {children}
                         </main>
                     </div>

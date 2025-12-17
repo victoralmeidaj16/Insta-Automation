@@ -166,6 +166,7 @@ export default function DashboardHeader() {
     const navItems = [
         { href: '/dashboard', label: 'Dashboard', icon: '📊' },
         { href: '/dashboard/generate', label: 'AI Generator', icon: '✨' },
+        { href: '/dashboard/library', label: 'Library', icon: '📚' },
         { href: '/dashboard/calendar', label: 'Calendário', icon: '📅' },
         { href: '/dashboard/history', label: 'Histórico', icon: '🕒' },
         { href: '/dashboard/create-post', label: 'Criar Post', icon: '📸' },

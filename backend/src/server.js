@@ -9,6 +9,7 @@ import uploadRouter from './routes/upload.js';
 import aiRouter from './routes/ai.js';
 import historyRouter from './routes/history.js';
 import businessProfilesRouter from './routes/business-profiles.js';
+import libraryRouter from './routes/library.js';
 import { startScheduler } from './services/schedulerService.js';
 import { getQueueStats } from './queues/postQueue.js';
 
@@ -65,6 +66,7 @@ app.use('/api/upload', authenticate, uploadRouter);
 app.use('/api/ai', authenticate, aiRouter);
 app.use('/api/history', authenticate, historyRouter);
 app.use('/api/business-profiles', authenticate, businessProfilesRouter);
+app.use('/api/library', authenticate, libraryRouter);
 
 // Rota 404
 app.use((req, res) => {
