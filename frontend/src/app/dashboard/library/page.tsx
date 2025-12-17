@@ -787,6 +787,140 @@ export default function LibraryPage() {
                                 </button>
                             </div>
                         </div>
+                    </div>                
+                {/* Schedule Modal */}
+                {showScheduleModal && selectedItem && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0, 0, 0, 0.8)',
+                        backdropFilter: 'blur(4px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                        padding: '1rem'
+                    }}>
+                        <div style={{
+                            background: '#18181b',
+                            borderRadius: '1rem',
+                            padding: '2rem',
+                            maxWidth: '500px',
+                            width: '100%',
+                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}>
+                            <h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem' }}>📅 Agendar Publicação</h2>
+
+                            {/* Preview */}
+                            <div style={{
+                                marginBottom: '1.5rem',
+                                padding: '1rem',
+                                background: 'rgba(255, 255, 255, 0.03)',
+                                borderRadius: '0.5rem',
+                                border: '1px solid rgba(255, 255, 255, 0.05)'
+                            }}>
+                                <img
+                                    src={selectedItem.mediaUrls[0]}
+                                    alt="Preview"
+                                    style={{
+                                        width: '100%',
+                                        height: '200px',
+                                        objectFit: 'cover',
+                                        borderRadius: '0.5rem',
+                                        marginBottom: '0.5rem'
+                                    }}
+                                />
+                                {selectedItem.caption && (
+                                    <p style={{ fontSize: '0.875rem', color: '#d4d4d8', lineHeight: 1.5 }}>
+                                        {selectedItem.caption}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Date Input */}
+                            <div style={{ marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#d4d4d8' }}>
+                                    📅 Data
+                                </label>
+                                <input
+                                    type="date"
+                                    value={scheduleDate}
+                                    onChange={(e) => setScheduleDate(e.target.value)}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        background: '#27272a',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        borderRadius: '0.5rem',
+                                        color: '#fff',
+                                        fontSize: '0.95rem'
+                                    }}
+                                />
+                            </div>
+
+                            {/* Time Input */}
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#d4d4d8' }}>
+                                    ⏰ Hora
+                                </label>
+                                <input
+                                    type="time"
+                                    value={scheduleTime}
+                                    onChange={(e) => setScheduleTime(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        background: '#27272a',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        borderRadius: '0.5rem',
+                                        color: '#fff',
+                                        fontSize: '0.95rem'
+                                    }}
+                                />
+                            </div>
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button
+                                    onClick={handleScheduleSubmit}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.875rem',
+                                        background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                        border: 'none',
+                                        borderRadius: '0.5rem',
+                                        color: '#fff',
+                                        fontSize: '0.95rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    ✅ Confirmar Agendamento
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowScheduleModal(false);
+                                        setSelectedItem(null);
+                                    }}
+                                    style={{
+                                        padding: '0.875rem 1.5rem',
+                                        background: '#27272a',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        borderRadius: '0.5rem',
+                                        color: '#a1a1aa',
+                                        fontSize: '0.95rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
 
