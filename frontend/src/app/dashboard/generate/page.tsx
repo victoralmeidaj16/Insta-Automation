@@ -138,7 +138,10 @@ export default function GeneratePage() {
         try {
             const response = await api.post('/api/ai/generate-carousel-prompts', {
                 carouselDescription,
-                totalCards: imageCount
+                totalCards: imageCount,
+                profileDescription: selectedProfile?.description,
+                guidelines: selectedProfile?.branding?.guidelines,
+                savedPrompts: selectedProfile?.aiPreferences?.favoritePrompts
             });
 
             if (response.data.success && response.data.prompts) {
@@ -476,105 +479,57 @@ export default function GeneratePage() {
                     <h1 className="mb-lg">Ai dark plataform</h1>
                 </div>
 
-                {/* Business Profile Selector */}
-                {profiles.length > 0 && (
-                    <section className="card-glass" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-                        <h3 style={{ marginBottom: '1rem', color: '#a78bfa' }}>Selecionar Perfil de Negócio</h3>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                            gap: '1rem'
-                        }}>
-                            {profiles.map(profile => (
-                                <div
-                                    key={profile.id}
-                                    onClick={() => setSelectedProfile(profile)}
-                                    className="card"
-                                    style={{
-                                        cursor: 'pointer',
-                                        background: selectedProfile?.id === profile.id
-                                            ? 'rgba(124, 58, 237, 0.2)'
-                                            : 'rgba(255, 255, 255, 0.03)',
-                                        border: `2px solid ${selectedProfile?.id === profile.id ? '#7c3aed' : 'rgba(255, 255, 255, 0.1)'}`,
-                                        transition: 'all 0.3s',
-                                        textAlign: 'center',
-                                        padding: '1rem'
-                                    }}
-                                >
-                                    <div style={{
-                                        width: '48px',
-                                        height: '48px',
-                                        borderRadius: '50%',
-                                        background: '#7c3aed',
-                                        margin: '0 auto 0.75rem',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '1.5rem',
-                                        fontWeight: 700,
-                                        color: '#fff'
-                                    }}>
-                                        {profile.name.charAt(0).toUpperCase()}
-                                    </div>
-                                    <h4 style={{ fontSize: '0.875rem', marginBottom: '0.25rem', color: '#fff' }}>
-                                        {profile.name}
-                                    </h4>
-                                    {selectedProfile?.id === profile.id && (
-                                        <span style={{
-                                            fontSize: '0.75rem',
-                                            color: '#4ade80',
-                                            marginTop: '0.5rem',
-                                            display: 'block'
-                                        }}>
-                                            ✓ Selecionado
-                                        </span>
-                                    )}
-                                    {profile.aiPreferences?.promptTemplate && (
-                                        <p style={{ fontSize: '0.625rem', color: '#71717a', marginTop: '0.5rem', margin: 0 }}>
-                                            📋 Prompt configurado
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                        {selectedProfile && (
+                {/* Minimalist Business Profile Indicator */}
+                {selectedProfile && (
+                    <div className="card-glass" style={{
+                        padding: '0.75rem 1.5rem',
+                        marginBottom: '2rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '1rem',
+                        background: 'rgba(24, 24, 27, 0.6)',
+                        border: '1px solid #27272a'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <div style={{
-                                marginTop: '1rem',
-                                padding: '1rem',
-                                background: `${selectedProfile.branding?.primaryColor}20`,
-                                borderRadius: '0.5rem',
-                                borderLeft: `3px solid ${selectedProfile.branding?.primaryColor}`
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                background: selectedProfile.branding?.primaryColor || '#7c3aed',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '1rem',
+                                fontWeight: 700,
+                                color: '#fff'
                             }}>
-                                <p style={{ fontSize: '0.875rem', margin: 0 }}>
-                                    🎯 Gerando para: <strong style={{ color: selectedProfile.branding?.primaryColor }}>{selectedProfile.name}</strong>
-                                    {selectedProfile.aiPreferences?.style && (
-                                        <span style={{ marginLeft: '0.5rem', color: '#a1a1aa' }}>| Estilo: {selectedProfile.aiPreferences.style}</span>
-                                    )}
+                                {selectedProfile.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#fff', margin: 0 }}>
+                                    {selectedProfile.name}
                                 </p>
-                                {selectedProfile.aiPreferences?.promptTemplate && (
-                                    <details style={{ marginTop: '0.75rem' }}>
-                                        <summary style={{ cursor: 'pointer', fontSize: '0.75rem', color: '#a78bfa', userSelect: 'none' }}>
-                                            📋 Ver Prompt Base (será adicionado automaticamente)
-                                        </summary>
-                                        <pre style={{
-                                            marginTop: '0.5rem',
-                                            padding: '0.75rem',
-                                            background: 'rgba(0,0,0,0.3)',
-                                            borderRadius: '0.375rem',
-                                            fontSize: '0.75rem',
-                                            color: '#d4d4d8',
-                                            overflow: 'auto',
-                                            maxHeight: '150px',
-                                            whiteSpace: 'pre-wrap',
-                                            wordBreak: 'break-word'
-                                        }}>
-                                            {selectedProfile.aiPreferences.promptTemplate}
-                                        </pre>
-                                    </details>
-                                )}
+                                <p style={{ fontSize: '0.75rem', color: selectedProfile.branding?.primaryColor || '#a78bfa', margin: 0 }}>
+                                    ● Perfil Conectado
+                                </p>
+                            </div>
+                        </div>
+
+                        {selectedProfile.aiPreferences?.promptTemplate && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: '0.25rem 0.75rem',
+                                background: 'rgba(124, 58, 237, 0.1)',
+                                borderRadius: '999px',
+                                border: '1px solid rgba(124, 58, 237, 0.2)'
+                            }}>
+                                <span style={{ fontSize: '0.75rem', color: '#a78bfa' }}>📋 Prompt Personalizado Ativo</span>
                             </div>
                         )}
-                    </section>
+                    </div>
                 )}
 
                 {view === 'generate' ? (

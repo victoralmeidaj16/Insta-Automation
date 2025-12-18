@@ -13,8 +13,8 @@ export default function CalendarPage() {
 
     // State
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [accounts, setAccounts] = useState([]);
-    const [selectedAccount, setSelectedAccount] = useState('');
+    // const [accounts, setAccounts] = useState([]); // Removed
+    // const [selectedAccount, setSelectedAccount] = useState(''); // Removed
     const [posts, setPosts] = useState([]);
     const [mediaLibrary, setMediaLibrary] = useState([]);
     const [draggedItem, setDraggedItem] = useState(null);
@@ -43,48 +43,37 @@ export default function CalendarPage() {
     // Initial Load & Profile Changes
     useEffect(() => {
         if (selectedProfile) {
-            loadAccounts();
+            // loadAccounts(); // No longer needed
             loadLibraryItems(); // Load "Pronto" items for this profile
+            loadPosts(); // Load posts for this profile
         } else {
             // Clear data if no profile selected
-            setAccounts([]);
+            // setAccounts([]);
             setPosts([]);
             setMediaLibrary([]);
         }
     }, [selectedProfile]);
 
-    // Load Posts when Account or Month changes
+    // Load Posts when Month changes (or profile changes, covered above)
+    // useEffect(() => { // Merged into above or handled by currentDate change?
+    //     if (selectedAccount) {
+    //         loadPosts();
+    //     } else {
+    //         setPosts([]);
+    //     }
+    // }, [currentDate]); 
+
+    // Re-fetch posts when date changes (if we were paginating, but we aren't really)
+    // For now, let's just re-fetch on mount/profile change. 
+    // If month change needs new data, we'd add currentDate dependency to a useEffect.
+    // Assuming backend returns ALL pending/scheduled posts for now, or we filter in memory?
+    // The previous code had `[selectedAccount, currentDate]` dependency.
     useEffect(() => {
-        if (selectedAccount) {
+        if (selectedProfile) {
             loadPosts();
-        } else {
-            setPosts([]);
         }
-    }, [selectedAccount, currentDate]);
+    }, [selectedProfile, currentDate]);
 
-    const loadAccounts = async () => {
-        try {
-            const res = await api.get('/api/accounts');
-            // Filter only active accounts for THIS profile
-            const profileAccounts = res.data.accounts.filter(a =>
-                a.status === 'active' &&
-                (!selectedProfile || a.businessProfileId === selectedProfile.id)
-            );
-
-            setAccounts(profileAccounts);
-
-            // Auto-select first account if none selected or current selection is invalid for this profile
-            if (profileAccounts.length > 0) {
-                if (!selectedAccount || !profileAccounts.find(a => a.id === selectedAccount)) {
-                    setSelectedAccount(profileAccounts[0].id);
-                }
-            } else {
-                setSelectedAccount('');
-            }
-        } catch (error) {
-            toast.error('Erro ao carregar contas');
-        }
-    };
 
     const loadLibraryItems = async () => {
         if (!selectedProfile) return;
@@ -114,10 +103,11 @@ export default function CalendarPage() {
     };
 
     const loadPosts = async () => {
-        if (!selectedAccount) return;
+        if (!selectedProfile) return;
         try {
+            // Use selectedProfile.id as accountId
             const res = await api.get('/api/posts', {
-                params: { accountId: selectedAccount }
+                params: { accountId: selectedProfile.id }
             });
             // Status correto é 'pending' para posts agendados
             const scheduledPosts = res.data.posts.filter(p => p.status === 'pending' || p.status === 'scheduled');
@@ -128,7 +118,7 @@ export default function CalendarPage() {
         }
     };
 
-    // Calendar utilities
+    // Calendar utilities (unchanged)
     const getDaysInMonth = (date) => {
         const year = date.getFullYear();
         const month = date.getMonth();
@@ -204,8 +194,8 @@ export default function CalendarPage() {
             return;
         }
 
-        if (!selectedAccount) {
-            toast.error('⚠️ Selecione uma conta primeiro');
+        if (!selectedProfile) {
+            toast.error('⚠️ Selecione um perfil primeiro');
             return;
         }
 
@@ -221,7 +211,7 @@ export default function CalendarPage() {
         setDraggedItem(null);
     };
 
-    const handleConfirmSchedule = async () => {
+    const handleConfirmSchedule = async (isImmediate = false) => {
         if (!pendingDrop) return;
 
         const { draggedItem, date } = pendingDrop;
@@ -233,16 +223,21 @@ export default function CalendarPage() {
 
         try {
             const postData = {
-                accountId: selectedAccount,
+                accountId: selectedProfile.id, // Use profile ID as account ID
                 type: scheduleData.type,
                 caption: scheduleData.caption,
                 mediaUrls: draggedItem.mediaUrls || [],
-                scheduledFor: scheduledDate.toISOString(),
+                // Se for imediato, envia null para scheduledFor
+                scheduledFor: isImmediate ? null : scheduledDate.toISOString(),
             };
 
             const response = await api.post('/api/posts', postData);
 
-            toast.success(`📅 Post agendado para ${date.toLocaleDateString('pt-BR')} às ${scheduleData.time}!`);
+            if (isImmediate) {
+                toast.success('🚀 Post enviado para processamento imediato!');
+            } else {
+                toast.success(`📅 Post agendado para ${date.toLocaleDateString('pt-BR')} às ${scheduleData.time}!`);
+            }
 
             // Recarregar posts
             await loadPosts();
@@ -410,20 +405,17 @@ export default function CalendarPage() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        {accounts.length > 0 ? (
-                            <select
-                                className="input"
-                                value={selectedAccount}
-                                onChange={(e) => setSelectedAccount(e.target.value)}
-                                style={{ minWidth: '200px' }}
-                            >
-                                {accounts.map(acc => (
-                                    <option key={acc.id} value={acc.id}>@{acc.username}</option>
-                                ))}
-                            </select>
+                        {selectedProfile.instagram?.username ? (
+                            <div className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                                <span className="text-xl">📸</span>
+                                <div>
+                                    <p className="text-xs text-purple-400 font-medium">Conta Conectada</p>
+                                    <p className="text-sm font-bold text-white">@{selectedProfile.instagram.username}</p>
+                                </div>
+                            </div>
                         ) : (
-                            <div style={{ padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '0.5rem', fontSize: '0.85rem' }}>
-                                Nenhuma conta ativa neste perfil
+                            <div style={{ padding: '0.5rem 1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '0.5rem', fontSize: '0.85rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                ⚠️ Sem credenciais configuradas
                             </div>
                         )}
                     </div>
@@ -783,6 +775,22 @@ export default function CalendarPage() {
                                 >
                                     ✅ Confirmar Agendamento
                                 </button>
+                                {scheduleData.date && new Date().toDateString() === scheduleData.date.toDateString() && (
+                                    <button
+                                        onClick={() => handleConfirmSchedule(true)}
+                                        className="btn"
+                                        style={{
+                                            flex: 1,
+                                            background: 'linear-gradient(135deg, #ff0080, #7928ca)',
+                                            border: 'none',
+                                            color: '#fff',
+                                            fontWeight: '600',
+                                            boxShadow: '0 4px 15px rgba(255, 0, 128, 0.3)'
+                                        }}
+                                    >
+                                        🔥 Postar Agora
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => {
                                         setShowScheduleModal(false);

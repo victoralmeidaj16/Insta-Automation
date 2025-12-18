@@ -1,5 +1,5 @@
 import express from 'express';
-import { generateImages, generateCarousel, generateNextCarouselPrompt, generateCarouselPrompts } from '../services/aiService.js';
+import { generateImages, generateCarousel, generateNextCarouselPrompt, generateCarouselPrompts, generateImageCaption } from '../services/aiService.js';
 
 const router = express.Router();
 
@@ -91,7 +91,10 @@ router.post('/generate-next-prompt', async (req, res) => {
             carouselDescription,
             totalCards,
             currentCardIndex,
-            previousPrompts = []
+            previousPrompts = [],
+            profileDescription,
+            guidelines,
+            savedPrompts
         } = req.body;
 
         console.log(`📝 Gerando próximo prompt: card ${currentCardIndex + 1}/${totalCards}`);
@@ -118,7 +121,8 @@ router.post('/generate-next-prompt', async (req, res) => {
             carouselDescription,
             totalCards,
             currentCardIndex,
-            previousPrompts
+            previousPrompts,
+            { profileDescription, guidelines, savedPrompts }
         );
 
         res.json({
@@ -142,7 +146,13 @@ router.post('/generate-next-prompt', async (req, res) => {
  */
 router.post('/generate-carousel-prompts', async (req, res) => {
     try {
-        const { carouselDescription, totalCards } = req.body;
+        const {
+            carouselDescription,
+            totalCards,
+            profileDescription,
+            guidelines,
+            savedPrompts
+        } = req.body;
 
         console.log(`📝 Gerando todos os prompts: ${totalCards} cards`);
 
@@ -158,7 +168,11 @@ router.post('/generate-carousel-prompts', async (req, res) => {
             });
         }
 
-        const prompts = await generateCarouselPrompts(carouselDescription, totalCards);
+        const prompts = await generateCarouselPrompts(
+            carouselDescription,
+            totalCards,
+            { profileDescription, guidelines, savedPrompts }
+        );
 
         res.json({
             success: true,
@@ -278,6 +292,37 @@ ${includeHashtags ? '- Incluam 5-8 hashtags relevantes no final' : '- NÃO inclu
 
     } catch (error) {
         console.error('❌ Erro ao gerar caption:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar caption',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+/**
+ * POST /api/ai/generate-caption-from-image - Gera caption usando GPT-4o (Vision)
+ */
+router.post('/generate-caption-from-image', async (req, res) => {
+    try {
+        const { imageUrl, profileName, profileDescription, guidelines } = req.body;
+
+        console.log('✍️ Gerando caption com visão para:', { imageUrl: imageUrl?.substring(0, 50), profileName });
+
+        if (!imageUrl) {
+            return res.status(400).json({
+                error: 'URL da imagem é obrigatória',
+            });
+        }
+
+        const caption = await generateImageCaption(imageUrl, profileName, profileDescription, guidelines);
+
+        res.json({
+            success: true,
+            caption
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao gerar caption com visão:', error);
         res.status(500).json({
             error: 'Erro ao gerar caption',
             message: process.env.NODE_ENV === 'development' ? error.message : undefined,

@@ -7,6 +7,7 @@ import {
     createReel,
     createStory,
 } from '../automation/instagram.js';
+import { getAccountsByProfile } from './businessProfileService.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -23,7 +24,24 @@ export async function createPost(userId, accountId, postData) {
         } = postData;
 
         // Get account to extract business profile
-        const account = await getAccount(accountId);
+        // Logic update: Ensure accountId is valid. If it's a Business Profile ID, resolve to the actual Account ID.
+        let account;
+        try {
+            account = await getAccount(accountId);
+        } catch (error) {
+            // If account not found, check if the ID provided was actually a Business Profile ID
+            console.log(`⚠️ Account ${accountId} not found directly. Checking if it is a Business Profile ID...`);
+            const linkedAccounts = await getAccountsByProfile(accountId);
+
+            if (linkedAccounts && linkedAccounts.length > 0) {
+                account = linkedAccounts[0]; // Use the first linked account
+                console.log(`✅ Resolved Profile ID ${accountId} to Account ID ${account.id}`);
+                // Update the accountId variable to be the correct one for storage
+                accountId = account.id;
+            } else {
+                throw error; // Re-throw if no linked account found either
+            }
+        }
 
         const post = {
             userId,
@@ -203,41 +221,43 @@ export async function executePost(postId) {
             const ext = url.includes('.mp4') ? 'mp4' : 'jpg';
             const localPath = path.join(tempDir, `media_${i}.${ext}`);
 
-            if (url.includes('firebasestorage')) {
-                // Baixar do Firebase Storage
+            if (url.includes('firebasestorage') && url.includes('/o/')) {
+                // Baixar do Firebase Storage (apenas se tiver o formato de API com /o/)
                 const parts = url.split('/o/');
                 if (parts.length < 2) {
-                    console.warn(`⚠️ Formato de URL do Storage inesperado: ${url}`);
-                    continue;
-                }
-                const filePath = parts[1].split('?')[0];
-                if (filePath) {
-                    const decodedPath = decodeURIComponent(filePath);
-                    console.log(`⬇️ Baixando do Storage: ${decodedPath}`);
-                    await storage.file(decodedPath).download({ destination: localPath });
-                    localMediaPaths.push(localPath);
+                    console.warn(`⚠️ Formato de URL do Storage inesperado: ${url} (tentando via Axios)`);
+                    // Fallback para Axios abaixo
                 } else {
-                    console.warn(`⚠️ Não foi possível extrair caminho do arquivo: ${url}`);
+                    const filePath = parts[1].split('?')[0];
+                    if (filePath) {
+                        const decodedPath = decodeURIComponent(filePath);
+                        console.log(`⬇️ Baixando do Storage: ${decodedPath}`);
+                        await storage.file(decodedPath).download({ destination: localPath });
+                        localMediaPaths.push(localPath);
+                        continue; // Sucesso via SDK, ir para próxima mídia
+                    }
                 }
-            } else {
-                // Baixar URL genérica
-                console.log(`⬇️ Baixando via Axios: ${url}`);
-                const response = await axios({
-                    url,
-                    responseType: 'stream',
-                });
-
-                const writer = fs.createWriteStream(localPath);
-                response.data.pipe(writer);
-
-                await new Promise((resolve, reject) => {
-                    writer.on('finish', resolve);
-                    writer.on('error', reject);
-                });
-
-                localMediaPaths.push(localPath);
             }
+
+            // Fallback: Baixar URL genérica (ou Firebase pública) via Axios
+            // Baixar URL genérica
+            console.log(`⬇️ Baixando via Axios: ${url}`);
+            const response = await axios({
+                url,
+                responseType: 'stream',
+            });
+
+            const writer = fs.createWriteStream(localPath);
+            response.data.pipe(writer);
+
+            await new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+            });
+
+            localMediaPaths.push(localPath);
         }
+
 
         if (localMediaPaths.length === 0) {
             throw new Error('Nenhuma mídia foi baixada com sucesso.');

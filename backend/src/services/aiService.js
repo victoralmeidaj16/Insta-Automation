@@ -15,27 +15,41 @@ const openai = new OpenAI({
  * @param {number} count - Número de cards/imagens
  * @returns {Promise<string[]>} - Array de prompts individuais
  */
-export async function generateCarouselPrompts(carouselDescription, count) {
+export async function generateCarouselPrompts(carouselDescription, count, context = {}) {
     try {
         console.log('🤖 Gerando prompts com OpenAI para carrossel...');
         console.log(`Descrição: ${carouselDescription}`);
         console.log(`Número de cards: ${count}`);
 
+        const { profileDescription, guidelines, savedPrompts } = context;
+
+        let systemContext = '';
+        if (profileDescription) systemContext += `\n\nCONTEXTO DO PERFIL:\n${profileDescription}`;
+        if (guidelines) systemContext += `\n\nDIRETRIZES DA MARCA (GUIDELINES):\n${guidelines}\nIMPORTANTE: Siga estas diretrizes estritamente.`;
+
+        let savedPromptsContext = '';
+        if (savedPrompts && savedPrompts.length > 0) {
+            savedPromptsContext = `\n\nEXEMPLOS DE ESTILO (Prompts Salvos):\nAqui estão exemplos de prompts que o usuário gosta. Tente seguir um estilo similar:\n${savedPrompts.map(p => `"${p.text}"`).join('\n')}`;
+        }
+
         const systemPrompt = `Você é um assistente especializado em criar prompts para geração de imagens de carrosséis no Instagram. 
 Sua tarefa é pegar uma descrição geral de um carrossel e criar prompts específicos para cada card/slide.
 Cada prompt deve ser detalhado, visual e otimizado para geração de imagens com IA.
-Os prompts devem ser coerentes entre si, contando uma história ou apresentando um conceito de forma progressiva.`;
+Os prompts devem ser coerentes entre si, contando uma história ou apresentando um conceito de forma progressiva.
+${systemContext}
+${savedPromptsContext}`;
 
         const userPrompt = `Crie ${count} prompts individuais para um carrossel do Instagram com a seguinte descrição:
 
 "${carouselDescription}"
 
 IMPORTANTE:
-- Gere exatamente ${count} prompts
-- Cada prompt deve ser detalhado e visual
-- Os prompts devem ter uma narrativa ou sequência lógica
-- Use linguagem descritiva adequada para geração de imagens
-- Retorne apenas os prompts, um por linha, sem numeração ou marcadores
+- Generate exactly ${count} prompts
+- Each prompt must be detailed and visual
+- The prompts must have a narrative or logical sequence
+- Use descriptive language suitable for image generation
+- Return only the prompts, one per line, without numbering or bullets
+- Se as Diretrizes da Marca exigirem um estilo específico (ex: minimalista, cyberpunk, cores vibrantes), aplique-o em TODOS os prompts.
 
 Retorne os prompts separados por quebras de linha.`;
 
@@ -45,7 +59,7 @@ Retorne os prompts separados por quebras de linha.`;
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
             ],
-            temperature: 0.8,
+            temperature: 0.7,
         });
 
         const response = completion.choices[0].message.content;
@@ -74,14 +88,21 @@ Retorne os prompts separados por quebras de linha.`;
  * @param {string[]} previousPrompts - Prompts já gerados
  * @returns {Promise<string>} - Prompt para o próximo card
  */
-export async function generateNextCarouselPrompt(carouselDescription, totalCards, currentCardIndex, previousPrompts = []) {
+export async function generateNextCarouselPrompt(carouselDescription, totalCards, currentCardIndex, previousPrompts = [], context = {}) {
     try {
         console.log(`🤖 Gerando prompt para card ${currentCardIndex + 1}/${totalCards}...`);
+
+        const { profileDescription, guidelines, savedPrompts } = context;
+
+        let systemContext = '';
+        if (profileDescription) systemContext += `\n\nCONTEXTO DO PERFIL:\n${profileDescription}`;
+        if (guidelines) systemContext += `\n\nDIRETRIZES DA MARCA (GUIDELINES):\n${guidelines}\nIMPORTANTE: Siga estas diretrizes estritamente para manter a consistência visual.`;
 
         const systemPrompt = `Você é um assistente especializado em criar prompts para geração de imagens de carrosséis no Instagram. 
 Você está ajudando a criar um carrossel progressivamente, um card por vez.
 Cada prompt deve ser detalhado, visual e otimizado para geração de imagens com IA.
-Os prompts devem ter uma narrativa coerente e progressiva.`;
+Os prompts devem ter uma narrativa coerente e progressiva.
+${systemContext}`;
 
         let contextPrompts = '';
         if (previousPrompts.length > 0) {
@@ -98,6 +119,7 @@ IMPORTANTE:
 - O prompt deve continuar a narrativa dos cards anteriores (se houver)
 - Seja detalhado e visual
 - Use linguagem descritiva adequada para geração de imagens
+- Mantenha o estilo visual consistente com os cards anteriores e as Diretrizes da Marca
 - Retorne APENAS o prompt, sem numeração ou explicações adicionais`;
 
         const completion = await openai.chat.completions.create({
@@ -106,7 +128,7 @@ IMPORTANTE:
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
             ],
-            temperature: 0.8,
+            temperature: 0.7,
         });
 
         const prompt = completion.choices[0].message.content.trim();
@@ -136,11 +158,27 @@ async function generateSingleImage(prompt, aspectRatio = '1:1') {
 
     const replicateAspectRatio = aspectRatioMap[aspectRatio] || '1:1';
 
-    const input = {
-        size: '4K',
+    let input = {
         prompt: prompt,
         aspect_ratio: replicateAspectRatio
     };
+
+    // Custom configuration for 4:5 (Portrait) - High Resolution 2048x2560
+    if (aspectRatio === '4:5') {
+        input = {
+            prompt: prompt,
+            size: 'custom',
+            width: 2048,
+            height: 2560
+        };
+    } else {
+        // Default behavior for other aspect ratios (1:1, 16:9, 9:16)
+        input = {
+            prompt: prompt,
+            size: '4K',
+            aspect_ratio: replicateAspectRatio
+        };
+    }
 
     const output = await replicate.run('bytedance/seedream-4.5', { input });
 
@@ -223,8 +261,81 @@ export async function generateCarousel(carouselDescription, aspectRatio = '1:1',
             prompts: individualPrompts
         };
 
+        // ... existing code ...
+        return {
+            images: allImages,
+            prompts: individualPrompts
+        };
+
     } catch (error) {
         console.error('❌ Erro ao gerar carrossel:', error);
         throw new Error(`Falha na geração do carrossel: ${error.message}`);
+    }
+}
+
+/**
+ * Gera legenda para imagem usando GPT-4o (Vision)
+ * @param {string} imageUrl - URL da imagem
+ * @param {string} profileName - Nome do perfil (para contexto)
+ * @param {string} profileDescription - Descrição do perfil
+ * @param {string} guidelines - Diretrizes da marca
+ * @returns {Promise<string>} - Legenda gerada
+ */
+export async function generateImageCaption(imageUrl, profileName, profileDescription, guidelines) {
+    try {
+        console.log(`👁️ Analisando imagem para gerar legenda (Perfil: ${profileName})...`);
+
+        // Detectar se é "Inner Boost" para forçar inglês
+        const isInnerBoost = profileName && profileName.toLowerCase().includes('inner boost');
+        const language = isInnerBoost ? 'English' : 'Portuguese (Brazil)';
+        const tone = isInnerBoost ? 'Professional, inspiring, and growth-oriented' : 'Engajador e profissional';
+
+        const systemPrompt = `You are an expert Social Media Manager. your task is to write a caption for an Instagram post based on the image provided.
+        
+Context:
+- Profile Name: ${profileName || 'Business Profile'}
+- Profile Description: ${profileDescription || 'N/A'}
+- Brand Guidelines: ${guidelines || 'N/A'}
+- Target Language: ${language}
+- Tone: ${tone}
+
+Instructions:
+1. Analyze the image visually.
+2. Write a caption that relates the image content to the profile's niche.
+3. Use the specified language (${language}) ONLY.
+4. If Brand Guidelines are provided, strictly follow them.
+5. Return ONLY the caption text. No "Here is the caption" or quotes.
+6. The caption should be concise, engaging, and encourage interaction.`;
+
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: systemPrompt
+                },
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: "Write an amazing caption for this image." },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                "url": imageUrl,
+                            },
+                        },
+                    ],
+                },
+            ],
+            max_tokens: 300,
+        });
+
+        const caption = response.choices[0].message.content.trim();
+        console.log('✅ Legenda gerada com sucesso');
+        return caption;
+
+    } catch (error) {
+        console.error('❌ Erro ao gerar legenda com visão:', error);
+        throw new Error(`Falha na geração de legenda: ${error.message}`);
     }
 }

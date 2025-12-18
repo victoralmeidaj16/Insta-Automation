@@ -52,37 +52,72 @@ router.post('/upload', upload.array('files', 10), async (req, res) => {
             console.log(`✅ File uploaded: ${filename}`);
         }
 
-        // Determine content type
-        let contentType = type || 'static';
-        if (mediaUrls.length > 1 && !type) {
-            contentType = 'carousel';
+        // Determine upload mode
+        // If type is 'static' (Post) and we have multiple files, we should create ONE item per file
+        // If type is 'carousel' or 'story', or mostly anything else, or just 1 file, we might keep them together or logic differs
+        // User request: "upload de varias imagens em library e marquei como 'post' porem apareceu somente um card... era para ter aparecido das demais tambem"
+
+        const isMultiStatic = (type === 'static' || !type) && mediaUrls.length > 1;
+
+        if (isMultiStatic) {
+            console.log('🔄 Detected multiple static images. Creating individual library items...');
+            const createdItems = [];
+
+            for (const url of mediaUrls) {
+                const libraryItem = {
+                    userId: req.userId,
+                    businessProfileId: businessProfileId,
+                    type: 'static', // Enforce static for individual items
+                    mediaUrls: [url], // Single URL per item
+                    caption: caption || '',
+                    tag: tag || 'editar',
+                    createdAt: new Date(),
+                    isScheduled: false,
+                    scheduledPostId: null,
+                };
+
+                const itemRef = await db.collection('library_items').add(libraryItem);
+                createdItems.push({ id: itemRef.id, ...libraryItem });
+            }
+
+            console.log(`✅ Created ${createdItems.length} individual static library items.`);
+
+            res.status(201).json({
+                message: `Upload realizado com sucesso! ${createdItems.length} itens criados.`,
+                items: createdItems, // Return array
+                count: createdItems.length
+            });
+
+        } else {
+            // Default behavior (Carousel, Single Static, etc)
+            let contentType = type || 'static';
+            if (mediaUrls.length > 1 && !type) {
+                contentType = 'carousel';
+            }
+
+            const libraryItem = {
+                userId: req.userId,
+                businessProfileId: businessProfileId,
+                type: contentType,
+                mediaUrls,
+                caption: caption || '',
+                tag: tag || 'editar',
+                createdAt: new Date(),
+                isScheduled: false,
+                scheduledPostId: null,
+            };
+
+            const itemRef = await db.collection('library_items').add(libraryItem);
+            console.log(`✅ Library item created with ID: ${itemRef.id}`);
+
+            res.status(201).json({
+                message: 'Upload realizado com sucesso',
+                item: {
+                    id: itemRef.id,
+                    ...libraryItem,
+                },
+            });
         }
-
-        // Create library item (NOT a post - just for organization)
-        const libraryItem = {
-            userId: req.userId,
-            businessProfileId: businessProfileId,
-            type: contentType,
-            mediaUrls,
-            caption: caption || '',
-            tag: tag || 'editar',
-            createdAt: new Date(),
-            // Library items are not posts yet, they can be scheduled later
-            isScheduled: false,
-            scheduledPostId: null,
-        };
-
-        const itemRef = await db.collection('library_items').add(libraryItem);
-
-        console.log(`✅ Library item created with ID: ${itemRef.id}`);
-
-        res.status(201).json({
-            message: 'Upload realizado com sucesso',
-            item: {
-                id: itemRef.id,
-                ...libraryItem,
-            },
-        });
 
     } catch (error) {
         console.error('❌ Erro no upload:', error);

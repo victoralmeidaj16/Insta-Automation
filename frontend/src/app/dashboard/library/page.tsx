@@ -29,6 +29,7 @@ export default function LibraryPage() {
     const [editTag, setEditTag] = useState('');
     const [editType, setEditType] = useState('');
     const [replaceFiles, setReplaceFiles] = useState([]);
+    const [generatingCaption, setGeneratingCaption] = useState(false);
 
     // Upload states
     const [showUploadModal, setShowUploadModal] = useState(false);
@@ -202,6 +203,36 @@ export default function LibraryPage() {
         } catch (error) {
             console.error(error);
             toast.error('Erro ao iniciar download');
+        }
+    };
+
+    const handleGenerateCaption = async () => {
+        if (!selectedPost?.mediaUrls?.[0]) {
+            toast.error('Nenhuma imagem encontrada para gerar legenda');
+            return;
+        }
+
+        try {
+            setGeneratingCaption(true);
+            toast.loading('Analisando imagem e gerando legenda...', { id: 'caption-loading' });
+
+            const response = await api.post('/api/ai/generate-caption-from-image', {
+                imageUrl: selectedPost.mediaUrls[0],
+                profileName: selectedProfile?.name,
+                profileDescription: selectedProfile?.description,
+                guidelines: selectedProfile?.guidelines
+            });
+
+            if (response.data.caption) {
+                setEditCaption(response.data.caption);
+                toast.success('Legenda gerada com sucesso!', { id: 'caption-loading' });
+            }
+
+        } catch (error) {
+            console.error('Generar caption error:', error);
+            toast.error('Erro ao gerar legenda', { id: 'caption-loading' });
+        } finally {
+            setGeneratingCaption(false);
         }
     };
 
@@ -1338,9 +1369,31 @@ export default function LibraryPage() {
 
                                 {/* Caption */}
                                 <div style={{ marginBottom: '1.5rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#a1a1aa' }}>
-                                        Caption
-                                    </label>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <label style={{ fontSize: '0.875rem', color: '#a1a1aa' }}>
+                                            Caption
+                                        </label>
+                                        <button
+                                            onClick={handleGenerateCaption}
+                                            disabled={generatingCaption}
+                                            style={{
+                                                padding: '0.25rem 0.75rem',
+                                                background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                                border: 'none',
+                                                borderRadius: '0.375rem',
+                                                color: '#fff',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 600,
+                                                cursor: generatingCaption ? 'not-allowed' : 'pointer',
+                                                opacity: generatingCaption ? 0.7 : 1,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.25rem'
+                                            }}
+                                        >
+                                            {generatingCaption ? '🧠 Pensando...' : '✨ Gerar Legenda IA'}
+                                        </button>
+                                    </div>
                                     <textarea
                                         value={editCaption}
                                         onChange={(e) => setEditCaption(e.target.value)}

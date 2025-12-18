@@ -9,6 +9,13 @@ import {
     unlinkAccountFromProfile,
     getAccountsByProfile
 } from '../services/businessProfileService.js';
+import {
+    addAccount,
+    getAccounts,
+    updateAccount,
+    verifyAccount
+} from '../services/accountService.js';
+import { db } from '../config/firebase.js';
 
 const router = express.Router();
 
@@ -250,6 +257,90 @@ router.get('/:id/accounts', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching profile accounts:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+router.post('/:id/connect', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Username e Password são obrigatórios'
+            });
+        }
+
+        // 1. Verify profile ownership
+        const profile = await getBusinessProfile(id);
+        if (profile.userId !== req.userId) {
+            return res.status(403).json({
+                success: false,
+                error: 'Not authorized'
+            });
+        }
+
+        // 2. Check if account already exists for this user
+        const accounts = await getAccounts(req.userId);
+        let account = accounts.find(a => a.username === username);
+        let accountId;
+
+        if (account) {
+            // Update existing account
+            console.log(`🔄 Atualizando conta existente: ${account.id}`);
+            await updateAccount(account.id, {
+                password,
+                businessProfileId: id, // Ensure it's linked to this profile
+                updatedAt: new Date()
+            });
+            accountId = account.id;
+        } else {
+            // Create new account
+            console.log(`➕ Criando nova conta para: ${username}`);
+            const newAccount = await addAccount(
+                req.userId,
+                username,
+                null, // email (optional)
+                password,
+                true, // stayLoggedIn
+                id    // businessProfileId
+            );
+            accountId = newAccount.id;
+        }
+
+        // 3. Verify Login
+        console.log(`🔐 Verificando login para conta: ${accountId}`);
+        const result = await verifyAccount(accountId);
+
+        if (result.success) {
+            // Only update profile credentials on success to keep them in sync
+            await updateBusinessProfile(id, {
+                instagram: {
+                    username,
+                    password: password // In a real app, store this more securely or rely solely on accountService
+                }
+            });
+
+            res.json({
+                success: true,
+                message: 'Conectado com sucesso!',
+                result
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: result.message || 'Falha na autenticação',
+                result
+            });
+        }
+
+    } catch (error) {
+        console.error('Error connecting account:', error);
         res.status(500).json({
             success: false,
             error: error.message
