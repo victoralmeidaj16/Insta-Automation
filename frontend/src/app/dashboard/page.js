@@ -73,12 +73,14 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-3 mb-lg">
-                    <div className="card-glass">
-                        <h3 style={{ color: 'var(--accent-primary)' }}>Contas</h3>
-                        <p style={{ fontSize: '2.5rem', fontWeight: '700', margin: '1rem 0' }}>{stats.accounts}</p>
-                        <p style={{ fontSize: '0.875rem' }}>Contas Instagram conectadas</p>
-                    </div>
+                <div className={selectedProfile ? "grid grid-2 mb-lg" : "grid grid-3 mb-lg"}>
+                    {!selectedProfile && (
+                        <div className="card-glass">
+                            <h3 style={{ color: 'var(--accent-primary)' }}>Contas</h3>
+                            <p style={{ fontSize: '2.5rem', fontWeight: '700', margin: '1rem 0' }}>{stats.accounts}</p>
+                            <p style={{ fontSize: '0.875rem' }}>Contas Instagram conectadas</p>
+                        </div>
+                    )}
 
                     <div className="card-glass">
                         <h3 style={{ color: 'var(--accent-success)' }}>Posts Totais</h3>
@@ -112,14 +114,9 @@ export default function DashboardPage() {
                             <p>Histórico completo de posts e status</p>
                         </Link>
 
-                        <Link href="/dashboard/accounts" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-                            <h3>🔐 Gerenciar Contas</h3>
-                            <p>Adicionar, verificar e remover contas Instagram</p>
-                        </Link>
-
                         <Link href="/dashboard/business-profiles" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
                             <h3>🏢 Perfis de Negócio</h3>
-                            <p>Gerenciar empresas e branding</p>
+                            <p>Gerenciar empresas e contas conectadas</p>
                         </Link>
                     </div>
                 </div>

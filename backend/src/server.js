@@ -59,6 +59,49 @@ app.get('/api/stats', async (req, res) => {
     }
 });
 
+// Public Proxy Download Route (must be before auth middleware for <a> tags to work)
+app.get('/api/proxy-download', async (req, res) => {
+    const { url, filename } = req.query;
+
+    if (!url) {
+        return res.status(400).send('Missing url parameter');
+    }
+
+    try {
+        // Fetch the remote file
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch file: ${response.statusText}`);
+        }
+
+        // Get headers
+        const contentType = response.headers.get('content-type') || 'application/octet-stream';
+
+        // Determine filename/extension
+        let finalFilename = filename || 'download';
+        if (!finalFilename.includes('.')) {
+            if (contentType.includes('image/jpeg')) finalFilename += '.jpg';
+            else if (contentType.includes('image/png')) finalFilename += '.png';
+            else if (contentType.includes('video/mp4')) finalFilename += '.mp4';
+        }
+
+        // Set headers to force download
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `attachment; filename="${finalFilename}"`);
+
+        // Stream the response body to the client
+        // Node 18+ fetch returns a ReadableStream, we need to convert or attach to res
+        // If using 'node-fetch' or native fetch:
+        const arrayBuffer = await response.arrayBuffer();
+        res.send(Buffer.from(arrayBuffer));
+
+    } catch (error) {
+        console.error('Proxy download error:', error);
+        res.status(500).send('Error downloading file');
+    }
+});
+
 // Rotas protegidas por autenticação
 app.use('/api/accounts', authenticate, accountsRouter);
 app.use('/api/posts', authenticate, postsRouter);

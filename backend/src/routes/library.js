@@ -91,6 +91,52 @@ router.post('/upload', upload.array('files', 10), async (req, res) => {
 });
 
 /**
+ * POST /api/library/upload-files - Upload files only (for replacing images)
+ */
+router.post('/upload-files', upload.array('files', 10), async (req, res) => {
+    try {
+        const { businessProfileId } = req.body;
+        const files = req.files;
+
+        console.log('📤 Upload files request:', {
+            businessProfileId,
+            filesCount: files?.length
+        });
+
+        if (!businessProfileId || !files || files.length === 0) {
+            return res.status(400).json({
+                error: 'businessProfileId e files são obrigatórios'
+            });
+        }
+
+        // Upload files to Firebase Storage
+        const mediaUrls = [];
+
+        for (const file of files) {
+            const filename = `uploads/${req.userId}/${Date.now()}_${file.originalname}`;
+            const fileUpload = storage.file(filename);
+
+            await fileUpload.save(file.buffer, {
+                metadata: {
+                    contentType: file.mimetype,
+                },
+                public: true,
+            });
+
+            const publicUrl = `https://storage.googleapis.com/${storage.name}/${filename}`;
+            mediaUrls.push(publicUrl);
+            console.log(`✅ File uploaded: ${filename}`);
+        }
+
+        res.status(200).json({ mediaUrls });
+
+    } catch (error) {
+        console.error('❌ Erro no upload de arquivos:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
  * GET /api/library - Get library items
  */
 router.get('/', async (req, res) => {

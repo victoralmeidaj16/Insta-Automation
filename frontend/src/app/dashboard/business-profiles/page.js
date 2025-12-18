@@ -271,7 +271,27 @@ export default function BusinessProfilesPage() {
                         overflowY: 'auto',
                         padding: '2rem'
                     }}>
-                        <div className="card-glass" style={{ maxWidth: '600px', width: '100%', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div className="card-glass" style={{ maxWidth: '600px', width: '100%', padding: '2rem', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                style={{
+                                    position: 'absolute',
+                                    top: '1rem',
+                                    right: '1rem',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#a1a1aa',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer',
+                                    padding: '0.25rem',
+                                    lineHeight: 1,
+                                    zIndex: 10
+                                }}
+                                onMouseEnter={(e) => e.target.style.color = '#fff'}
+                                onMouseLeave={(e) => e.target.style.color = '#a1a1aa'}
+                            >
+                                ×
+                            </button>
                             <h2 className="mb-md">{editingProfile ? 'Editar Perfil' : 'Criar Perfil'}</h2>
                             <form onSubmit={handleSubmit}>
                                 {/* Basic Info */}

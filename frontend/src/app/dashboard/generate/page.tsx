@@ -453,6 +453,20 @@ export default function GeneratePage() {
                         >
                             Calendar 📅
                         </button>
+                        <button
+                            onClick={() => router.push('/dashboard/history')}
+                            className="btn"
+                            style={{
+                                background: '#27272a',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '9999px',
+                                border: 'none',
+                                color: '#fff',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            History 🕒
+                        </button>
                     </div>
                 </div>
                 <div className="container">
