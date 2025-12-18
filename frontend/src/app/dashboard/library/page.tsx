@@ -405,17 +405,21 @@ export default function LibraryPage() {
     };
 
     const getTagBadgeStyle = (tag) => {
-        const commonStyle = {
-            background: '#27272a',
-            color: '#e4e4e7',
-            border: '1px solid #3f3f46',
-            boxShadow: 'none'
-        };
-
         if (tag === 'pronto') {
-            return commonStyle;
+            return {
+                background: '#000000', // Solid black (not translucent)
+                color: '#4ade80', // Green text
+                border: '1px solid #22c55e',
+                boxShadow: '0 0 10px rgba(34, 197, 94, 0.2)'
+            };
         }
-        return commonStyle;
+        // Default "A Editar"
+        return {
+            background: '#000000', // Solid black (not translucent)
+            color: '#60a5fa', // Blue text
+            border: '1px solid #3b82f6',
+            boxShadow: '0 0 10px rgba(59, 130, 246, 0.2)'
+        };
     };
 
 

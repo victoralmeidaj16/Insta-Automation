@@ -118,6 +118,11 @@ export default function DashboardPage() {
                             <h3>🏢 Perfis de Negócio</h3>
                             <p>Gerenciar empresas e contas conectadas</p>
                         </Link>
+
+                        <Link href="/dashboard/upload-manager" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <h3>📤 Upload em Massa</h3>
+                            <p>Carregar e organizar múltiplas imagens</p>
+                        </Link>
                     </div>
                 </div>
 

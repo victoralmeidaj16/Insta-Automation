@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import BackButton from '@/components/BackButton';
 
 export default function CalendarPage() {
     const router = useRouter();
+    const { selectedProfile } = useBusinessProfile();
+
+    // State
     const [currentDate, setCurrentDate] = useState(new Date());
     const [accounts, setAccounts] = useState([]);
     const [selectedAccount, setSelectedAccount] = useState('');
@@ -36,58 +40,86 @@ export default function CalendarPage() {
         caption: ''
     });
 
+    // Initial Load & Profile Changes
     useEffect(() => {
-        loadAccounts();
-        loadPosts();
-        loadPendingMedia();
-    }, []);
+        if (selectedProfile) {
+            loadAccounts();
+            loadLibraryItems(); // Load "Pronto" items for this profile
+        } else {
+            // Clear data if no profile selected
+            setAccounts([]);
+            setPosts([]);
+            setMediaLibrary([]);
+        }
+    }, [selectedProfile]);
 
+    // Load Posts when Account or Month changes
     useEffect(() => {
         if (selectedAccount) {
             loadPosts();
+        } else {
+            setPosts([]);
         }
     }, [selectedAccount, currentDate]);
-
-    const loadPendingMedia = () => {
-        const pendingMedia = localStorage.getItem('pendingCalendarMedia');
-        if (pendingMedia) {
-            try {
-                const media = JSON.parse(pendingMedia);
-                const newMediaItem = {
-                    id: media.timestamp.toString(),
-                    type: media.type,
-                    mediaUrls: media.mediaUrls,
-                    caption: media.caption,
-                    thumbnail: media.mediaUrls[0]
-                };
-                setMediaLibrary(prev => [...prev, newMediaItem]);
-                localStorage.removeItem('pendingCalendarMedia');
-                toast.success(`✅ ${media.mediaUrls.length} imagem(ns) do AI Generator adicionada(s)!`);
-                console.log('📥 Mídia do AI Generator carregada:', newMediaItem);
-            } catch (error) {
-                console.error('Erro ao carregar mídia pendente:', error);
-            }
-        }
-    };
 
     const loadAccounts = async () => {
         try {
             const res = await api.get('/api/accounts');
-            const activeAccounts = res.data.accounts.filter(a => a.status === 'active');
-            setAccounts(activeAccounts);
-            if (activeAccounts.length > 0 && !selectedAccount) {
-                setSelectedAccount(activeAccounts[0].id);
+            // Filter only active accounts for THIS profile
+            const profileAccounts = res.data.accounts.filter(a =>
+                a.status === 'active' &&
+                (!selectedProfile || a.businessProfileId === selectedProfile.id)
+            );
+
+            setAccounts(profileAccounts);
+
+            // Auto-select first account if none selected or current selection is invalid for this profile
+            if (profileAccounts.length > 0) {
+                if (!selectedAccount || !profileAccounts.find(a => a.id === selectedAccount)) {
+                    setSelectedAccount(profileAccounts[0].id);
+                }
+            } else {
+                setSelectedAccount('');
             }
         } catch (error) {
             toast.error('Erro ao carregar contas');
         }
     };
 
-    const loadPosts = async () => {
+    const loadLibraryItems = async () => {
+        if (!selectedProfile) return;
         try {
-            const params = selectedAccount ? { accountId: selectedAccount } : {};
-            const res = await api.get('/api/posts', { params });
-            // Status correto é 'pending' para posts agendados (não 'scheduled')
+            const res = await api.get('/api/library', {
+                params: { businessProfileId: selectedProfile.id }
+            });
+
+            // Filter for 'pronto' items
+            const readyItems = res.data
+                .filter(item => item.tag === 'pronto')
+                .map(item => ({
+                    id: item.id,
+                    type: item.type,
+                    mediaUrls: item.mediaUrls,
+                    caption: item.caption,
+                    thumbnail: item.mediaUrls[0] || '', // Ensure thumbnail exists
+                    isLibraryItem: true // Flag to distinguish from AI generated pending items if needed
+                }));
+
+            console.log('📚 Library items loaded:', readyItems.length);
+            setMediaLibrary(readyItems);
+        } catch (error) {
+            console.error('❌ Erro ao carregar biblioteca:', error);
+            // Don't toast error here to avoid annoyance if library is just empty or initial load fails silently
+        }
+    };
+
+    const loadPosts = async () => {
+        if (!selectedAccount) return;
+        try {
+            const res = await api.get('/api/posts', {
+                params: { accountId: selectedAccount }
+            });
+            // Status correto é 'pending' para posts agendados
             const scheduledPosts = res.data.posts.filter(p => p.status === 'pending' || p.status === 'scheduled');
             console.log('📋 Posts agendados carregados:', scheduledPosts.length);
             setPosts(scheduledPosts);
@@ -158,34 +190,24 @@ export default function CalendarPage() {
     const handleDragOver = (e, date) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
-        console.log('🟡 DRAG OVER:', date.toLocaleDateString());
-        // Sempre atualiza - quando mudar de card, atualiza automaticamente
+        // Sempre atualiza
         setHoveredDate(date);
     };
 
     const handleDrop = async (e, date) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('🔴 DROP DISPARADO!', date);
         setHoveredDate(null);
 
         if (!draggedItem || !date) {
-            console.log('❌ Sem draggedItem ou date');
             toast.error('⚠️ Erro ao soltar mídia');
             return;
         }
 
         if (!selectedAccount) {
-            console.log('❌ Sem conta selecionada');
             toast.error('⚠️ Selecione uma conta primeiro');
             return;
         }
-
-        console.log('🎯 Drop iniciado:', {
-            date: date.toISOString(),
-            draggedItem,
-            selectedAccount
-        });
 
         // Armazenar dados e abrir modal
         setPendingDrop({ draggedItem, date });
@@ -218,10 +240,7 @@ export default function CalendarPage() {
                 scheduledFor: scheduledDate.toISOString(),
             };
 
-            console.log('📤 Enviando post para API:', postData);
-
             const response = await api.post('/api/posts', postData);
-            console.log('✅ Resposta da API:', response.data);
 
             toast.success(`📅 Post agendado para ${date.toLocaleDateString('pt-BR')} às ${scheduleData.time}!`);
 
@@ -237,6 +256,10 @@ export default function CalendarPage() {
                 type: 'static',
                 caption: ''
             });
+
+            // If it was a library item, maybe we should update its status? 
+            // Currently backend doesn't link library item <-> post strictly, but that's okay for now.
+
         } catch (error) {
             console.error('❌ Erro completo:', error);
             const errorMsg = error.response?.data?.error || error.message || 'Erro desconhecido';
@@ -275,8 +298,6 @@ export default function CalendarPage() {
                 scheduledFor: scheduledDate.toISOString()
             };
 
-            console.log('📤 Atualizando post:', updateData);
-
             await api.put(`/api/posts/${editingPost.id}`, updateData);
 
             toast.success('✅ Post atualizado com sucesso!');
@@ -291,7 +312,6 @@ export default function CalendarPage() {
                 caption: ''
             });
         } catch (error) {
-            console.error('❌ Erro ao atualizar:', error);
             toast.error(`❌ Erro ao atualizar: ${error.response?.data?.error || error.message}`);
         }
     };
@@ -305,8 +325,6 @@ export default function CalendarPage() {
         }
 
         try {
-            console.log('🗑️ Deletando post:', editingPost.id);
-
             await api.delete(`/api/posts/${editingPost.id}`);
 
             toast.success('🗑️ Post excluído com sucesso!');
@@ -321,41 +339,42 @@ export default function CalendarPage() {
                 caption: ''
             });
         } catch (error) {
-            console.error('❌ Erro ao deletar:', error);
             toast.error(`❌ Erro ao deletar: ${error.response?.data?.error || error.message}`);
         }
     };
 
+    // Handle Quick Upload (Direct add to library/schedule)
     const handleFileUpload = async (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
-        console.log('📤 Fazendo upload de', files.length, 'arquivo(s)...');
+        if (!selectedProfile) {
+            toast.error('Erro: Nenhum perfil de negócio selecionado');
+            return;
+        }
+
+        const toastId = toast.loading('Fazendo upload...');
 
         try {
-            const uploadFormData = new FormData();
-            files.forEach(file => uploadFormData.append('files', file));
+            // Use the new Library Upload API so it persists in the library
+            const formData = new FormData();
+            files.forEach(file => formData.append('files', file));
+            formData.append('businessProfileId', selectedProfile.id);
+            formData.append('type', files.length > 1 ? 'carousel' : 'static');
+            formData.append('tag', 'pronto'); // Mark as ready immediately so it shows up
 
-            const uploadRes = await api.post('/api/upload', uploadFormData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
+            const res = await api.post('/api/library/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            console.log('✅ Upload concluído:', uploadRes.data);
+            toast.success('✅ Mídia adicionada à biblioteca!', { id: toastId });
 
-            const newMediaItem = {
-                id: Date.now().toString(),
-                type: files.length > 1 ? 'carousel' : 'static',
-                mediaUrls: uploadRes.data.urls,
-                caption: '',
-                thumbnail: uploadRes.data.urls[0]
-            };
+            // Reload library to show the new item
+            loadLibraryItems();
 
-            setMediaLibrary([...mediaLibrary, newMediaItem]);
-            toast.success(`✅ ${files.length} mídia(s) adicionada(s) à biblioteca!`);
-            console.log('📚 Biblioteca atualizada:', [...mediaLibrary, newMediaItem]);
         } catch (error) {
             console.error('❌ Erro no upload:', error);
-            toast.error(`❌ Erro ao fazer upload: ${error.message}`);
+            toast.error(`❌ Erro ao fazer upload: ${error.message}`, { id: toastId });
         }
     };
 
@@ -367,51 +386,70 @@ export default function CalendarPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // If no profile selected, show a warning or empty state
+    if (!selectedProfile) {
+        return (
+            <div style={{ minHeight: '100vh', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="card-glass" style={{ textAlign: 'center', padding: '3rem' }}>
+                    <h2 style={{ marginBottom: '1rem' }}>⚠️ Selecione um Perfil</h2>
+                    <p style={{ color: '#a1a1aa' }}>Selecione um perfil de negócio no topo da página para ver o calendário.</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div style={{ minHeight: '100vh', padding: '2rem' }}>
             <div className="container">
                 <BackButton />
 
                 <div className="flex-between mb-lg">
-                    <h1>📅 Calendário de Posts</h1>
+                    <div>
+                        <h1>📅 Calendário de Posts</h1>
+                        <p style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>Perfil: <strong style={{ color: '#7c3aed' }}>{selectedProfile.name}</strong></p>
+                    </div>
+
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <select
-                            className="input"
-                            value={selectedAccount}
-                            onChange={(e) => setSelectedAccount(e.target.value)}
-                            style={{ minWidth: '200px' }}
-                        >
-                            <option value="">Todas as contas</option>
-                            {accounts.map(acc => (
-                                <option key={acc.id} value={acc.id}>@{acc.username}</option>
-                            ))}
-                        </select>
+                        {accounts.length > 0 ? (
+                            <select
+                                className="input"
+                                value={selectedAccount}
+                                onChange={(e) => setSelectedAccount(e.target.value)}
+                                style={{ minWidth: '200px' }}
+                            >
+                                {accounts.map(acc => (
+                                    <option key={acc.id} value={acc.id}>@{acc.username}</option>
+                                ))}
+                            </select>
+                        ) : (
+                            <div style={{ padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '0.5rem', fontSize: '0.85rem' }}>
+                                Nenhuma conta ativa neste perfil
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem' }}>
                     {/* Media Library Sidebar */}
-                    <div className="card-glass" style={{ padding: '1.5rem', height: 'fit-content' }}>
-                        <h3 className="mb-md">📚 Biblioteca de Mídia</h3>
+                    <div className="card-glass" style={{ padding: '1.5rem', height: 'fit-content', maxHeight: '80vh', overflowY: 'auto' }}>
+                        <h3 className="mb-md">📚 Biblioteca ("Pronto")</h3>
                         <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>
-                            Arraste as mídias para o calendário para agendar
+                            Arraste para o calendário
                         </p>
 
                         <label
-                            htmlFor="media-upload"
                             className="btn btn-primary"
-                            style={{ width: '100%', marginBottom: '1rem', cursor: 'pointer', textAlign: 'center' }}
+                            style={{ width: '100%', marginBottom: '1rem', cursor: 'pointer', textAlign: 'center', display: 'block' }}
                         >
-                            ➕ Adicionar Mídia
+                            ➕ Upload Rápido
+                            <input
+                                type="file"
+                                accept="image/*,video/mp4"
+                                multiple
+                                onChange={handleFileUpload}
+                                style={{ display: 'none' }}
+                            />
                         </label>
-                        <input
-                            id="media-upload"
-                            type="file"
-                            accept="image/*,video/mp4"
-                            multiple
-                            onChange={handleFileUpload}
-                            style={{ display: 'none' }}
-                        />
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {mediaLibrary.map((item) => (
@@ -445,15 +483,16 @@ export default function CalendarPage() {
                                                 height: '60px',
                                                 objectFit: 'cover',
                                                 borderRadius: 'var(--radius-sm)',
-                                                pointerEvents: 'none'
+                                                pointerEvents: 'none',
+                                                background: '#000'
                                             }}
                                         />
-                                        <div style={{ flex: 1 }}>
+                                        <div style={{ flex: 1, overflow: 'hidden' }}>
                                             <p style={{ fontSize: '0.75rem', color: '#8e44ad', fontWeight: '500' }}>
                                                 {item.type === 'carousel' ? '🎠 Carrossel' : '📸 Imagem'}
                                             </p>
-                                            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                                                {item.mediaUrls.length} arquivo(s)
+                                            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {item.caption || 'Sem legenda'}
                                             </p>
                                         </div>
                                     </div>
@@ -462,7 +501,7 @@ export default function CalendarPage() {
 
                             {mediaLibrary.length === 0 && (
                                 <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', textAlign: 'center', padding: '2rem 0' }}>
-                                    Nenhuma mídia na biblioteca
+                                    Nenhum item "Pronto" na biblioteca deste perfil.
                                 </p>
                             )}
                         </div>
@@ -610,13 +649,12 @@ export default function CalendarPage() {
                                                                 flexDirection: 'column',
                                                                 gap: '2px'
                                                             }}>
+                                                                {/* Time & Type */}
                                                                 <div style={{
                                                                     display: 'flex',
                                                                     alignItems: 'center',
                                                                     gap: '0.25rem',
-                                                                    whiteSpace: 'nowrap',
-                                                                    overflow: 'hidden',
-                                                                    textOverflow: 'ellipsis'
+                                                                    minWidth: 0
                                                                 }}>
                                                                     <span>
                                                                         {post.type === 'carousel' ? '🎠' :
@@ -624,24 +662,13 @@ export default function CalendarPage() {
                                                                                 post.type === 'reel' ? '🎬' :
                                                                                     post.type === 'story' ? '📖' : '📸'}
                                                                     </span>
-                                                                    <span style={{ fontWeight: '600' }}>
+                                                                    <span style={{ fontWeight: '600', fontSize: '0.6rem' }}>
                                                                         {new Date(post.scheduledFor).toLocaleTimeString('pt-BR', {
                                                                             hour: '2-digit',
                                                                             minute: '2-digit'
                                                                         })}
                                                                     </span>
                                                                 </div>
-                                                                {post.caption && (
-                                                                    <div style={{
-                                                                        fontSize: '0.6rem',
-                                                                        color: 'rgba(255,255,255,0.7)',
-                                                                        whiteSpace: 'nowrap',
-                                                                        overflow: 'hidden',
-                                                                        textOverflow: 'ellipsis'
-                                                                    }}>
-                                                                        {post.caption}
-                                                                    </div>
-                                                                )}
                                                             </div>
                                                         </div>
                                                     ))}
@@ -777,7 +804,7 @@ export default function CalendarPage() {
                     </div>
                 )}
 
-                {/* Edit Post Modal */}
+                {/* Edit Post Modal code... (similar structure to schedule modal) */}
                 {showEditModal && editingPost && (
                     <div style={{
                         position: 'fixed',
@@ -798,19 +825,18 @@ export default function CalendarPage() {
                             padding: '2rem',
                             position: 'relative'
                         }}>
-                            <h2 className="mb-md">✏️ Editar Post Agendado</h2>
+                            <h2 className="mb-md">✏️ Editar Agendamento</h2>
 
                             <p style={{
                                 fontSize: '0.875rem',
                                 color: 'var(--text-tertiary)',
                                 marginBottom: '1.5rem'
                             }}>
-                                ID: <strong style={{ color: '#8e44ad', fontSize: '0.75rem' }}>
-                                    {editingPost.id.substring(0, 8)}...
+                                Editando post de <strong style={{ color: '#8e44ad' }}>
+                                    {editData.date?.toLocaleDateString('pt-BR')}
                                 </strong>
                             </p>
 
-                            {/* Tipo de Post */}
                             <div className="input-group">
                                 <label className="input-label">Tipo de Post</label>
                                 <select
@@ -826,7 +852,6 @@ export default function CalendarPage() {
                                 </select>
                             </div>
 
-                            {/* Horário */}
                             <div className="input-group">
                                 <label className="input-label">Horário</label>
                                 <input
@@ -835,68 +860,52 @@ export default function CalendarPage() {
                                     value={editData.time}
                                     onChange={(e) => setEditData({ ...editData, time: e.target.value })}
                                 />
-                                <small style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.25rem', display: 'block' }}>
-                                    Data: {editData.date?.toLocaleDateString('pt-BR')}
-                                </small>
                             </div>
 
-                            {/* Legenda */}
-                            {editData.type !== 'story' && (
-                                <div className="input-group">
-                                    <label className="input-label">Legenda (opcional)</label>
-                                    <textarea
-                                        className="input"
-                                        value={editData.caption}
-                                        onChange={(e) => setEditData({ ...editData, caption: e.target.value })}
-                                        placeholder="Escreva a legenda do post..."
-                                        rows={4}
-                                    />
-                                </div>
-                            )}
+                            <div className="input-group">
+                                <label className="input-label">Legenda</label>
+                                <textarea
+                                    className="input"
+                                    value={editData.caption}
+                                    onChange={(e) => setEditData({ ...editData, caption: e.target.value })}
+                                    rows={4}
+                                />
+                            </div>
 
-                            {/* Botões */}
-                            <div className="flex gap-md mt-lg" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {/* Atualizar */}
+                            <div className="flex gap-md mt-lg">
                                 <button
                                     onClick={handleUpdatePost}
                                     className="btn btn-primary"
-                                    style={{ width: '100%' }}
+                                    style={{ flex: 1 }}
                                 >
-                                    ✅ Salvar Alterações
+                                    💾 Salvar Alterações
                                 </button>
-
-                                {/* Deletar */}
                                 <button
                                     onClick={handleDeletePost}
                                     className="btn"
-                                    style={{
-                                        width: '100%',
-                                        background: '#ef4444',
-                                        border: 'none',
-                                        color: '#fff'
-                                    }}
+                                    style={{ flex: 1, background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}
                                 >
                                     🗑️ Excluir Post
                                 </button>
-
-                                {/* Cancelar */}
-                                <button
-                                    onClick={() => {
-                                        setShowEditModal(false);
-                                        setEditingPost(null);
-                                        setEditData({
-                                            date: null,
-                                            time: '10:00',
-                                            type: 'static',
-                                            caption: ''
-                                        });
-                                    }}
-                                    className="btn btn-secondary"
-                                    style={{ width: '100%' }}
-                                >
-                                    Cancelar
-                                </button>
                             </div>
+                            <button
+                                onClick={() => {
+                                    setShowEditModal(false);
+                                    setEditingPost(null);
+                                }}
+                                style={{
+                                    position: 'absolute',
+                                    top: '1rem',
+                                    right: '1rem',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#fff',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                ×
+                            </button>
                         </div>
                     </div>
                 )}
