@@ -47,6 +47,7 @@ export async function createPost(userId, accountId, postData) {
             userId,
             accountId,
             businessProfileId: account.businessProfileId || null,
+            libraryItemId: postData.libraryItemId || null, // Link to library item
             type,
             mediaUrls,
             caption: caption || '',
@@ -58,6 +59,17 @@ export async function createPost(userId, accountId, postData) {
         };
 
         const postRef = await db.collection('posts').add(post);
+
+        // If linked to a library item, update its status
+        if (postData.libraryItemId) {
+            await db.collection('library_items').doc(postData.libraryItemId).update({
+                isScheduled: true,
+                status: 'scheduled',
+                scheduledPostId: postRef.id,
+                scheduledFor: post.scheduledFor
+            });
+            console.log(`🔗 Linked Library Item ${postData.libraryItemId} to Post ${postRef.id}`);
+        }
 
         console.log(`✅ Post criado com ID: ${postRef.id}`);
 
@@ -177,6 +189,17 @@ export async function deletePost(postId) {
 
         // Deletar post do Firestore
         await db.collection('posts').doc(postId).delete();
+
+        // Se tiver um libraryItemId, resetar o status dele
+        if (post.libraryItemId) {
+            await db.collection('library_items').doc(post.libraryItemId).update({
+                isScheduled: false,
+                status: 'available', // Or 'pronto'
+                scheduledPostId: null,
+                scheduledFor: null
+            });
+            console.log(`🔄 Library Item ${post.libraryItemId} status reset to available`);
+        }
 
         console.log(`✅ Post ${postId} deletado`);
         return true;
@@ -302,6 +325,15 @@ export async function executePost(postId) {
                     lastVerified: new Date(),
                 });
                 console.log('🔄 Sessão da conta atualizada');
+            }
+
+            // Atualizar status do Library Item se houver
+            if (post.libraryItemId) {
+                await db.collection('library_items').doc(post.libraryItemId).update({
+                    status: 'posted',
+                    postedAt: new Date()
+                });
+                console.log(`✅ Library Item ${post.libraryItemId} marked as posted`);
             }
 
             // Deletar mídias do Storage após sucesso (economia de espaço)

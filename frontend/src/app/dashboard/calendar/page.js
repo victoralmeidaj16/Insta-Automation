@@ -91,7 +91,9 @@ export default function CalendarPage() {
                     mediaUrls: item.mediaUrls,
                     caption: item.caption,
                     thumbnail: item.mediaUrls[0] || '', // Ensure thumbnail exists
-                    isLibraryItem: true // Flag to distinguish from AI generated pending items if needed
+                    isLibraryItem: true,
+                    status: item.status, // 'available', 'scheduled', 'posted'
+                    isScheduled: item.isScheduled
                 }));
 
             console.log('📚 Library items loaded:', readyItems.length);
@@ -110,7 +112,7 @@ export default function CalendarPage() {
                 params: { accountId: selectedProfile.id }
             });
             // Status correto é 'pending' para posts agendados
-            const scheduledPosts = res.data.posts.filter(p => p.status === 'pending' || p.status === 'scheduled');
+            const scheduledPosts = res.data.posts.filter(p => p.status === 'pending' || p.status === 'scheduled' || p.status === 'success');
             console.log('📋 Posts agendados carregados:', scheduledPosts.length);
             setPosts(scheduledPosts);
         } catch (error) {
@@ -118,280 +120,186 @@ export default function CalendarPage() {
         }
     };
 
-    // Calendar utilities (unchanged)
-    const getDaysInMonth = (date) => {
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const daysInMonth = lastDay.getDate();
-        const startingDayOfWeek = firstDay.getDay();
+    // Calendar Logic
+    const monthNames = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
 
-        const days = [];
+    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const today = new Date();
 
-        // Add empty slots for days before month starts
-        for (let i = 0; i < startingDayOfWeek; i++) {
-            days.push(null);
+    const getDaysInMonth = () => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDayOfMonth = new Date(year, month, 1).getDay();
+
+        const daysArray = [];
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            daysArray.push(null);
         }
-
-        // Add all days of the month
-        for (let day = 1; day <= daysInMonth; day++) {
-            days.push(new Date(year, month, day));
+        for (let i = 1; i <= daysInMonth; i++) {
+            daysArray.push(new Date(year, month, i));
         }
+        return daysArray;
+    };
 
-        return days;
+    const days = getDaysInMonth();
+
+    const changeMonth = (offset) => {
+        const newDate = new Date(currentDate.setMonth(currentDate.getMonth() + offset));
+        setCurrentDate(new Date(newDate));
     };
 
     const getPostsForDate = (date) => {
-        if (!date) return [];
-
-        // Normalizar para data local sem timezone
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
-
-        const filtered = posts.filter(post => {
-            if (!post.scheduledFor) return false;
-
+        return posts.filter(post => {
             const postDate = new Date(post.scheduledFor);
-            const postYear = postDate.getFullYear();
-            const postMonth = String(postDate.getMonth() + 1).padStart(2, '0');
-            const postDay = String(postDate.getDate()).padStart(2, '0');
-            const postDateStr = `${postYear}-${postMonth}-${postDay}`;
-
-            return postDateStr === dateStr;
+            return postDate.getDate() === date.getDate() &&
+                postDate.getMonth() === date.getMonth() &&
+                postDate.getFullYear() === date.getFullYear();
         });
-
-        return filtered;
     };
 
-    const changeMonth = (offset) => {
-        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
+    // Handlers
+    const handleFileUpload = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        const formData = new FormData();
+        files.forEach(file => formData.append('files', file));
+        formData.append('businessProfileId', selectedProfile.id);
+
+        const toastId = toast.loading('Enviando arquivos...');
+        try {
+            await api.post('/api/library', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            toast.success('Arquivos enviados!', { id: toastId });
+            loadLibraryItems();
+        } catch (error) {
+            console.error(error);
+            toast.error('Erro no upload', { id: toastId });
+        }
     };
 
-    // Drag and Drop handlers
     const handleDragStart = (e, item) => {
-        console.log('🟢 DRAG START:', item);
         setDraggedItem(item);
-        e.dataTransfer.effectAllowed = 'copy';
     };
 
     const handleDragOver = (e, date) => {
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
-        // Sempre atualiza
         setHoveredDate(date);
     };
 
-    const handleDrop = async (e, date) => {
+    const handleDrop = (e, date) => {
         e.preventDefault();
-        e.stopPropagation();
-        setHoveredDate(null);
+        if (!draggedItem) return;
 
-        if (!draggedItem || !date) {
-            toast.error('⚠️ Erro ao soltar mídia');
-            return;
-        }
-
-        if (!selectedProfile) {
-            toast.error('⚠️ Selecione um perfil primeiro');
-            return;
-        }
-
-        // Armazenar dados e abrir modal
         setPendingDrop({ draggedItem, date });
         setScheduleData({
             date: date,
             time: '10:00',
             type: draggedItem.type || 'static',
-            caption: draggedItem.caption || ''
+            caption: draggedItem.caption || '',
+            libraryItemId: draggedItem.id
         });
         setShowScheduleModal(true);
         setDraggedItem(null);
+        setHoveredDate(null);
     };
 
-    const handleConfirmSchedule = async (isImmediate = false) => {
-        if (!pendingDrop) return;
-
-        const { draggedItem, date } = pendingDrop;
-
-        // Criar data com horário escolhido
-        const [hours, minutes] = scheduleData.time.split(':');
-        const scheduledDate = new Date(date);
-        scheduledDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
+    const handleConfirmSchedule = async (immediate = false) => {
         try {
-            const postData = {
-                accountId: selectedProfile.id, // Use profile ID as account ID
-                type: scheduleData.type,
-                caption: scheduleData.caption,
-                mediaUrls: draggedItem.mediaUrls || [],
-                // Se for imediato, envia null para scheduledFor
-                scheduledFor: isImmediate ? null : scheduledDate.toISOString(),
-            };
-
-            const response = await api.post('/api/posts', postData);
-
-            if (isImmediate) {
-                toast.success('🚀 Post enviado para processamento imediato!');
-            } else {
-                toast.success(`📅 Post agendado para ${date.toLocaleDateString('pt-BR')} às ${scheduleData.time}!`);
+            if (!scheduleData.date && !immediate) {
+                toast.error('Data inválida');
+                return;
             }
 
-            // Recarregar posts
-            await loadPosts();
+            const scheduledDate = new Date(scheduleData.date);
+            const [hours, minutes] = scheduleData.time.split(':');
+            scheduledDate.setHours(parseInt(hours), parseInt(minutes));
 
-            // Fechar modal e limpar estados
+            const sourceItem = pendingDrop?.draggedItem;
+
+            const postData = {
+                accountId: selectedProfile.id,
+                type: scheduleData.type,
+                caption: scheduleData.caption,
+                mediaUrls: sourceItem?.mediaUrls || [],
+                libraryItemId: sourceItem?.isLibraryItem ? sourceItem.id : null,
+                scheduledFor: immediate ? null : scheduledDate.toISOString(),
+                isImmediate: immediate
+            };
+
+            // Just create the post, backend handles execution if needed? 
+            // Or different endpoint? Typically same endpoint with isImmediate flag?
+            // Assuming standard create post for now.
+            await api.post('/api/posts', postData);
+
+            if (immediate) {
+                toast.success('Post enviado para a fila de execução!');
+            } else {
+                toast.success('Agendado com sucesso!');
+            }
+
             setShowScheduleModal(false);
             setPendingDrop(null);
-            setScheduleData({
-                date: null,
-                time: '10:00',
-                type: 'static',
-                caption: ''
-            });
-
-            // If it was a library item, maybe we should update its status? 
-            // Currently backend doesn't link library item <-> post strictly, but that's okay for now.
-
+            setScheduleData({ ...scheduleData, date: null, caption: '' });
+            loadPosts();
+            loadLibraryItems();
         } catch (error) {
-            console.error('❌ Erro completo:', error);
-            const errorMsg = error.response?.data?.error || error.message || 'Erro desconhecido';
-            toast.error(`❌ Erro ao agendar: ${errorMsg}`);
+            console.error(error);
+            toast.error('Erro ao agendar post.');
         }
     };
 
-    // Open edit modal for existing post
     const handleEditPost = (post) => {
-        const postDate = new Date(post.scheduledFor);
-        const hours = String(postDate.getHours()).padStart(2, '0');
-        const minutes = String(postDate.getMinutes()).padStart(2, '0');
-
         setEditingPost(post);
         setEditData({
-            date: postDate,
-            time: `${hours}:${minutes}`,
+            date: new Date(post.scheduledFor),
+            time: new Date(post.scheduledFor).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             type: post.type,
             caption: post.caption || ''
         });
         setShowEditModal(true);
     };
 
-    // Update existing post
     const handleUpdatePost = async () => {
-        if (!editingPost) return;
-
         try {
-            const [hours, minutes] = editData.time.split(':');
-            const scheduledDate = new Date(editData.date);
-            scheduledDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            const newDate = new Date(editData.date);
+            const [h, m] = editData.time.split(':'); // Assuming time is HH:mm string from input
+            if (h && m) newDate.setHours(h, m);
 
-            const updateData = {
-                type: editData.type,
-                caption: editData.caption,
-                scheduledFor: scheduledDate.toISOString()
-            };
-
-            await api.put(`/api/posts/${editingPost.id}`, updateData);
-
-            toast.success('✅ Post atualizado com sucesso!');
-            await loadPosts();
-
+            await api.put(`/api/posts/${editingPost.id}`, {
+                ...editData,
+                scheduledFor: newDate.toISOString(),
+                caption: editData.caption
+            });
+            toast.success('Post atualizado!');
             setShowEditModal(false);
             setEditingPost(null);
-            setEditData({
-                date: null,
-                time: '10:00',
-                type: 'static',
-                caption: ''
-            });
+            loadPosts();
         } catch (error) {
-            toast.error(`❌ Erro ao atualizar: ${error.response?.data?.error || error.message}`);
+            console.error(error);
+            toast.error('Erro ao atualizar');
         }
     };
 
-    // Delete post
     const handleDeletePost = async () => {
-        if (!editingPost) return;
-
-        if (!confirm('Tem certeza que deseja excluir este post agendado?')) {
-            return;
-        }
-
+        if (!confirm('Tem certeza?')) return;
         try {
             await api.delete(`/api/posts/${editingPost.id}`);
-
-            toast.success('🗑️ Post excluído com sucesso!');
-            await loadPosts();
-
+            toast.success('Post excluído');
             setShowEditModal(false);
             setEditingPost(null);
-            setEditData({
-                date: null,
-                time: '10:00',
-                type: 'static',
-                caption: ''
-            });
-        } catch (error) {
-            toast.error(`❌ Erro ao deletar: ${error.response?.data?.error || error.message}`);
-        }
-    };
-
-    // Handle Quick Upload (Direct add to library/schedule)
-    const handleFileUpload = async (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-
-        if (!selectedProfile) {
-            toast.error('Erro: Nenhum perfil de negócio selecionado');
-            return;
-        }
-
-        const toastId = toast.loading('Fazendo upload...');
-
-        try {
-            // Use the new Library Upload API so it persists in the library
-            const formData = new FormData();
-            files.forEach(file => formData.append('files', file));
-            formData.append('businessProfileId', selectedProfile.id);
-            formData.append('type', files.length > 1 ? 'carousel' : 'static');
-            formData.append('tag', 'pronto'); // Mark as ready immediately so it shows up
-
-            const res = await api.post('/api/library/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            toast.success('✅ Mídia adicionada à biblioteca!', { id: toastId });
-
-            // Reload library to show the new item
+            loadPosts();
             loadLibraryItems();
-
         } catch (error) {
-            console.error('❌ Erro no upload:', error);
-            toast.error(`❌ Erro ao fazer upload: ${error.message}`, { id: toastId });
+            console.error(error);
+            toast.error('Erro ao excluir');
         }
     };
-
-    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-    const days = getDaysInMonth(currentDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // If no profile selected, show a warning or empty state
-    if (!selectedProfile) {
-        return (
-            <div style={{ minHeight: '100vh', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div className="card-glass" style={{ textAlign: 'center', padding: '3rem' }}>
-                    <h2 style={{ marginBottom: '1rem' }}>⚠️ Selecione um Perfil</h2>
-                    <p style={{ color: '#a1a1aa' }}>Selecione um perfil de negócio no topo da página para ver o calendário.</p>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div style={{ minHeight: '100vh', padding: '2rem' }}>
@@ -429,6 +337,7 @@ export default function CalendarPage() {
                             Arraste para o calendário
                         </p>
 
+                        {/* ... upload button ... */}
                         <label
                             className="btn btn-primary"
                             style={{ width: '100%', marginBottom: '1rem', cursor: 'pointer', textAlign: 'center', display: 'block' }}
@@ -447,19 +356,23 @@ export default function CalendarPage() {
                             {mediaLibrary.map((item) => (
                                 <div
                                     key={item.id}
-                                    draggable
+                                    draggable={!item.isScheduled && item.status !== 'posted'} // Disable drag if already scheduled/posted
                                     onDragStart={(e) => handleDragStart(e, item)}
                                     style={{
                                         padding: '0.75rem',
                                         background: 'rgba(255,255,255,0.05)',
                                         borderRadius: 'var(--radius-md)',
-                                        cursor: 'grab',
+                                        cursor: (item.isScheduled || item.status === 'posted') ? 'default' : 'grab',
                                         border: '2px solid transparent',
-                                        transition: 'all 0.2s ease'
+                                        transition: 'all 0.2s ease',
+                                        opacity: (item.isScheduled || item.status === 'posted') ? 0.7 : 1,
+                                        position: 'relative'
                                     }}
                                     onMouseEnter={(e) => {
-                                        e.currentTarget.style.borderColor = '#8e44ad';
-                                        e.currentTarget.style.transform = 'scale(1.02)';
+                                        if (!item.isScheduled && item.status !== 'posted') {
+                                            e.currentTarget.style.borderColor = '#8e44ad';
+                                            e.currentTarget.style.transform = 'scale(1.02)';
+                                        }
                                     }}
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.borderColor = 'transparent';
@@ -476,13 +389,27 @@ export default function CalendarPage() {
                                                 objectFit: 'cover',
                                                 borderRadius: 'var(--radius-sm)',
                                                 pointerEvents: 'none',
-                                                background: '#000'
+                                                background: '#000',
+                                                filter: (item.isScheduled || item.status === 'posted') ? 'grayscale(0.5)' : 'none'
                                             }}
                                         />
                                         <div style={{ flex: 1, overflow: 'hidden' }}>
-                                            <p style={{ fontSize: '0.75rem', color: '#8e44ad', fontWeight: '500' }}>
-                                                {item.type === 'carousel' ? '🎠 Carrossel' : '📸 Imagem'}
-                                            </p>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                <p style={{ fontSize: '0.75rem', color: '#8e44ad', fontWeight: '500' }}>
+                                                    {item.type === 'carousel' ? '🎠 Carrossel' : '📸 Imagem'}
+                                                </p>
+
+                                                {/* Status Badge */}
+                                                {item.status === 'posted' ? (
+                                                    <span style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', fontWeight: 'bold' }}>
+                                                        POSTADO
+                                                    </span>
+                                                ) : (item.isScheduled || item.status === 'scheduled') ? (
+                                                    <span style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(234, 179, 8, 0.2)', color: '#eab308', fontWeight: 'bold' }}>
+                                                        AGENDADO
+                                                    </span>
+                                                ) : null}
+                                            </div>
                                             <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 {item.caption || 'Sem legenda'}
                                             </p>
@@ -591,79 +518,83 @@ export default function CalendarPage() {
 
                                                 {/* Scheduled Posts */}
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                                    {postsForDate.map(post => (
-                                                        <div
-                                                            key={post.id}
-                                                            onClick={() => handleEditPost(post)}
-                                                            style={{
-                                                                fontSize: '0.65rem',
-                                                                padding: '0.25rem',
-                                                                background: 'rgba(142, 68, 173, 0.3)',
-                                                                borderRadius: 'var(--radius-sm)',
-                                                                borderLeft: '3px solid #8e44ad',
-                                                                overflow: 'hidden',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '0.35rem',
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.2s ease'
-                                                            }}
-                                                            onMouseEnter={(e) => {
-                                                                e.currentTarget.style.background = 'rgba(142, 68, 173, 0.5)';
-                                                                e.currentTarget.style.transform = 'scale(1.02)';
-                                                            }}
-                                                            onMouseLeave={(e) => {
-                                                                e.currentTarget.style.background = 'rgba(142, 68, 173, 0.3)';
-                                                                e.currentTarget.style.transform = 'scale(1)';
-                                                            }}
-                                                            title="Clique para editar"
-                                                        >
-                                                            {/* Thumbnail */}
-                                                            {post.mediaUrls && post.mediaUrls[0] && (
-                                                                <img
-                                                                    src={post.mediaUrls[0]}
-                                                                    alt="Post"
-                                                                    style={{
-                                                                        width: '28px',
-                                                                        height: '28px',
-                                                                        objectFit: 'cover',
-                                                                        borderRadius: '3px',
-                                                                        flexShrink: 0
-                                                                    }}
-                                                                />
-                                                            )}
-
-                                                            {/* Info */}
-                                                            <div style={{
-                                                                flex: 1,
-                                                                overflow: 'hidden',
-                                                                display: 'flex',
-                                                                flexDirection: 'column',
-                                                                gap: '2px'
-                                                            }}>
-                                                                {/* Time & Type */}
-                                                                <div style={{
+                                                    {postsForDate.map(post => {
+                                                        const isPosted = post.status === 'success';
+                                                        return (
+                                                            <div
+                                                                key={post.id}
+                                                                onClick={() => handleEditPost(post)}
+                                                                style={{
+                                                                    fontSize: '0.65rem',
+                                                                    padding: '0.25rem',
+                                                                    background: isPosted ? 'rgba(34, 197, 94, 0.2)' : 'rgba(142, 68, 173, 0.3)',
+                                                                    borderRadius: 'var(--radius-sm)',
+                                                                    borderLeft: isPosted ? '3px solid #22c55e' : '3px solid #8e44ad',
+                                                                    overflow: 'hidden',
                                                                     display: 'flex',
                                                                     alignItems: 'center',
-                                                                    gap: '0.25rem',
-                                                                    minWidth: 0
+                                                                    gap: '0.35rem',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.2s ease',
+                                                                    opacity: isPosted ? 0.8 : 1
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.background = isPosted ? 'rgba(34, 197, 94, 0.3)' : 'rgba(142, 68, 173, 0.5)';
+                                                                    e.currentTarget.style.transform = 'scale(1.02)';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.background = isPosted ? 'rgba(34, 197, 94, 0.2)' : 'rgba(142, 68, 173, 0.3)';
+                                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                                }}
+                                                                title={isPosted ? "Postado" : "Agendado: " + post.caption}
+                                                            >
+                                                                {/* Thumbnail */}
+                                                                {post.mediaUrls && post.mediaUrls[0] && (
+                                                                    <img
+                                                                        src={post.mediaUrls[0]}
+                                                                        alt="Post"
+                                                                        style={{
+                                                                            width: '28px',
+                                                                            height: '28px',
+                                                                            objectFit: 'cover',
+                                                                            borderRadius: '3px',
+                                                                            flexShrink: 0
+                                                                        }}
+                                                                    />
+                                                                )}
+
+                                                                {/* Info */}
+                                                                <div style={{
+                                                                    flex: 1,
+                                                                    overflow: 'hidden',
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    gap: '2px'
                                                                 }}>
-                                                                    <span>
-                                                                        {post.type === 'carousel' ? '🎠' :
-                                                                            post.type === 'video' ? '🎥' :
-                                                                                post.type === 'reel' ? '🎬' :
-                                                                                    post.type === 'story' ? '📖' : '📸'}
-                                                                    </span>
-                                                                    <span style={{ fontWeight: '600', fontSize: '0.6rem' }}>
-                                                                        {new Date(post.scheduledFor).toLocaleTimeString('pt-BR', {
-                                                                            hour: '2-digit',
-                                                                            minute: '2-digit'
-                                                                        })}
-                                                                    </span>
+                                                                    {/* Time & Type */}
+                                                                    <div style={{
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '0.25rem',
+                                                                        minWidth: 0
+                                                                    }}>
+                                                                        <span>
+                                                                            {post.type === 'carousel' ? '🎠' :
+                                                                                post.type === 'video' ? '🎥' :
+                                                                                    post.type === 'reel' ? '🎬' :
+                                                                                        post.type === 'story' ? '📖' : '📸'}
+                                                                        </span>
+                                                                        <span style={{ fontWeight: '600', fontSize: '0.6rem' }}>
+                                                                            {new Date(post.scheduledFor).toLocaleTimeString('pt-BR', {
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit'
+                                                                            })}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        ); // Closing map expression
+                                                    })}
                                                 </div>
 
                                                 {/* Drop Zone Indicator */}
@@ -692,9 +623,11 @@ export default function CalendarPage() {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Schedule Configuration Modal */}
-                {showScheduleModal && (
+            {/* Schedule Configuration Modal */}
+            {
+                showScheduleModal && (
                     <div style={{
                         position: 'fixed',
                         top: 0,
@@ -810,10 +743,12 @@ export default function CalendarPage() {
                             </div>
                         </div>
                     </div>
-                )}
+                )
+            }
 
-                {/* Edit Post Modal code... (similar structure to schedule modal) */}
-                {showEditModal && editingPost && (
+            {/* Edit Post Modal code... (similar structure to schedule modal) */}
+            {
+                showEditModal && editingPost && (
                     <div style={{
                         position: 'fixed',
                         top: 0,
@@ -916,8 +851,9 @@ export default function CalendarPage() {
                             </button>
                         </div>
                     </div>
-                )}
-            </div>
+                )
+            }
         </div>
+        </div >
     );
 }

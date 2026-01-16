@@ -161,14 +161,19 @@ export default function GeneratePage() {
     };
 
     // Generate image for a specific card with retry logic
-    const handleGenerateImageForCard = async (cardIndex: number, retryCount: number = 0) => {
-        const card = carouselCards[cardIndex];
-        if (!card || card.image) return;
+    const handleGenerateImageForCard = async (cardIndex: number, retryCount: number = 0, cardsState?: CarouselCard[]) => {
+        // Use provided state or current state
+        const currentCards = cardsState || carouselCards;
+        const card = currentCards[cardIndex];
 
-        // Update card state to show loading
-        const updatedCards = [...carouselCards];
-        updatedCards[cardIndex] = { ...card, isGeneratingImage: true };
-        setCarouselCards(updatedCards);
+        if (!card || (card.image && !cardsState)) return; // Only skip if image exists AND we are not overriding (implied by passing cardsState)
+
+        // Update card state to show loading if not already updated (when passing cardsState we typically already set it)
+        if (!cardsState) {
+            const updatedCards = [...carouselCards];
+            updatedCards[cardIndex] = { ...card, isGeneratingImage: true };
+            setCarouselCards(updatedCards);
+        }
 
         try {
             // Build enhanced prompt with profile template
@@ -185,13 +190,16 @@ export default function GeneratePage() {
             });
 
             if (response.data.success) {
-                const newCards = [...carouselCards];
-                newCards[cardIndex] = {
-                    ...card,
-                    image: response.data.image,
-                    isGeneratingImage: false
-                };
-                setCarouselCards(newCards);
+                // We need to fetch latest state here again because other cards might have finished
+                setCarouselCards(prev => {
+                    const newCards = [...prev];
+                    newCards[cardIndex] = {
+                        ...newCards[cardIndex],
+                        image: response.data.image,
+                        isGeneratingImage: false
+                    };
+                    return newCards;
+                });
                 toast.success(`✅ Imagem do card ${cardIndex + 1} gerada!`);
             }
         } catch (error: any) {
@@ -206,12 +214,25 @@ export default function GeneratePage() {
                     handleGenerateImageForCard(cardIndex, retryCount + 1);
                 }, delay);
             } else {
-                const newCards = [...carouselCards];
-                newCards[cardIndex] = { ...card, isGeneratingImage: false };
-                setCarouselCards(newCards);
+                setCarouselCards(prev => {
+                    const newCards = [...prev];
+                    newCards[cardIndex] = { ...newCards[cardIndex], isGeneratingImage: false };
+                    return newCards;
+                });
                 toast.error(`❌ Falha ao gerar card ${cardIndex + 1} após 3 tentativas`);
             }
         }
+    };
+
+    // Regenerate a specific card
+    const handleRegenerateCard = async (cardIndex: number) => {
+        if (!confirm('Tem certeza? A imagem atual será perdida.')) return;
+
+        const newCards = [...carouselCards];
+        newCards[cardIndex] = { ...newCards[cardIndex], image: undefined, isGeneratingImage: true };
+        setCarouselCards(newCards);
+
+        await handleGenerateImageForCard(cardIndex, 0, newCards);
     };
 
     // Generate all carousel images at once
@@ -421,6 +442,56 @@ export default function GeneratePage() {
             return date.getDate() === day && date.getMonth() === currentMonth && date.getFullYear() === currentYear;
         });
     };
+
+    // Icons
+    const DownloadIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+    );
+
+    const CalendarIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+    );
+
+    const MagicIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+        </svg>
+    );
+
+    const SaveIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
+    );
+
+    const RocketIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path>
+            <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path>
+            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path>
+            <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path>
+        </svg>
+    );
+
+    const RefreshIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+    );
+
 
     return (
         <div style={{ minHeight: '100vh', padding: '2rem', background: '#000', color: '#fff' }}>
@@ -723,9 +794,25 @@ export default function GeneratePage() {
                                                                 <button
                                                                     onClick={() => handleDownloadImage(card.image!, index)}
                                                                     className="btn btn-secondary"
-                                                                    style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem' }}
+                                                                    style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
                                                                 >
-                                                                    📥 Baixar
+                                                                    <DownloadIcon /> Baixar
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleRegenerateCard(index)}
+                                                                    className="btn"
+                                                                    style={{
+                                                                        width: '100%',
+                                                                        fontSize: '0.75rem',
+                                                                        padding: '0.5rem',
+                                                                        marginTop: '0.5rem',
+                                                                        background: 'rgba(239, 68, 68, 0.15)',
+                                                                        color: '#f87171',
+                                                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem'
+                                                                    }}
+                                                                >
+                                                                    <RefreshIcon /> Regenerar
                                                                 </button>
                                                             </>
                                                         ) : (
@@ -746,38 +833,147 @@ export default function GeneratePage() {
                                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
                                                     <button
                                                         onClick={handleDownloadAllImages}
-                                                        className="btn btn-secondary"
-                                                        style={{ flex: '1 1 auto' }}
+                                                        style={{
+                                                            flex: '1 1 auto',
+                                                            padding: '0.625rem',
+                                                            background: '#27272a',
+                                                            border: '1px solid #3f3f46',
+                                                            borderRadius: '0.5rem',
+                                                            color: '#e4e4e7',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 500,
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '0.5rem',
+                                                            transition: 'all 0.2s ease'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.background = '#3f3f46';
+                                                            e.currentTarget.style.color = '#fff';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = '#27272a';
+                                                            e.currentTarget.style.color = '#e4e4e7';
+                                                        }}
                                                     >
-                                                        📥 Baixar Todas ({carouselCards.filter(c => c.image).length} imagens)
+                                                        <DownloadIcon /> Baixar Todas ({carouselCards.filter(c => c.image).length})
                                                     </button>
                                                     <button
                                                         onClick={() => setShowCaptionGenerator(true)}
-                                                        className="btn"
-                                                        style={{ flex: '1 1 auto', background: '#a78bfa', border: 'none', color: '#fff', cursor: 'pointer' }}
+                                                        style={{
+                                                            flex: '1 1 auto',
+                                                            padding: '0.625rem',
+                                                            background: '#27272a',
+                                                            border: '1px solid #3f3f46',
+                                                            borderRadius: '0.5rem',
+                                                            color: '#e4e4e7',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 500,
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '0.5rem',
+                                                            transition: 'all 0.2s ease'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.background = '#3f3f46';
+                                                            e.currentTarget.style.color = '#fff';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = '#27272a';
+                                                            e.currentTarget.style.color = '#e4e4e7';
+                                                        }}
                                                     >
-                                                        ✍️ Gerar Caption com IA
+                                                        <MagicIcon /> Gerar Caption
                                                     </button>
                                                     <button
                                                         onClick={handleSaveToHistory}
-                                                        className="btn"
-                                                        style={{ flex: '1 1 auto', background: '#f59e0b', border: 'none', color: '#fff', cursor: 'pointer' }}
+                                                        style={{
+                                                            flex: '1 1 auto',
+                                                            padding: '0.625rem',
+                                                            background: '#27272a',
+                                                            border: '1px solid #3f3f46',
+                                                            borderRadius: '0.5rem',
+                                                            color: '#e4e4e7',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 500,
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '0.5rem',
+                                                            transition: 'all 0.2s ease'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.background = '#3f3f46';
+                                                            e.currentTarget.style.color = '#fff';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = '#27272a';
+                                                            e.currentTarget.style.color = '#e4e4e7';
+                                                        }}
                                                     >
-                                                        💾 Salvar no Histórico
+                                                        <SaveIcon /> Salvar Histórico
                                                     </button>
                                                     <button
                                                         onClick={handleSendToCalendar}
-                                                        className="btn"
-                                                        style={{ flex: '1 1 auto', background: '#8e44ad', border: 'none', color: '#fff', cursor: 'pointer' }}
+                                                        style={{
+                                                            flex: '1 1 auto',
+                                                            padding: '0.625rem',
+                                                            background: '#27272a',
+                                                            border: '1px solid #3f3f46',
+                                                            borderRadius: '0.5rem',
+                                                            color: '#e4e4e7',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 500,
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '0.5rem',
+                                                            transition: 'all 0.2s ease'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.background = '#3f3f46';
+                                                            e.currentTarget.style.color = '#fff';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = '#27272a';
+                                                            e.currentTarget.style.color = '#e4e4e7';
+                                                        }}
                                                     >
-                                                        📅 Enviar para Calendário ({carouselCards.filter(c => c.image).length})
+                                                        <CalendarIcon /> Calendar ({carouselCards.filter(c => c.image).length})
                                                     </button>
                                                     <button
                                                         onClick={handleSendToPost}
-                                                        className="btn btn-primary"
-                                                        style={{ flex: '1 1 auto', background: '#22c55e' }}
+                                                        style={{
+                                                            flex: '1 1 auto',
+                                                            padding: '0.625rem',
+                                                            background: '#27272a',
+                                                            border: '1px solid #22c55e',
+                                                            borderRadius: '0.5rem',
+                                                            color: '#4ade80',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 500,
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '0.5rem',
+                                                            transition: 'all 0.2s ease',
+                                                            boxShadow: '0 0 10px rgba(34, 197, 94, 0.1)'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.background = 'rgba(34, 197, 94, 0.1)';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.background = '#27272a';
+                                                        }}
                                                     >
-                                                        🚀 Postar/Agendar ({carouselCards.filter(c => c.image).length} imagens)
+                                                        <RocketIcon /> Postar ({carouselCards.filter(c => c.image).length})
                                                     </button>
                                                 </div>
                                             )}
@@ -1031,6 +1227,6 @@ export default function GeneratePage() {
                     />
                 )}
             </div>
-        </div>
+        </div >
     );
 }

@@ -49,6 +49,11 @@ export default function LibraryPage() {
     const [scheduleDate, setScheduleDate] = useState('');
     const [scheduleTime, setScheduleTime] = useState('');
 
+    // Bulk Actions State
+    const [selectedItems, setSelectedItems] = useState(new Set());
+    const [showBulkTagModal, setShowBulkTagModal] = useState(false);
+    const [bulkTagTarget, setBulkTagTarget] = useState('pronto');
+
     // Stats state
     const [stats, setStats] = useState({
         total: 0,
@@ -455,6 +460,47 @@ export default function LibraryPage() {
 
 
 
+    const toggleSelection = (id) => {
+        const newSelected = new Set(selectedItems);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedItems(newSelected);
+    };
+
+    const handleSelectAll = () => {
+        if (selectedItems.size === posts.length) {
+            setSelectedItems(new Set());
+        } else {
+            setSelectedItems(new Set(posts.map(p => p.id)));
+        }
+    };
+
+    const handleBulkTagUpdate = async () => {
+        if (selectedItems.size === 0) return;
+
+        toast.loading(`Atualizando ${selectedItems.size} itens...`, { id: 'bulk-update' });
+        try {
+            // Since we don't have a bulk endpoint, we'll run parallel requests
+            // In a real production app, you should create a bulk endpoint
+            const updatePromises = Array.from(selectedItems).map(id =>
+                api.put(`/api/library/${id}`, { tag: bulkTagTarget })
+            );
+
+            await Promise.all(updatePromises);
+
+            toast.success('Itens atualizados com sucesso!', { id: 'bulk-update' });
+            setShowBulkTagModal(false);
+            setSelectedItems(new Set());
+            loadPosts();
+        } catch (error) {
+            console.error('Bulk update error:', error);
+            toast.error('Erro ao atualizar alguns itens', { id: 'bulk-update' });
+        }
+    };
+
     return (
         <div style={{ minHeight: '100vh', padding: '2rem', background: '#000', color: '#fff' }}>
             <div className="container" style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -534,7 +580,7 @@ export default function LibraryPage() {
                             </div>
                         </section>
 
-                        {/* Filters & Upload */}
+                        {/* Filters & Actions */}
                         <section style={{
                             padding: '1.25rem',
                             marginBottom: '2rem',
@@ -542,69 +588,88 @@ export default function LibraryPage() {
                             borderRadius: '0.75rem',
                             border: '1px solid rgba(255, 255, 255, 0.05)'
                         }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'auto auto 1fr', gap: '1.5rem', alignItems: 'end' }}>
-                                <div>
-                                    <label style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
-                                        📁 Tipo
-                                    </label>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        {['all', 'static', 'carousel', 'story'].map((type) => (
-                                            <button
-                                                key={type}
-                                                onClick={() => setTypeFilter(type)}
-                                                style={{
-                                                    padding: '0.5rem 0.875rem',
-                                                    background: typeFilter === type
-                                                        ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
-                                                        : '#27272a',
-                                                    border: typeFilter === type ? '2px solid #a78bfa' : '2px solid transparent',
-                                                    borderRadius: '0.5rem',
-                                                    color: '#fff',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s ease'
-                                                }}
-                                            >
-                                                {type === 'all' ? 'Todos' :
-                                                    type === 'static' ? 'Post' :
-                                                        type === 'carousel' ? 'Carrossel' :
-                                                            'Stories'}
-                                            </button>
-                                        ))}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: '1.5rem', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+                                            📁 Tipo
+                                        </label>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            {['all', 'static', 'carousel', 'story'].map((type) => (
+                                                <button
+                                                    key={type}
+                                                    onClick={() => setTypeFilter(type)}
+                                                    style={{
+                                                        padding: '0.5rem 0.875rem',
+                                                        background: typeFilter === type
+                                                            ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
+                                                            : '#27272a',
+                                                        border: typeFilter === type ? '2px solid #a78bfa' : '2px solid transparent',
+                                                        borderRadius: '0.5rem',
+                                                        color: '#fff',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                >
+                                                    {type === 'all' ? 'Todos' :
+                                                        type === 'static' ? 'Post' :
+                                                            type === 'carousel' ? 'Carrossel' :
+                                                                'Stories'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+                                            🏷️ Status
+                                        </label>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            {['all', 'pending', 'success'].map((status) => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => setStatusFilter(status)}
+                                                    style={{
+                                                        padding: '0.5rem 0.875rem',
+                                                        background: statusFilter === status
+                                                            ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
+                                                            : '#27272a',
+                                                        border: statusFilter === status ? '2px solid #a78bfa' : '2px solid transparent',
+                                                        borderRadius: '0.5rem',
+                                                        color: '#fff',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                >
+                                                    {status === 'all' ? 'Todos' : status === 'pending' ? 'Agendados' : 'Publicados'}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
-                                        🏷️ Status
-                                    </label>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        {['all', 'pending', 'success'].map((status) => (
-                                            <button
-                                                key={status}
-                                                onClick={() => setStatusFilter(status)}
-                                                style={{
-                                                    padding: '0.5rem 0.875rem',
-                                                    background: statusFilter === status
-                                                        ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
-                                                        : '#27272a',
-                                                    border: statusFilter === status ? '2px solid #a78bfa' : '2px solid transparent',
-                                                    borderRadius: '0.5rem',
-                                                    color: '#fff',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s ease'
-                                                }}
-                                            >
-                                                {status === 'all' ? 'Todos' : status === 'pending' ? 'Agendados' : 'Publicados'}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    {posts.length > 0 && (
+                                        <button
+                                            onClick={handleSelectAll}
+                                            style={{
+                                                background: 'transparent',
+                                                border: '1px solid #3f3f46',
+                                                color: '#d4d4d8',
+                                                padding: '0.5rem 1rem',
+                                                borderRadius: '0.5rem',
+                                                cursor: 'pointer',
+                                                fontSize: '0.875rem'
+                                            }}
+                                        >
+                                            {selectedItems.size === posts.length ? 'Deselecionar Todos' : 'Selecionar Todos'}
+                                        </button>
+                                    )}
 
-                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                                     <label style={{
                                         padding: '0.625rem 1.25rem',
                                         background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
@@ -631,6 +696,57 @@ export default function LibraryPage() {
                                 </div>
                             </div>
                         </section>
+
+                        {/* Bulk Action Floating Bar */}
+                        {selectedItems.size > 0 && (
+                            <div style={{
+                                position: 'fixed',
+                                bottom: '2rem',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                background: '#18181b',
+                                border: '1px solid #3f3f46',
+                                borderRadius: '9999px',
+                                padding: '0.75rem 1.5rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '1.5rem',
+                                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                                zIndex: 50
+                            }}>
+                                <span style={{ fontWeight: 600, color: '#fff' }}>
+                                    {selectedItems.size} selecionado(s)
+                                </span>
+                                <div style={{ width: '1px', height: '24px', background: '#3f3f46' }}></div>
+                                <button
+                                    onClick={() => setShowBulkTagModal(true)}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: '#a78bfa',
+                                        cursor: 'pointer',
+                                        fontWeight: 500,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    <EditIcon /> Editar Tag
+                                </button>
+                                <button
+                                    onClick={() => setSelectedItems(new Set())}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: '#71717a',
+                                        cursor: 'pointer',
+                                        marginLeft: '0.5rem'
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        )}
 
                         {/* Content Grid */}
                         {loading ? (
@@ -768,6 +884,33 @@ export default function LibraryPage() {
 
                                             {/* Actions */}
                                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleSelection(post.id);
+                                                    }}
+                                                    style={{
+                                                        padding: '0.625rem',
+                                                        background: selectedItems.has(post.id) ? '#7c3aed' : '#27272a',
+                                                        border: selectedItems.has(post.id) ? '1px solid #a78bfa' : '1px solid #3f3f46',
+                                                        borderRadius: '0.5rem',
+                                                        color: selectedItems.has(post.id) ? '#fff' : '#a1a1aa',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        minWidth: '2.5rem'
+                                                    }}
+                                                    title="Selecionar"
+                                                >
+                                                    {selectedItems.has(post.id) ? (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                                        </svg>
+                                                    ) : (
+                                                        <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: '2px solid rgba(255,255,255,0.3)' }}></div>
+                                                    )}
+                                                </button>
                                                 {post.tag === 'pronto' && !post.isScheduled && (
                                                     <button
                                                         onClick={() => handleScheduleClick(post)}
@@ -1244,6 +1387,108 @@ export default function LibraryPage() {
                                         color: '#a1a1aa',
                                         fontSize: '0.95rem',
                                         fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Bulk Tag Update Modal */}
+                {showBulkTagModal && (
+                    <div className="modal-overlay" onClick={() => setShowBulkTagModal(false)}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0, 0, 0, 0.8)',
+                            backdropFilter: 'blur(4px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 60
+                        }}
+                    >
+                        <div className="card-glass" style={{
+                            width: '100%',
+                            maxWidth: '400px',
+                            background: '#18181b',
+                            padding: '1.5rem',
+                            borderRadius: '1rem',
+                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <h3 style={{ marginBottom: '1rem', color: '#fff' }}>
+                                Editar Tags em Lote
+                            </h3>
+                            <p style={{ color: '#a1a1aa', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+                                Selecione a nova tag para os {selectedItems.size} itens selecionados:
+                            </p>
+
+                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <button
+                                    onClick={() => setBulkTagTarget('pronto')}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.75rem',
+                                        background: bulkTagTarget === 'pronto' ? '#000' : '#27272a',
+                                        border: bulkTagTarget === 'pronto' ? '1px solid #22c55e' : '1px solid transparent',
+                                        borderRadius: '0.5rem',
+                                        color: bulkTagTarget === 'pronto' ? '#4ade80' : '#a1a1aa',
+                                        cursor: 'pointer',
+                                        fontWeight: 600,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                                    }}
+                                >
+                                    ✓ Pronto
+                                </button>
+                                <button
+                                    onClick={() => setBulkTagTarget('editar')}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.75rem',
+                                        background: bulkTagTarget === 'editar' ? '#000' : '#27272a',
+                                        border: bulkTagTarget === 'editar' ? '1px solid #3b82f6' : '1px solid transparent',
+                                        borderRadius: '0.5rem',
+                                        color: bulkTagTarget === 'editar' ? '#60a5fa' : '#a1a1aa',
+                                        cursor: 'pointer',
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    ✎ A Editar
+                                </button>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button
+                                    onClick={handleBulkTagUpdate}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.75rem',
+                                        background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                        border: 'none',
+                                        borderRadius: '0.5rem',
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Confirmar
+                                </button>
+                                <button
+                                    onClick={() => setShowBulkTagModal(false)}
+                                    style={{
+                                        padding: '0.75rem 1.5rem',
+                                        background: 'transparent',
+                                        border: '1px solid #3f3f46',
+                                        borderRadius: '0.5rem',
+                                        color: '#d4d4d8',
                                         cursor: 'pointer'
                                     }}
                                 >
