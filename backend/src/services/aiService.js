@@ -21,15 +21,20 @@ export async function generateCarouselPrompts(carouselDescription, count, contex
         console.log(`Descrição: ${carouselDescription}`);
         console.log(`Número de cards: ${count}`);
 
+        // Context truncation to avoid token limits
+        const truncate = (str, maxLength = 2000) => str && str.length > maxLength ? str.substring(0, maxLength) + "..." : str;
+
         const { profileDescription, guidelines, savedPrompts } = context;
 
         let systemContext = '';
-        if (profileDescription) systemContext += `\n\nCONTEXTO DO PERFIL:\n${profileDescription}`;
-        if (guidelines) systemContext += `\n\nDIRETRIZES DA MARCA (GUIDELINES):\n${guidelines}\nIMPORTANTE: Siga estas diretrizes estritamente.`;
+        if (profileDescription) systemContext += `\n\nCONTEXTO DO PERFIL:\n${truncate(profileDescription)}`;
+        if (guidelines) systemContext += `\n\nDIRETRIZES DA MARCA (GUIDELINES):\n${truncate(guidelines)}\nIMPORTANTE: Siga estas diretrizes estritamente.`;
 
         let savedPromptsContext = '';
         if (savedPrompts && savedPrompts.length > 0) {
-            savedPromptsContext = `\n\nEXEMPLOS DE ESTILO (Prompts Salvos):\nAqui estão exemplos de prompts que o usuário gosta. Tente seguir um estilo similar:\n${savedPrompts.map(p => `"${p.text}"`).join('\n')}`;
+            // Limit to 5 examples to save tokens
+            const recentPrompts = savedPrompts.slice(0, 5);
+            savedPromptsContext = `\n\nEXEMPLOS DE ESTILO (Prompts Salvos):\nAqui estão exemplos de prompts que o usuário gosta. Tente seguir um estilo similar:\n${recentPrompts.map(p => `"${p.text}"`).join('\n')}`;
         }
 
         const systemPrompt = `Você é um assistente especializado em criar prompts para geração de imagens de carrosséis no Instagram. 
@@ -41,7 +46,7 @@ ${savedPromptsContext}`;
 
         const userPrompt = `Crie ${count} prompts individuais para um carrossel do Instagram com a seguinte descrição:
 
-"${carouselDescription}"
+"${truncate(carouselDescription, 3000)}"
 
 IMPORTANTE:
 - Generate exactly ${count} prompts
@@ -49,12 +54,13 @@ IMPORTANTE:
 - The prompts must have a narrative or logical sequence
 - Use descriptive language suitable for image generation
 - Return only the prompts, one per line, without numbering or bullets
+- DO NOT use Markdown headers (###), bold (**), or italics
 - Se as Diretrizes da Marca exigirem um estilo específico (ex: minimalista, cyberpunk, cores vibrantes), aplique-o em TODOS os prompts.
 
-Retorne os prompts separados por quebras de linha.`;
+Retorne os prompts separados APENAS por quebras de linha.`;
 
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4',
+            model: 'gpt-4o-mini',
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
@@ -63,11 +69,25 @@ Retorne os prompts separados por quebras de linha.`;
         });
 
         const response = completion.choices[0].message.content;
+
+        if (!response) {
+            throw new Error('OpenAI retornou uma resposta vazia (sem conteúdo).');
+        }
+
         const prompts = response
             .split('\n')
             .map(p => p.trim())
-            .filter(p => p.length > 0)
-            .slice(0, count); // Garantir que temos exatamente 'count' prompts
+            .filter(p => {
+                // Filter out empty lines, markdown headers (###), and separators (---)
+                return p.length > 0 && !p.startsWith('#') && !p.startsWith('-') && !p.startsWith('*');
+            })
+            // Remove numbering if present (e.g., "1. prompt")
+            .map(p => p.replace(/^\d+[\.\)]\s*/, ''))
+            .slice(0, count);
+
+        if (prompts.length === 0) {
+            throw new Error('Falha ao processar os prompts gerados (formato inválido).');
+        }
 
         console.log(`✅ ${prompts.length} prompts gerados com sucesso!`);
         prompts.forEach((p, i) => console.log(`   ${i + 1}. ${p.substring(0, 60)}...`));
