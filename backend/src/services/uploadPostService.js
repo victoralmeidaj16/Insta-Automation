@@ -1,4 +1,5 @@
 import axios from 'axios';
+import FormData from 'form-data';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -17,7 +18,6 @@ const apiClient = axios.create({
     baseURL: BASE_URL,
     headers: {
         'Authorization': `Apikey ${API_KEY}`,
-        'Content-Type': 'application/json', // Using JSON because we are sending URLs
     },
 });
 
@@ -28,31 +28,43 @@ const apiClient = axios.create({
  * @param {string} videoUrl - Direct URL to the video file
  * @param {string} title - Title of the video
  * @param {string} caption - Description/Caption
+ * @param {Object} options - Optional extra params (scheduledDate, timezone, etc.)
  * @returns {Promise<Object>} - API Response
  */
-export async function uploadVideo(username, platform, videoUrl, title, caption) {
+export async function uploadVideo(username, platform, videoUrl, title, caption, options = {}) {
     try {
         console.log(`🚀 Uploading video to ${platform} for user ${username}...`);
 
-        // Ensure platform is in array format as required by API
         const platforms = [platform];
 
-        const payload = {
-            user: username,
-            platform: platforms,
-            video: videoUrl, // Passing URL directly
-            title: title || 'New Video',
-            description: caption || '',
-            // Platform specific params can be added here if needed
-            // e.g., instagram_title: title
-        };
+        // Upload-Post API requires form-data with 'user' field (not 'username')
+        const formData = new FormData();
+        formData.append('user', username);  // Changed from 'username' to 'user'
+        formData.append('platform[]', platform);  // Use platform[] for array
+        formData.append('video', videoUrl);
+        formData.append('title', title || 'New Video');
+        formData.append('description', caption || '');
 
         // Specific handling for Instagram Reels
         if (platform === 'instagram') {
-            payload.media_type = 'REELS';
+            formData.append('media_type', 'REELS');
         }
 
-        const response = await apiClient.post('/upload', payload);
+        if (options.scheduledDate) {
+            formData.append('scheduled_date', options.scheduledDate);
+        }
+        if (options.timezone) {
+            formData.append('timezone', options.timezone);
+        }
+        if (options.extraParams) {
+            Object.keys(options.extraParams).forEach(key => {
+                formData.append(key, options.extraParams[key]);
+            });
+        }
+
+        const response = await apiClient.post('/upload', formData, {
+            headers: formData.getHeaders(),
+        });
 
         console.log('✅ Video upload successful:', response.data);
         return response.data;
@@ -69,28 +81,63 @@ export async function uploadVideo(username, platform, videoUrl, title, caption) 
  * @param {string[]} photoUrls - Array of direct URLs to photo files
  * @param {string} title - Title of the post
  * @param {string} caption - Description/Caption (Note: for Instagram, title is used as caption usually, but we send both)
+ * @param {Object} options - Optional extra params (scheduledDate, timezone, etc.)
  * @returns {Promise<Object>} - API Response
  */
-export async function uploadPhotos(username, platform, photoUrls, title, caption) {
+export async function uploadPhotos(username, platform, photoUrls, title, caption, options = {}) {
     try {
         console.log(`🚀 Uploading ${photoUrls.length} photos to ${platform} for user ${username}...`);
 
-        const platforms = [platform];
+        // Upload-Post API requires form-data with 'user' field (not 'username')
+        const formData = new FormData();
+        formData.append('user', username);  // Changed from 'username' to 'user'
+        formData.append('platform[]', platform);  // Use platform[] for array
 
-        const payload = {
-            user: username,
-            platform: platforms,
-            photos: photoUrls, // Array of URLs
-            title: title || 'New Post', // Acts as caption for Instagram
-            description: caption || '', // Extended description for other platforms
-        };
+        // For photos, add each URL as photos[]
+        photoUrls.forEach(url => {
+            formData.append('photos[]', url);
+        });
 
-        const response = await apiClient.post('/upload_photos', payload);
+        formData.append('title', title || 'New Post');
+        formData.append('description', caption || '');
+
+        if (options.scheduledDate) {
+            formData.append('scheduled_date', options.scheduledDate);
+        }
+        if (options.timezone) {
+            formData.append('timezone', options.timezone);
+        }
+        if (options.extraParams) {
+            Object.keys(options.extraParams).forEach(key => {
+                formData.append(key, options.extraParams[key]);
+            });
+        }
+
+        const response = await apiClient.post('/upload_photos', formData, {
+            headers: formData.getHeaders(),
+        });
 
         console.log('✅ Photo upload successful:', response.data);
         return response.data;
     } catch (error) {
         console.error('❌ Photo upload failed:', error.response?.data || error.message);
         throw new Error(error.response?.data?.message || 'Failed to upload photos');
+    }
+}
+/**
+ * Cancels a scheduled post in the Upload-Post API
+ * @param {string} jobId - The job ID or request ID to cancel
+ * @returns {Promise<Object>} - API Response
+ */
+export async function cancelScheduledPost(jobId) {
+    try {
+        console.log(`🗑️ Cancelling scheduled job ${jobId} in Upload-Post...`);
+        const response = await apiClient.delete(`/uploadposts/schedule/${jobId}`);
+        console.log('✅ Job cancellation successful:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('❌ Job cancellation failed:', error.response?.data || error.message);
+        // We don't throw here to allow the local deletion to proceed even if external cancel fails
+        return { success: false, error: error.message };
     }
 }

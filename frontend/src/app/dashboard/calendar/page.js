@@ -6,6 +6,7 @@ import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import BackButton from '@/components/BackButton';
+import PostsStatusWidget from '@/components/PostsStatusWidget';
 
 export default function CalendarPage() {
     const router = useRouter();
@@ -107,9 +108,9 @@ export default function CalendarPage() {
     const loadPosts = async () => {
         if (!selectedProfile) return;
         try {
-            // Use selectedProfile.id as accountId
+            // Use selectedProfile.id as businessProfileId
             const res = await api.get('/api/posts', {
-                params: { accountId: selectedProfile.id }
+                params: { businessProfileId: selectedProfile.id }
             });
             // Status correto é 'pending' para posts agendados
             const scheduledPosts = res.data.posts.filter(p => p.status === 'pending' || p.status === 'scheduled' || p.status === 'success');
@@ -128,6 +129,7 @@ export default function CalendarPage() {
 
     const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
 
     const getDaysInMonth = () => {
         const year = currentDate.getFullYear();
@@ -154,7 +156,9 @@ export default function CalendarPage() {
 
     const getPostsForDate = (date) => {
         return posts.filter(post => {
-            const postDate = new Date(post.scheduledFor);
+            const postDate = parseDate(post.scheduledFor);
+            if (!postDate || isNaN(postDate.getTime())) return false;
+
             return postDate.getDate() === date.getDate() &&
                 postDate.getMonth() === date.getMonth() &&
                 postDate.getFullYear() === date.getFullYear();
@@ -210,6 +214,7 @@ export default function CalendarPage() {
     };
 
     const handleConfirmSchedule = async (immediate = false) => {
+        console.log('DEBUG handleConfirmSchedule called:', { immediate, scheduleDate: scheduleData.date, scheduleTime: scheduleData.time });
         try {
             if (!scheduleData.date && !immediate) {
                 toast.error('Data inválida');
@@ -222,19 +227,24 @@ export default function CalendarPage() {
 
             const sourceItem = pendingDrop?.draggedItem;
 
+            // Extract only serializable primitives to avoid circular references
+            const cleanMediaUrls = sourceItem?.mediaUrls ? [...sourceItem.mediaUrls] : [];
+            const libraryItemId = sourceItem?.isLibraryItem ? String(sourceItem.id) : null;
+
             const postData = {
-                accountId: selectedProfile.id,
-                type: scheduleData.type,
-                caption: scheduleData.caption,
-                mediaUrls: sourceItem?.mediaUrls || [],
-                libraryItemId: sourceItem?.isLibraryItem ? sourceItem.id : null,
+                accountId: String(selectedProfile.id),
+                type: String(scheduleData.type || 'static'),
+                caption: String(scheduleData.caption || ''),
+                mediaUrls: cleanMediaUrls,
+                libraryItemId: libraryItemId,
                 scheduledFor: immediate ? null : scheduledDate.toISOString(),
-                isImmediate: immediate
+                isImmediate: Boolean(immediate)
             };
 
             // Just create the post, backend handles execution if needed? 
             // Or different endpoint? Typically same endpoint with isImmediate flag?
             // Assuming standard create post for now.
+            console.log('DEBUG: postData payload:', JSON.stringify(postData, null, 2));
             await api.post('/api/posts', postData);
 
             if (immediate) {
@@ -254,11 +264,20 @@ export default function CalendarPage() {
         }
     };
 
+    const parseDate = (dateVal) => {
+        if (!dateVal) return new Date();
+        if (typeof dateVal === 'object' && dateVal._seconds) {
+            return new Date(dateVal._seconds * 1000);
+        }
+        return new Date(dateVal);
+    };
+
     const handleEditPost = (post) => {
+        const postDate = parseDate(post.scheduledFor);
         setEditingPost(post);
         setEditData({
-            date: new Date(post.scheduledFor),
-            time: new Date(post.scheduledFor).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            date: postDate,
+            time: postDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             type: post.type,
             caption: post.caption || ''
         });
@@ -309,11 +328,15 @@ export default function CalendarPage() {
                 <div className="flex-between mb-lg">
                     <div>
                         <h1>📅 Calendário de Posts</h1>
-                        <p style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>Perfil: <strong style={{ color: '#7c3aed' }}>{selectedProfile.name}</strong></p>
+                        {selectedProfile ? (
+                            <p style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>Perfil: <strong style={{ color: '#7c3aed' }}>{selectedProfile.name}</strong></p>
+                        ) : (
+                            <p style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>Todos os perfis</p>
+                        )}
                     </div>
 
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        {selectedProfile.instagram?.username ? (
+                        {selectedProfile && selectedProfile.instagram?.username ? (
                             <div className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-lg">
                                 <span className="text-xl">📸</span>
                                 <div>
@@ -323,7 +346,7 @@ export default function CalendarPage() {
                             </div>
                         ) : (
                             <div style={{ padding: '0.5rem 1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '0.5rem', fontSize: '0.85rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                                ⚠️ Sem credenciais configuradas
+                                ⚠️ {selectedProfile ? 'Sem credenciais configuradas' : 'Selecione um perfil'}
                             </div>
                         )}
                     </div>
@@ -331,98 +354,102 @@ export default function CalendarPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem' }}>
                     {/* Media Library Sidebar */}
-                    <div className="card-glass" style={{ padding: '1.5rem', height: 'fit-content', maxHeight: '80vh', overflowY: 'auto' }}>
-                        <h3 className="mb-md">📚 Biblioteca ("Pronto")</h3>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>
-                            Arraste para o calendário
-                        </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <PostsStatusWidget />
 
-                        {/* ... upload button ... */}
-                        <label
-                            className="btn btn-primary"
-                            style={{ width: '100%', marginBottom: '1rem', cursor: 'pointer', textAlign: 'center', display: 'block' }}
-                        >
-                            ➕ Upload Rápido
-                            <input
-                                type="file"
-                                accept="image/*,video/mp4"
-                                multiple
-                                onChange={handleFileUpload}
-                                style={{ display: 'none' }}
-                            />
-                        </label>
+                        <div className="card-glass" style={{ padding: '1.5rem', height: 'fit-content', maxHeight: '60vh', overflowY: 'auto' }}>
+                            <h3 className="mb-md">📚 Biblioteca ("Pronto")</h3>
+                            <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>
+                                Arraste para o calendário
+                            </p>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {mediaLibrary.map((item) => (
-                                <div
-                                    key={item.id}
-                                    draggable={!item.isScheduled && item.status !== 'posted'} // Disable drag if already scheduled/posted
-                                    onDragStart={(e) => handleDragStart(e, item)}
-                                    style={{
-                                        padding: '0.75rem',
-                                        background: 'rgba(255,255,255,0.05)',
-                                        borderRadius: 'var(--radius-md)',
-                                        cursor: (item.isScheduled || item.status === 'posted') ? 'default' : 'grab',
-                                        border: '2px solid transparent',
-                                        transition: 'all 0.2s ease',
-                                        opacity: (item.isScheduled || item.status === 'posted') ? 0.7 : 1,
-                                        position: 'relative'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        if (!item.isScheduled && item.status !== 'posted') {
-                                            e.currentTarget.style.borderColor = '#8e44ad';
-                                            e.currentTarget.style.transform = 'scale(1.02)';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.borderColor = 'transparent';
-                                        e.currentTarget.style.transform = 'scale(1)';
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                        <img
-                                            src={item.thumbnail}
-                                            alt="Thumbnail"
-                                            style={{
-                                                width: '60px',
-                                                height: '60px',
-                                                objectFit: 'cover',
-                                                borderRadius: 'var(--radius-sm)',
-                                                pointerEvents: 'none',
-                                                background: '#000',
-                                                filter: (item.isScheduled || item.status === 'posted') ? 'grayscale(0.5)' : 'none'
-                                            }}
-                                        />
-                                        <div style={{ flex: 1, overflow: 'hidden' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                                <p style={{ fontSize: '0.75rem', color: '#8e44ad', fontWeight: '500' }}>
-                                                    {item.type === 'carousel' ? '🎠 Carrossel' : '📸 Imagem'}
+                            {/* ... upload button ... */}
+                            <label
+                                className="btn btn-primary"
+                                style={{ width: '100%', marginBottom: '1rem', cursor: 'pointer', textAlign: 'center', display: 'block' }}
+                            >
+                                ➕ Upload Rápido
+                                <input
+                                    type="file"
+                                    accept="image/*,video/mp4"
+                                    multiple
+                                    onChange={handleFileUpload}
+                                    style={{ display: 'none' }}
+                                />
+                            </label>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {mediaLibrary.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        draggable={!item.isScheduled && item.status !== 'posted'} // Disable drag if already scheduled/posted
+                                        onDragStart={(e) => handleDragStart(e, item)}
+                                        style={{
+                                            padding: '0.75rem',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            borderRadius: 'var(--radius-md)',
+                                            cursor: (item.isScheduled || item.status === 'posted') ? 'default' : 'grab',
+                                            border: '2px solid transparent',
+                                            transition: 'all 0.2s ease',
+                                            opacity: (item.isScheduled || item.status === 'posted') ? 0.7 : 1,
+                                            position: 'relative'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!item.isScheduled && item.status !== 'posted') {
+                                                e.currentTarget.style.borderColor = '#8e44ad';
+                                                e.currentTarget.style.transform = 'scale(1.02)';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.borderColor = 'transparent';
+                                            e.currentTarget.style.transform = 'scale(1)';
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                            <img
+                                                src={item.thumbnail}
+                                                alt="Thumbnail"
+                                                style={{
+                                                    width: '60px',
+                                                    height: '60px',
+                                                    objectFit: 'cover',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    pointerEvents: 'none',
+                                                    background: '#000',
+                                                    filter: (item.isScheduled || item.status === 'posted') ? 'grayscale(0.5)' : 'none'
+                                                }}
+                                            />
+                                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                    <p style={{ fontSize: '0.75rem', color: '#8e44ad', fontWeight: '500' }}>
+                                                        {item.type === 'carousel' ? '🎠 Carrossel' : '📸 Imagem'}
+                                                    </p>
+
+                                                    {/* Status Badge */}
+                                                    {item.status === 'posted' ? (
+                                                        <span style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', fontWeight: 'bold' }}>
+                                                            POSTADO
+                                                        </span>
+                                                    ) : (item.isScheduled || item.status === 'scheduled') ? (
+                                                        <span style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(234, 179, 8, 0.2)', color: '#eab308', fontWeight: 'bold' }}>
+                                                            AGENDADO
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {item.caption || 'Sem legenda'}
                                                 </p>
-
-                                                {/* Status Badge */}
-                                                {item.status === 'posted' ? (
-                                                    <span style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', fontWeight: 'bold' }}>
-                                                        POSTADO
-                                                    </span>
-                                                ) : (item.isScheduled || item.status === 'scheduled') ? (
-                                                    <span style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(234, 179, 8, 0.2)', color: '#eab308', fontWeight: 'bold' }}>
-                                                        AGENDADO
-                                                    </span>
-                                                ) : null}
                                             </div>
-                                            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                {item.caption || 'Sem legenda'}
-                                            </p>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
 
-                            {mediaLibrary.length === 0 && (
-                                <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', textAlign: 'center', padding: '2rem 0' }}>
-                                    Nenhum item "Pronto" na biblioteca deste perfil.
-                                </p>
-                            )}
+                                {mediaLibrary.length === 0 && (
+                                    <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', textAlign: 'center', padding: '2rem 0' }}>
+                                        Nenhum item "Pronto" na biblioteca deste perfil.
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -585,45 +612,111 @@ export default function CalendarPage() {
                                                                                         post.type === 'story' ? '📖' : '📸'}
                                                                         </span>
                                                                         <span style={{ fontWeight: '600', fontSize: '0.6rem' }}>
-                                                                            {new Date(post.scheduledFor).toLocaleTimeString('pt-BR', {
+                                                                            {parseDate(post.scheduledFor).toLocaleTimeString('pt-BR', {
                                                                                 hour: '2-digit',
                                                                                 minute: '2-digit'
                                                                             })}
                                                                         </span>
                                                                     </div>
+
+                                                                    {/* Published Label */}
+                                                                    {isPosted && (
+                                                                        <div style={{
+                                                                            fontSize: '0.55rem',
+                                                                            fontWeight: '700',
+                                                                            color: '#22c55e',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '2px',
+                                                                            marginTop: '2px'
+                                                                        }}>
+                                                                            <span>✅ Postado</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
+
+                                                                {/* Quick Delete "x" */}
+                                                                {!isPosted && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (confirm('Deseja realmente cancelar este agendamento?')) {
+                                                                                api.delete(`/api/posts/${post.id}`)
+                                                                                    .then(() => {
+                                                                                        toast.success('Post cancelado');
+                                                                                        loadPosts();
+                                                                                        loadLibraryItems();
+                                                                                    })
+                                                                                    .catch(err => {
+                                                                                        console.error(err);
+                                                                                        toast.error('Erro ao cancelar');
+                                                                                    });
+                                                                            }
+                                                                        }}
+                                                                        style={{
+                                                                            background: 'rgba(239, 68, 68, 0.8)',
+                                                                            color: 'white',
+                                                                            border: 'none',
+                                                                            borderRadius: '50%',
+                                                                            width: '16px',
+                                                                            height: '16px',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            fontSize: '10px',
+                                                                            cursor: 'pointer',
+                                                                            transition: 'all 0.2s ease',
+                                                                            marginLeft: '4px',
+                                                                            zIndex: 10
+                                                                        }}
+                                                                        onMouseEnter={(e) => {
+                                                                            e.currentTarget.style.background = '#ef4444';
+                                                                            e.currentTarget.style.transform = 'scale(1.2)';
+                                                                        }}
+                                                                        onMouseLeave={(e) => {
+                                                                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.8)';
+                                                                            e.currentTarget.style.transform = 'scale(1)';
+                                                                        }}
+                                                                        title="Cancelar agendamento"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                )}
                                                             </div>
-                                                        ); // Closing map expression
+                                                        );
                                                     })}
                                                 </div>
 
                                                 {/* Drop Zone Indicator */}
-                                                {isHovered && draggedItem && (
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        top: 0,
-                                                        left: 0,
-                                                        right: 0,
-                                                        bottom: 0,
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        background: 'rgba(142, 68, 173, 0.3)',
-                                                        borderRadius: 'var(--radius-md)',
-                                                        border: '2px dashed #8e44ad'
-                                                    }}>
-                                                        <span style={{ fontSize: '1.5rem' }}>➕</span>
-                                                    </div>
-                                                )}
+                                                {
+                                                    isHovered && draggedItem && (
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            top: 0,
+                                                            left: 0,
+                                                            right: 0,
+                                                            bottom: 0,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            background: 'rgba(142, 68, 173, 0.3)',
+                                                            borderRadius: 'var(--radius-md)',
+                                                            border: '2px dashed #8e44ad'
+                                                        }}>
+                                                            <span style={{ fontSize: '1.5rem' }}>➕</span>
+                                                        </div>
+                                                    )
+                                                }
                                             </>
-                                        )}
+                                        )
+                                        }
                                     </div>
                                 );
                             })}
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
 
             {/* Schedule Configuration Modal */}
             {
@@ -702,7 +795,7 @@ export default function CalendarPage() {
 
                             <div className="flex gap-md mt-lg">
                                 <button
-                                    onClick={handleConfirmSchedule}
+                                    onClick={() => handleConfirmSchedule()}
                                     className="btn btn-primary"
                                     style={{ flex: 1 }}
                                 >
@@ -786,6 +879,7 @@ export default function CalendarPage() {
                                     className="input"
                                     value={editData.type}
                                     onChange={(e) => setEditData({ ...editData, type: e.target.value })}
+                                    disabled={editingPost.status === 'success'}
                                 >
                                     <option value="static">📸 Post Estático (1 imagem)</option>
                                     <option value="carousel">🎠 Carrossel (múltiplas imagens)</option>
@@ -802,6 +896,7 @@ export default function CalendarPage() {
                                     className="input"
                                     value={editData.time}
                                     onChange={(e) => setEditData({ ...editData, time: e.target.value })}
+                                    disabled={editingPost.status === 'success'}
                                 />
                             </div>
 
@@ -812,24 +907,43 @@ export default function CalendarPage() {
                                     value={editData.caption}
                                     onChange={(e) => setEditData({ ...editData, caption: e.target.value })}
                                     rows={4}
+                                    disabled={editingPost.status === 'success'}
                                 />
                             </div>
 
                             <div className="flex gap-md mt-lg">
-                                <button
-                                    onClick={handleUpdatePost}
-                                    className="btn btn-primary"
-                                    style={{ flex: 1 }}
-                                >
-                                    💾 Salvar Alterações
-                                </button>
-                                <button
-                                    onClick={handleDeletePost}
-                                    className="btn"
-                                    style={{ flex: 1, background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}
-                                >
-                                    🗑️ Excluir Post
-                                </button>
+                                {editingPost.status === 'success' ? (
+                                    <div style={{
+                                        width: '100%',
+                                        padding: '1rem',
+                                        background: 'rgba(34, 197, 94, 0.1)',
+                                        border: '1px solid rgba(34, 197, 94, 0.2)',
+                                        borderRadius: 'var(--radius-md)',
+                                        color: '#22c55e',
+                                        fontSize: '0.9rem',
+                                        textAlign: 'center',
+                                        fontWeight: '500'
+                                    }}>
+                                        ✨ Este post já foi publicado e não pode ser alterado.
+                                    </div>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={handleUpdatePost}
+                                            className="btn btn-primary"
+                                            style={{ flex: 1 }}
+                                        >
+                                            💾 Salvar Alterações
+                                        </button>
+                                        <button
+                                            onClick={handleDeletePost}
+                                            className="btn"
+                                            style={{ flex: 1, background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+                                        >
+                                            🗑️ Excluir Post
+                                        </button>
+                                    </>
+                                )}
                             </div>
                             <button
                                 onClick={() => {
@@ -853,7 +967,7 @@ export default function CalendarPage() {
                     </div>
                 )
             }
-        </div>
+        </div >
 
     );
 }

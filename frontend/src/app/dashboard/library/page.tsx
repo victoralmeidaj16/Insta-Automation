@@ -13,6 +13,7 @@ import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 export default function LibraryPage() {
     const router = useRouter();
     const { profiles, selectedProfile, setSelectedProfile } = useBusinessProfile();
+    const [processingPost, setProcessingPost] = useState(null);
 
     // States
     const [posts, setPosts] = useState([]);
@@ -157,6 +158,46 @@ export default function LibraryPage() {
         } catch (error) {
             console.error('Schedule error:', error);
             toast.error('Erro ao agendar post');
+        }
+
+    };
+
+    const handlePostNow = async (item) => {
+        if (!confirm('Deseja postar este conteúdo imediatamente?')) return;
+
+        try {
+            setProcessingPost(item.id);
+            toast.loading('Iniciando postagem...', { id: 'post-now' });
+
+            // Create immediate post
+            await api.post('/api/posts', {
+                accountId: selectedProfile.id,
+                type: item.type,
+                mediaUrls: item.mediaUrls,
+                caption: item.caption,
+                scheduledFor: null, // Immediate
+                tag: item.tag,
+                libraryItemId: item.id // Ensure linkage
+            });
+
+            // Update status
+            const updatedPosts = posts.map(p => {
+                if (p.id === item.id) {
+                    return { ...p, status: 'processing' }; // Optimistic update
+                }
+                return p;
+            });
+            setPosts(updatedPosts);
+
+            toast.success('Post enviado para processamento!', { id: 'post-now' });
+            setProcessingPost(null);
+
+            // Optionally redirect to Posts page or just refresh
+            // router.push('/dashboard/posts');
+        } catch (error) {
+            console.error('Post now error:', error);
+            toast.error('Erro ao postar', { id: 'post-now' });
+            setProcessingPost(null);
         }
     };
 
@@ -852,7 +893,42 @@ export default function LibraryPage() {
                                         {/* Content */}
                                         <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
                                             {/* Status Badge */}
-
+                                            {post.status === 'posted' || post.status === 'success' ? (
+                                                <div style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem',
+                                                    padding: '0.35rem 0.75rem',
+                                                    background: 'rgba(34, 197, 94, 0.1)',
+                                                    border: '1px solid rgba(34, 197, 94, 0.2)',
+                                                    borderRadius: '0.5rem',
+                                                    color: '#4ade80',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    marginBottom: '0.75rem',
+                                                    width: 'fit-content'
+                                                }}>
+                                                    <CheckIcon /> Postado {post.postedAt && `em ${formatDate(post.postedAt)}`}
+                                                </div>
+                                            ) : (post.isScheduled || post.status === 'scheduled' || post.status === 'pending') ? (
+                                                <div style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem',
+                                                    padding: '0.35rem 0.75rem',
+                                                    background: 'rgba(167, 139, 250, 0.1)',
+                                                    border: '1px solid rgba(167, 139, 250, 0.2)',
+                                                    borderRadius: '0.5rem',
+                                                    color: '#a78bfa',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    marginBottom: '0.75rem',
+                                                    width: 'fit-content'
+                                                }}>
+                                                    <CalendarIcon />
+                                                    {post.scheduledFor ? `Agendado para ${formatDate(post.scheduledFor)}` : 'Agendado'}
+                                                </div>
+                                            ) : null}
 
                                             {/* Caption */}
                                             {post.caption && (
@@ -940,6 +1016,43 @@ export default function LibraryPage() {
                                                         }}
                                                     >
                                                         <CalendarIcon /> Agendar
+                                                    </button>
+                                                )}
+
+                                                {/* Post Now Button */}
+                                                {post.tag === 'pronto' && !post.isScheduled && (
+                                                    <button
+                                                        onClick={() => handlePostNow(post)}
+                                                        disabled={processingPost === post.id}
+                                                        title="Postar Agora"
+                                                        style={{
+                                                            padding: '0.625rem',
+                                                            background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                                            border: 'none',
+                                                            borderRadius: '0.5rem',
+                                                            color: '#fff',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 500,
+                                                            cursor: processingPost === post.id ? 'not-allowed' : 'pointer',
+                                                            transition: 'all 0.2s ease',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            opacity: processingPost === post.id ? 0.7 : 1,
+                                                            boxShadow: '0 2px 10px rgba(124, 58, 237, 0.3)'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (processingPost !== post.id) {
+                                                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(124, 58, 237, 0.5)';
+                                                            }
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = 'translateY(0)';
+                                                            e.currentTarget.style.boxShadow = '0 2px 10px rgba(124, 58, 237, 0.3)';
+                                                        }}
+                                                    >
+                                                        {processingPost === post.id ? '⏳' : '🚀'}
                                                     </button>
                                                 )}
                                                 <button
@@ -1795,6 +1908,6 @@ export default function LibraryPage() {
                     />
                 )}
             </div>
-        </div>
+        </div >
     );
 }

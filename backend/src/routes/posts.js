@@ -59,10 +59,11 @@ router.post('/', async (req, res) => {
  */
 router.get('/', async (req, res) => {
     try {
-        const { accountId, status, type } = req.query;
+        const { accountId, businessProfileId, status, type } = req.query;
 
         const filters = {};
         if (accountId) filters.accountId = accountId;
+        if (businessProfileId) filters.businessProfileId = businessProfileId;
         if (status) filters.status = status;
         if (type) filters.type = type;
 

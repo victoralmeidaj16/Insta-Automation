@@ -1,7 +1,7 @@
 import { db, storage } from '../config/firebase.js';
-import axios from 'axios';
-import { getAccount, updateAccount } from './accountService.js';
-import { getAccountsByProfile } from './businessProfileService.js';
+import { getAccount } from './accountService.js';
+import { getAccountsByProfile, getBusinessProfile } from './businessProfileService.js';
+import { uploadPhotos, uploadVideo, cancelScheduledPost } from './uploadPostService.js';
 
 
 /**
@@ -16,39 +16,83 @@ export async function createPost(userId, accountId, postData) {
             scheduledFor, // timestamp ou null para imediato
         } = postData;
 
+        if (!mediaUrls || mediaUrls.length === 0) {
+            throw new Error('Nenhuma mídia fornecida para o post.');
+        }
+
         // Get account to extract business profile
         // Logic update: Ensure accountId is valid. If it's a Business Profile ID, resolve to the actual Account ID.
+        let resolvedAccountId = accountId;
         let account;
         try {
-            account = await getAccount(accountId);
+            account = await getAccount(resolvedAccountId);
         } catch (error) {
-            // If account not found, check if the ID provided was actually a Business Profile ID
-            console.log(`⚠️ Account ${accountId} not found directly. Checking if it is a Business Profile ID...`);
-            const linkedAccounts = await getAccountsByProfile(accountId);
+            console.log(`⚠️ Account ${resolvedAccountId} not found directly. Checking if it is a Business Profile ID...`);
+            const linkedAccounts = await getAccountsByProfile(resolvedAccountId);
 
             if (linkedAccounts && linkedAccounts.length > 0) {
-                account = linkedAccounts[0]; // Use the first linked account
-                console.log(`✅ Resolved Profile ID ${accountId} to Account ID ${account.id}`);
-                // Update the accountId variable to be the correct one for storage
-                accountId = account.id;
+                resolvedAccountId = linkedAccounts[0].id;
+                account = await getAccount(resolvedAccountId);
+                console.log(`✅ Resolved Profile ID ${accountId} to Account ID ${resolvedAccountId}`);
             } else {
                 throw error; // Re-throw if no linked account found either
             }
         }
 
+        const scheduledDate = scheduledFor ? new Date(scheduledFor) : null;
+        if (scheduledDate && isNaN(scheduledDate.getTime())) {
+            throw new Error('Data de agendamento inválida');
+        }
+
+        let businessProfile = null;
+        if (account.businessProfileId) {
+            try {
+                businessProfile = await getBusinessProfile(account.businessProfileId);
+            } catch (err) {
+                console.warn(`⚠️ Não foi possível carregar perfil ${account.businessProfileId}: ${err.message}`);
+            }
+        }
+
+        const profileSignals = [
+            businessProfile?.name,
+            businessProfile?.type,
+            businessProfile?.description,
+            businessProfile?.branding?.style,
+        ];
+        const isInnerBoostProfile = profileSignals.some(value =>
+            typeof value === 'string' && value.toLowerCase().includes('inner boost')
+        );
+        const shouldUseUploadPostScheduler = Boolean(scheduledDate && isInnerBoostProfile);
+
+        let externalScheduleInfo = null;
+        if (shouldUseUploadPostScheduler) {
+            externalScheduleInfo = await scheduleWithUploadPost({
+                account,
+                type,
+                mediaUrls,
+                caption,
+                scheduledDate,
+            });
+        }
+
         const post = {
             userId,
-            accountId,
+            accountId: resolvedAccountId,
             businessProfileId: account.businessProfileId || null,
             libraryItemId: postData.libraryItemId || null, // Link to library item
             type,
             mediaUrls,
             caption: caption || '',
-            scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
-            status: scheduledFor ? 'pending' : 'processing',
+            scheduledFor: scheduledDate,
+            status: scheduledDate
+                ? (externalScheduleInfo ? 'scheduled' : 'pending')
+                : 'processing',
             errorMessage: null,
             postedAt: null,
             createdAt: new Date(),
+            externalScheduler: externalScheduleInfo ? 'upload-post' : null,
+            externalJobId: externalScheduleInfo?.jobId || null,
+            externalPayload: externalScheduleInfo?.payload || null,
         };
 
         const postRef = await db.collection('posts').add(post);
@@ -81,22 +125,18 @@ export async function createPost(userId, accountId, postData) {
  */
 export async function getPosts(userId, filters = {}) {
     try {
+        // Start with userId filter only to avoid composite index requirements
         let query = db.collection('posts').where('userId', '==', userId);
 
-        // Aplicar filtros
+        // Apply accountId in Firestore if present (usually safe as a single additional filter)
         if (filters.accountId) {
             query = query.where('accountId', '==', filters.accountId);
         }
-        if (filters.status) {
-            query = query.where('status', '==', filters.status);
-        }
-        if (filters.type) {
-            query = query.where('type', '==', filters.type);
-        }
 
-        const snapshot = await query.orderBy('createdAt', 'desc').limit(50).get();
+        // Fetch the last 100 posts to process in memory
+        const snapshot = await query.orderBy('createdAt', 'desc').limit(100).get();
 
-        const posts = [];
+        let posts = [];
         snapshot.forEach(doc => {
             posts.push({
                 id: doc.id,
@@ -104,7 +144,19 @@ export async function getPosts(userId, filters = {}) {
             });
         });
 
-        return posts;
+        // Apply secondary filters in memory to avoid ANY composite index requirements
+        if (filters.businessProfileId) {
+            posts = posts.filter(post => post.businessProfileId === filters.businessProfileId);
+        }
+        if (filters.status) {
+            posts = posts.filter(post => post.status === filters.status);
+        }
+        if (filters.type) {
+            posts = posts.filter(post => post.type === filters.type);
+        }
+
+        // Limit to 50 results
+        return posts.slice(0, 50);
     } catch (error) {
         console.error('❌ Erro ao listar posts:', error);
         throw error;
@@ -163,6 +215,12 @@ export async function deletePost(postId) {
     try {
         const post = await getPost(postId);
 
+        // Se estiver agendado no Upload-Post, cancelar lá também
+        if (post.externalScheduler === 'upload-post' && post.externalJobId) {
+            console.log(`⏳ Cancelando job externo ${post.externalJobId} antes de deletar...`);
+            await cancelScheduledPost(post.externalJobId);
+        }
+
         // Deletar mídias do Storage
         if (post.mediaUrls && post.mediaUrls.length > 0) {
             for (const url of post.mediaUrls) {
@@ -203,11 +261,6 @@ export async function deletePost(postId) {
 }
 
 /**
- * Executa um post (faz o upload no Instagram)
- */
-import { uploadPhotos, uploadVideo } from './uploadPostService.js';
-
-/**
  * Executa um post (faz o upload via Upload-Post API)
  */
 export async function executePost(postId) {
@@ -216,6 +269,11 @@ export async function executePost(postId) {
     try {
         const post = await getPost(postId);
         const account = await getAccount(post.accountId);
+
+        if (post.externalScheduler === 'upload-post' && post.externalJobId) {
+            console.log(`⏭️ Post ${postId} já está programado no Upload-Post (job ${post.externalJobId}). Ignorando execução local.`);
+            return { success: true, message: 'Post scheduled via Upload-Post' };
+        }
 
         // Atualizar status para "processando"
         await updatePostStatus(postId, 'processing');
@@ -318,4 +376,77 @@ export async function getReadyPosts() {
         console.error('❌ Erro ao buscar posts prontos:', error);
         throw error;
     }
+}
+
+async function scheduleWithUploadPost({ account, type, mediaUrls, caption, scheduledDate }) {
+    if (!scheduledDate) {
+        throw new Error('Data de agendamento é obrigatória para o Upload-Post.');
+    }
+
+    console.log(`📆 Programando post no Upload-Post para ${scheduledDate.toISOString()}...`);
+
+    const platform = 'instagram';
+    const options = {
+        scheduledDate: scheduledDate.toISOString(),
+    };
+
+    let response;
+    if (type === 'video' || type === 'reel') {
+        const videoUrl = mediaUrls[0];
+        if (!videoUrl) {
+            throw new Error('Vídeo não encontrado para agendamento.');
+        }
+        response = await uploadVideo(
+            account.username,
+            platform,
+            videoUrl,
+            caption || 'Scheduled Video',
+            caption,
+            options
+        );
+    } else {
+        response = await uploadPhotos(
+            account.username,
+            platform,
+            mediaUrls,
+            caption || 'Scheduled Post',
+            caption,
+            options
+        );
+    }
+
+    const jobId = extractUploadPostJobId(response, platform);
+
+    if (jobId) {
+        console.log(`✅ Upload-Post agendamento criado (job ${jobId}) para ${account.username}`);
+    } else {
+        console.warn('⚠️ Upload-Post não retornou job_id para o agendamento.');
+    }
+
+    return {
+        jobId,
+        payload: {
+            provider: 'upload-post',
+            scheduledDate: options.scheduledDate,
+            response,
+        },
+    };
+}
+
+function extractUploadPostJobId(response, platform) {
+    if (!response || typeof response !== 'object') {
+        return null;
+    }
+
+    if (response.job_id) return response.job_id;
+    if (response.request_id) return response.request_id;
+
+    if (response.results) {
+        if (response.results.job_id) return response.results.job_id;
+        if (platform && response.results[platform]?.job_id) {
+            return response.results[platform].job_id;
+        }
+    }
+
+    return null;
 }

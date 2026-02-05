@@ -8,6 +8,10 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
+import PageHeader from '@/components/PageHeader';
+import ProfileSwitcher from '@/components/ProfileSwitcher';
+import PostsStatusWidget from '@/components/PostsStatusWidget';
+
 export default function DashboardPage() {
     const [stats, setStats] = useState({ accounts: 0, posts: 0, pending: 0 });
     const [loading, setLoading] = useState(true);
@@ -61,19 +65,21 @@ export default function DashboardPage() {
     return (
         <div style={{ minHeight: '100vh', padding: '2rem' }}>
             <div className="container">
-                <div className="flex-between mb-md">
-                    <div>
-                        <h1 style={{ marginBottom: '0.25rem' }}>Home Page</h1>
-                        {selectedProfile && (
-                            <p style={{ fontSize: '0.875rem', color: '#a1a1aa' }}>
-                                🎯 Filtrado por: <strong style={{ color: '#7c3aed' }}>{selectedProfile.name}</strong>
-                            </p>
-                        )}
-                    </div>
+                <PageHeader
+                    title="Dashboard"
+                    subtitle={selectedProfile ? `Filtrado por: ${selectedProfile.name}` : undefined}
+                    showBack={false}
+                    showBreadcrumbs={false}
+                />
+
+                {/* Profile Switcher */}
+                <div style={{ marginBottom: '2rem' }}>
+                    <h3 style={{ fontSize: '1rem', color: '#a1a1aa', marginBottom: '0.75rem' }}>Perfil Selecionado</h3>
+                    <ProfileSwitcher style={{ width: '100%', maxWidth: '300px' }} />
                 </div>
 
                 {/* Stats Cards */}
-                <div className={selectedProfile ? "grid grid-2 mb-lg" : "grid grid-3 mb-lg"}>
+                <div className={selectedProfile ? "grid grid-3 mb-lg" : "grid grid-4 mb-lg"}>
                     {!selectedProfile && (
                         <div className="card-glass">
                             <h3 style={{ color: 'var(--accent-primary)' }}>Contas</h3>
@@ -93,6 +99,8 @@ export default function DashboardPage() {
                         <p style={{ fontSize: '2.5rem', fontWeight: '700', margin: '1rem 0' }}>{stats.pending}</p>
                         <p style={{ fontSize: '0.875rem' }}>Posts pendentes</p>
                     </div>
+
+                    <PostsStatusWidget />
                 </div>
 
                 {/* Quick Actions */}

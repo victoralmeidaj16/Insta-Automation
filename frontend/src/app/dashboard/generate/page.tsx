@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import BackButton from '@/components/BackButton';
-import Breadcrumbs from '@/components/Breadcrumbs';
+import PageHeader from '@/components/PageHeader';
 import ImageLightbox from '@/components/ImageLightbox';
 import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 import api from '@/lib/api';
@@ -496,59 +495,56 @@ export default function GeneratePage() {
     return (
         <div style={{ minHeight: '100vh', padding: '2rem', background: '#000', color: '#fff' }}>
             <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <BackButton />
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                        <button
-                            onClick={() => setView('generate')}
-                            className="btn"
-                            style={{
-                                background: view === 'generate' ? '#7c3aed' : '#27272a',
-                                padding: '0.5rem 1rem',
-                                borderRadius: '9999px',
-                                border: 'none',
-                                color: '#fff',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Generate
-                        </button>
-                        <button
-                            onClick={() => setView('calendar')}
-                            className="btn"
-                            style={{
-                                background: view === 'calendar' ? '#7c3aed' : '#27272a',
-                                padding: '0.5rem 1rem',
-                                borderRadius: '9999px',
-                                border: 'none',
-                                color: '#fff',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Calendar 📅
-                        </button>
-                        <button
-                            onClick={() => router.push('/dashboard/history')}
-                            className="btn"
-                            style={{
-                                background: '#27272a',
-                                padding: '0.5rem 1rem',
-                                borderRadius: '9999px',
-                                border: 'none',
-                                color: '#fff',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            History 🕒
-                        </button>
-                    </div>
-                </div>
-                <div className="container">
-                    <BackButton />
-                    <Breadcrumbs />
-
-                    <h1 className="mb-lg">Ai dark plataform</h1>
-                </div>
+                <PageHeader
+                    title="AI Generator"
+                    subtitle="Gere imagens com IA para suas redes sociais"
+                    actions={
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button
+                                onClick={() => setView('generate')}
+                                className="btn"
+                                style={{
+                                    background: view === 'generate' ? '#7c3aed' : '#27272a',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '9999px',
+                                    border: 'none',
+                                    color: '#fff',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Generate
+                            </button>
+                            <button
+                                onClick={() => setView('calendar')}
+                                className="btn"
+                                style={{
+                                    background: view === 'calendar' ? '#7c3aed' : '#27272a',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '9999px',
+                                    border: 'none',
+                                    color: '#fff',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Calendar 📅
+                            </button>
+                            <button
+                                onClick={() => router.push('/dashboard/history')}
+                                className="btn"
+                                style={{
+                                    background: '#27272a',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '9999px',
+                                    border: 'none',
+                                    color: '#fff',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                History 🕒
+                            </button>
+                        </div>
+                    }
+                />
 
                 {/* Minimalist Business Profile Indicator */}
                 {selectedProfile && (
