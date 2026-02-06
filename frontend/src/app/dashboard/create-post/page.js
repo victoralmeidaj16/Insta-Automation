@@ -25,25 +25,54 @@ function CreatePostContent() {
     useEffect(() => {
         loadAccounts();
 
-        // Check for query params
-        const captionParam = searchParams.get('caption');
-        const mediaUrlsParam = searchParams.get('mediaUrls');
-        const typeParam = searchParams.get('type');
+        // Check for query params or localStorage
+        const source = searchParams.get('source');
 
-        if (captionParam || mediaUrlsParam) {
-            const externalUrls = mediaUrlsParam ? mediaUrlsParam.split(',') : [];
-            setFormData(prev => ({
-                ...prev,
-                caption: captionParam || prev.caption,
-                type: typeParam || (externalUrls.length > 1 ? 'carousel' : 'static'),
-                externalMediaUrls: externalUrls
-            }));
+        if (source === 'generated') {
+            try {
+                const storedData = localStorage.getItem('params_createPost');
+                if (storedData) {
+                    const data = JSON.parse(storedData);
+                    setFormData(prev => ({
+                        ...prev,
+                        caption: data.caption || prev.caption,
+                        type: data.type || 'static',
+                        scheduledFor: data.scheduledFor || '',
+                        externalMediaUrls: data.mediaUrls || []
+                    }));
 
-            if (externalUrls.length > 0) {
-                setPreviews(externalUrls);
+                    if (data.mediaUrls && data.mediaUrls.length > 0) {
+                        setPreviews(data.mediaUrls);
+                    }
+
+                    toast.success('Conteúdo importado com sucesso!');
+                    // localStorage.removeItem('params_createPost'); // Keep it briefly in case of refresh? Or remove? Better remove to avoid stale data.
+                    localStorage.removeItem('params_createPost');
+                }
+            } catch (e) {
+                console.error('Erro ao ler dados do localStorage:', e);
             }
+        } else {
+            // Fallback to legacy query params
+            const captionParam = searchParams.get('caption');
+            const mediaUrlsParam = searchParams.get('mediaUrls');
+            const typeParam = searchParams.get('type');
 
-            toast.success('Conteúdo importado do Dark AI Platform!');
+            if (captionParam || mediaUrlsParam) {
+                const externalUrls = mediaUrlsParam ? mediaUrlsParam.split(',') : [];
+                setFormData(prev => ({
+                    ...prev,
+                    caption: captionParam || prev.caption,
+                    type: typeParam || (externalUrls.length > 1 ? 'carousel' : 'static'),
+                    externalMediaUrls: externalUrls
+                }));
+
+                if (externalUrls.length > 0) {
+                    setPreviews(externalUrls);
+                }
+
+                toast.success('Conteúdo importado do Dark AI Platform!');
+            }
         }
     }, [searchParams]);
 

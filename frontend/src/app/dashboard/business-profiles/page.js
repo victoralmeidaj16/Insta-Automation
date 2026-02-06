@@ -17,8 +17,7 @@ export default function BusinessProfilesPage() {
         name: '',
         description: '',
         instagram: {
-            username: '',
-            password: ''
+            username: ''
         },
         branding: {
             primaryColor: '#8e44ad',
@@ -37,40 +36,17 @@ export default function BusinessProfilesPage() {
     });
     const [newPromptName, setNewPromptName] = useState('');
     const [newPromptText, setNewPromptText] = useState('');
-    const [isConnecting, setIsConnecting] = useState(false);
+
     const [showPromptLibrary, setShowPromptLibrary] = useState(false);
+    const [isExtractingStyle, setIsExtractingStyle] = useState(false);
+    const [stylePrompt, setStylePrompt] = useState('');
+    const [showStyleExtractor, setShowStyleExtractor] = useState(false);
 
     useEffect(() => {
         loadProfiles();
     }, []);
 
-    const handleConnectInstagram = async () => {
-        if (!editingProfile) return;
 
-        setIsConnecting(true);
-        const toastId = toast.loading('🔐 Tentando conectar ao Instagram...');
-
-        try {
-            await api.post(`/api/business-profiles/${editingProfile.id}/connect`, {
-                username: formData.instagram.username,
-                password: formData.instagram.password
-            });
-
-            toast.success('✅ Conectado com sucesso!', { id: toastId });
-            handleOpenModal(null); // Close modal 
-            loadProfiles(); // Reload to see updates potentially
-        } catch (error) {
-            console.error('Connection failed:', error);
-            const msg = error.response?.data?.error || error.message;
-            toast.error(`❌ Falha na conexão: ${msg}`, { id: toastId, duration: 5000 });
-
-            if (msg.includes('twoFactor') || msg.includes('checkpoint')) {
-                alert('⚠️ O Instagram pediu verificação de dois fatores. Por favor, verifique seu celular/email e tente novamente (ainda estamos implementando a inserção do código aqui).');
-            }
-        } finally {
-            setIsConnecting(false);
-        }
-    };
 
     const handleOpenModal = (profile = null) => {
         if (profile) {
@@ -78,7 +54,7 @@ export default function BusinessProfilesPage() {
             setFormData({
                 name: profile.name,
                 description: profile.description || '',
-                instagram: profile.instagram || { username: '', password: '' },
+                instagram: profile.instagram || { username: '' },
                 branding: profile.branding || formData.branding,
                 aiPreferences: profile.aiPreferences || formData.aiPreferences
             });
@@ -88,8 +64,7 @@ export default function BusinessProfilesPage() {
                 name: '',
                 description: '',
                 instagram: {
-                    username: '',
-                    password: ''
+                    username: ''
                 },
                 branding: {
                     primaryColor: '#8e44ad',
@@ -145,6 +120,33 @@ export default function BusinessProfilesPage() {
             toast.success(`✅ Perfil "${profileName}" excluído com sucesso!`);
         } catch (error) {
             toast.error(`❌ Erro ao excluir perfil: ${error.message}`);
+        }
+    };
+
+
+    const handleExtractStyle = async () => {
+        if (!stylePrompt.trim()) {
+            toast.error('Cole um prompt para extrair o estilo!');
+            return;
+        }
+
+        setIsExtractingStyle(true);
+        try {
+            const response = await api.post('/api/ai/extract-style', { prompt: stylePrompt });
+            if (response.data.success && response.data.style) {
+                setFormData({
+                    ...formData,
+                    branding: { ...formData.branding, style: response.data.style }
+                });
+                toast.success('✨ Estilo extraído com sucesso!');
+                setShowStyleExtractor(false);
+                setStylePrompt('');
+            }
+        } catch (error) {
+            console.error('Error extracting style:', error);
+            toast.error('Erro ao extrair estilo. Tente novamente.');
+        } finally {
+            setIsExtractingStyle(false);
         }
     };
 
@@ -412,68 +414,26 @@ export default function BusinessProfilesPage() {
                                     />
                                 </div>
 
-                                {/* Instagram Credentials */}
-                                <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem', fontSize: '1.25rem' }}>📱 Credenciais do Instagram</h3>
+
+
+                                {/* Post Settings for Upload-Post */}
+                                <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem', fontSize: '1.25rem' }}>Configurações de Postagem</h3>
 
                                 <div className="input-group">
-                                    <label className="input-label">Usuário/Email do Instagram</label>
+                                    <label className="input-label">Usuário Instagram (Upload-Post)</label>
                                     <input
                                         className="input"
                                         type="text"
-                                        value={formData.instagram.username}
+                                        value={formData.instagram?.username || ''}
                                         onChange={(e) => setFormData({
                                             ...formData,
                                             instagram: { ...formData.instagram, username: e.target.value }
                                         })}
-                                        placeholder="@username ou email@example.com"
+                                        placeholder="@username"
                                     />
-                                </div>
-
-                                <div className="input-group">
-                                    <label className="input-label">Senha do Instagram</label>
-                                    <input
-                                        className="input"
-                                        type="password"
-                                        value={formData.instagram.password}
-                                        onChange={(e) => setFormData({
-                                            ...formData,
-                                            instagram: { ...formData.instagram, password: e.target.value }
-                                        })}
-                                        placeholder="Senha da conta Instagram"
-                                    />
-                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
-                                        🔒 Suas credenciais serão armazenadas de forma segura
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem' }}>
+                                        Necessário apenas para identificar a conta na API de agendamento.
                                     </small>
-
-                                    {editingProfile && (
-                                        <div style={{ marginTop: '1rem' }}>
-                                            <button
-                                                type="button"
-                                                onClick={handleConnectInstagram}
-                                                disabled={isConnecting || !formData.instagram.username || !formData.instagram.password}
-                                                className="btn"
-                                                style={{
-                                                    width: '100%',
-                                                    background: formData.instagram.password ? '#7c3aed' : '#27272a',
-                                                    color: '#fff',
-                                                    opacity: (isConnecting || !formData.instagram.username || !formData.instagram.password) ? 0.7 : 1,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '0.5rem'
-                                                }}
-                                            >
-                                                {isConnecting ? (
-                                                    <>⏳ Conectando...</>
-                                                ) : (
-                                                    <>🔑 Testar Conexão & Salvar</>
-                                                )}
-                                            </button>
-                                            <p style={{ fontSize: '0.75rem', color: '#a1a1aa', marginTop: '0.5rem', textAlign: 'center' }}>
-                                                Isso irá verificar o login e ativar a automação para esta conta.
-                                            </p>
-                                        </div>
-                                    )}
                                 </div>
 
                                 {/* AI Preferences */}
@@ -497,6 +457,139 @@ export default function BusinessProfilesPage() {
                                     <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
                                         Documentação completa da identidade visual da empresa
                                     </small>
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        Documentação completa da identidade visual da empresa
+                                    </small>
+                                </div>
+
+                                <div className="input-group">
+                                    <div className="flex-between">
+                                        <label className="input-label">Estilo Visual (Prompt Base para Imagens)</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowStyleExtractor(!showStyleExtractor)}
+                                            style={{
+                                                fontSize: '0.75rem',
+                                                background: 'transparent',
+                                                border: 'none',
+                                                color: '#d8b4fe',
+                                                cursor: 'pointer',
+                                                textDecoration: 'underline'
+                                            }}
+                                        >
+                                            ✨ Extrair de um Prompt
+                                        </button>
+                                    </div>
+
+                                    {showStyleExtractor && (
+                                        <div style={{
+                                            background: 'rgba(124, 58, 237, 0.1)',
+                                            padding: '1rem',
+                                            borderRadius: '0.5rem',
+                                            marginBottom: '0.5rem',
+                                            border: '1px solid #8b5cf6'
+                                        }}>
+                                            <p style={{ fontSize: '0.8rem', color: '#ddd', marginBottom: '0.5rem' }}>
+                                                Cole um prompt de imagem que você gostou e a IA vai "copiar" o estilo dele para usar na sua conta.
+                                            </p>
+                                            <textarea
+                                                className="input"
+                                                value={stylePrompt}
+                                                onChange={(e) => setStylePrompt(e.target.value)}
+                                                placeholder="Cole o prompt de referência aqui..."
+                                                rows={3}
+                                                style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleExtractStyle}
+                                                disabled={isExtractingStyle}
+                                                className="btn btn-primary"
+                                                style={{ width: '100%', fontSize: '0.8rem', padding: '0.4rem' }}
+                                            >
+                                                {isExtractingStyle ? '🔮 Extraindo...' : '🔮 Extrair Estilo Mágico'}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <textarea
+                                        className="input"
+                                        value={formData.branding.style}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            branding: { ...formData.branding, style: e.target.value }
+                                        })}
+                                        placeholder="Ex: Minimalista, Clean, Fotografia de Alta Qualidade, 3D Render, Cores Pastéis..."
+                                        rows={3}
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        Este estilo será aplicado automaticamente em todas as imagens geradas.
+                                    </small>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                                    <div className="input-group" style={{ flex: 1 }}>
+                                        <label className="input-label">Cor Primária</label>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <input
+                                                type="color"
+                                                value={formData.branding.primaryColor || '#8e44ad'}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    branding: { ...formData.branding, primaryColor: e.target.value }
+                                                })}
+                                                style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    border: 'none',
+                                                    borderRadius: '0.25rem',
+                                                    cursor: 'pointer',
+                                                    background: 'transparent'
+                                                }}
+                                            />
+                                            <input
+                                                type="text"
+                                                className="input"
+                                                value={formData.branding.primaryColor || ''}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    branding: { ...formData.branding, primaryColor: e.target.value }
+                                                })}
+                                                placeholder="#HEX"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="input-group" style={{ flex: 1 }}>
+                                        <label className="input-label">Cor Secundária</label>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <input
+                                                type="color"
+                                                value={formData.branding.secondaryColor || '#e74c3c'}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    branding: { ...formData.branding, secondaryColor: e.target.value }
+                                                })}
+                                                style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    border: 'none',
+                                                    borderRadius: '0.25rem',
+                                                    cursor: 'pointer',
+                                                    background: 'transparent'
+                                                }}
+                                            />
+                                            <input
+                                                type="text"
+                                                className="input"
+                                                value={formData.branding.secondaryColor || ''}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    branding: { ...formData.branding, secondaryColor: e.target.value }
+                                                })}
+                                                placeholder="#HEX"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Favorite Prompts Library */}
@@ -515,7 +608,7 @@ export default function BusinessProfilesPage() {
                                         transition: 'background 0.2s'
                                     }}
                                 >
-                                    <h3 style={{ margin: 0, fontSize: '1.25rem' }}>📚 Biblioteca de Prompts</h3>
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem' }}>📚 Prompts de Referência (Para a IA aprender)</h3>
                                     <span style={{ fontSize: '1.5rem', transform: showPromptLibrary ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
                                         ▼
                                     </span>

@@ -1,5 +1,5 @@
 import express from 'express';
-import { generateImages, generateCarousel, generateNextCarouselPrompt, generateCarouselPrompts, generateImageCaption } from '../services/aiService.js';
+import { generateImages, generateCarousel, generateNextCarouselPrompt, generateCarouselPrompts, generateImageCaption, generatePostIdeas, extractStyleFromPrompt } from '../services/aiService.js';
 
 const router = express.Router();
 
@@ -13,10 +13,11 @@ router.post('/generate', async (req, res) => {
             aspectRatio = '1:1',
             count = 1,
             mode = 'simple', // 'simple' ou 'carousel'
-            carouselDescription
+            carouselDescription,
+            brandingStyle
         } = req.body;
 
-        console.log('📝 Requisição de geração de IA:', { prompt, aspectRatio, count, mode });
+        console.log('📝 Requisição de geração de IA:', { prompt, aspectRatio, count, mode, brandingStyle });
 
         // Validar aspect ratio
         const validAspectRatios = ['1:1', '4:5', '16:9', '9:16'];
@@ -46,7 +47,7 @@ router.post('/generate', async (req, res) => {
                 });
             }
 
-            const result = await generateCarousel(description, aspectRatio, count);
+            const result = await generateCarousel(description, aspectRatio, count, brandingStyle);
             imageUrls = result.images;
             individualPrompts = result.prompts;
 
@@ -60,7 +61,7 @@ router.post('/generate', async (req, res) => {
                 });
             }
 
-            imageUrls = await generateImages(prompt, aspectRatio, count);
+            imageUrls = await generateImages(prompt, aspectRatio, count, brandingStyle);
         }
 
         res.json({
@@ -194,9 +195,9 @@ router.post('/generate-carousel-prompts', async (req, res) => {
  */
 router.post('/generate-single-image', async (req, res) => {
     try {
-        const { prompt, aspectRatio = '1:1' } = req.body;
+        const { prompt, aspectRatio = '1:1', brandingStyle } = req.body;
 
-        console.log('🎨 Gerando imagem única:', { prompt, aspectRatio });
+        console.log('🎨 Gerando imagem única:', { prompt, aspectRatio, brandingStyle });
 
         if (!prompt) {
             return res.status(400).json({
@@ -212,7 +213,7 @@ router.post('/generate-single-image', async (req, res) => {
             });
         }
 
-        const imageUrls = await generateImages(prompt, aspectRatio, 1);
+        const imageUrls = await generateImages(prompt, aspectRatio, 1, brandingStyle);
 
         res.json({
             success: true,
@@ -325,6 +326,73 @@ router.post('/generate-caption-from-image', async (req, res) => {
         console.error('❌ Erro ao gerar caption com visão:', error);
         res.status(500).json({
             error: 'Erro ao gerar caption',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+/**
+ * POST /api/ai/generate-ideas - Gera ideias de posts baseadas no perfil
+ */
+router.post('/generate-ideas', async (req, res) => {
+    try {
+        const { profileName, profileDescription, guidelines, brandingStyle } = req.body;
+
+        console.log('💡 Requisição para gerar ideias:', { profileName });
+
+        if (!profileDescription) {
+            return res.status(400).json({
+                error: 'Descrição do perfil é necessária para gerar ideias relevantes.',
+            });
+        }
+
+        const ideas = await generatePostIdeas({
+            profileName,
+            profileDescription,
+            guidelines,
+            brandingStyle
+        });
+
+        res.json({
+            success: true,
+            ideas
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao gerar ideias:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar ideias de posts',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+/**
+ * POST /api/ai/extract-style - Extrai estilo visual de um prompt
+ */
+router.post('/extract-style', async (req, res) => {
+    try {
+        const { prompt } = req.body;
+
+        console.log('🎨 Requisição de extração de estilo para prompt:', prompt?.substring(0, 50));
+
+        if (!prompt) {
+            return res.status(400).json({
+                error: 'Prompt é obrigatório',
+            });
+        }
+
+        const style = await extractStyleFromPrompt(prompt);
+
+        res.json({
+            success: true,
+            style
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao extrair estilo:', error);
+        res.status(500).json({
+            error: 'Erro ao extrair estilo',
             message: process.env.NODE_ENV === 'development' ? error.message : undefined,
         });
     }
