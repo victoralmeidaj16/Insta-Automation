@@ -152,7 +152,12 @@ router.post('/generate-carousel-prompts', async (req, res) => {
             totalCards,
             profileDescription,
             guidelines,
-            savedPrompts
+            savedPrompts,
+            isEditorial,
+            brandName,
+            aspectRatio,
+            context,
+            referenceImage // Extract referenceImage
         } = req.body;
 
         console.log(`📝 Gerando todos os prompts: ${totalCards} cards`);
@@ -172,7 +177,16 @@ router.post('/generate-carousel-prompts', async (req, res) => {
         const prompts = await generateCarouselPrompts(
             carouselDescription,
             totalCards,
-            { profileDescription, guidelines, savedPrompts }
+            {
+                profileDescription,
+                guidelines,
+                savedPrompts,
+                referenceImage,
+                isEditorial: Boolean(isEditorial),
+                brandName,
+                aspectRatio,
+                ...context
+            }
         );
 
         res.json({
@@ -195,9 +209,9 @@ router.post('/generate-carousel-prompts', async (req, res) => {
  */
 router.post('/generate-single-image', async (req, res) => {
     try {
-        const { prompt, aspectRatio = '1:1', brandingStyle } = req.body;
+        const { prompt, aspectRatio = '1:1', brandingStyle, isEditorial, context, referenceImage } = req.body;
 
-        console.log('🎨 Gerando imagem única:', { prompt, aspectRatio, brandingStyle });
+        console.log('🎨 Gerando imagem única:', { prompt, aspectRatio, brandingStyle, isEditorial, hasReferenceImage: !!referenceImage });
 
         if (!prompt) {
             return res.status(400).json({
@@ -213,7 +227,7 @@ router.post('/generate-single-image', async (req, res) => {
             });
         }
 
-        const imageUrls = await generateImages(prompt, aspectRatio, 1, brandingStyle);
+        const imageUrls = await generateImages(prompt, aspectRatio, 1, brandingStyle, isEditorial, context, referenceImage);
 
         res.json({
             success: true,

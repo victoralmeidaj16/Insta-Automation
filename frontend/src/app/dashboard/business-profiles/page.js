@@ -16,6 +16,8 @@ export default function BusinessProfilesPage() {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
+        targetAudience: '',
+        productService: '',
         instagram: {
             username: ''
         },
@@ -54,6 +56,8 @@ export default function BusinessProfilesPage() {
             setFormData({
                 name: profile.name,
                 description: profile.description || '',
+                targetAudience: profile.targetAudience || '',
+                productService: profile.productService || '',
                 instagram: profile.instagram || { username: '' },
                 branding: profile.branding || formData.branding,
                 aiPreferences: profile.aiPreferences || formData.aiPreferences
@@ -63,6 +67,8 @@ export default function BusinessProfilesPage() {
             setFormData({
                 name: '',
                 description: '',
+                targetAudience: '',
+                productService: '',
                 instagram: {
                     username: ''
                 },
@@ -414,6 +420,33 @@ export default function BusinessProfilesPage() {
                                     />
                                 </div>
 
+                                <div className="input-group">
+                                    <label className="input-label">Público-Alvo (Target Audience)</label>
+                                    <input
+                                        className="input"
+                                        value={formData.targetAudience}
+                                        onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
+                                        placeholder="Ex: Mulheres empreendedoras, 30-45 anos, focadas em carreira..."
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem' }}>
+                                        Essencial para a IA personalizar a linguagem e o tom.
+                                    </small>
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Produto ou Serviço Oferecido</label>
+                                    <input
+                                        className="input"
+                                        value={formData.productService}
+                                        onChange={(e) => setFormData({ ...formData, productService: e.target.value })}
+                                        placeholder="Ex: Mentoria de Liderança, Curso de Marketing, Terapia Online..."
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem' }}>
+                                        Ajuda a IA a criar metáforas visuais mais relevantes.
+                                    </small>
+                                </div>
+
+
 
 
                                 {/* Post Settings for Upload-Post */}
@@ -519,7 +552,7 @@ export default function BusinessProfilesPage() {
                                             ...formData,
                                             branding: { ...formData.branding, style: e.target.value }
                                         })}
-                                        placeholder="Ex: Minimalista, Clean, Fotografia de Alta Qualidade, 3D Render, Cores Pastéis..."
+                                        placeholder="Ex: Personagem 3D estilizado, textura laranja, iluminação de abajur, ambiente dark..."
                                         rows={3}
                                     />
                                     <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
@@ -715,8 +748,9 @@ export default function BusinessProfilesPage() {
                             </form>
                         </div>
                     </div>
-                )}
-            </div>
-        </div>
+                )
+                }
+            </div >
+        </div >
     );
 }

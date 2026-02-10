@@ -24,6 +24,8 @@ export async function createBusinessProfile(userId, profileData) {
             userId,
             name,
             description: description || '',
+            targetAudience: profileData.targetAudience || '',
+            productService: profileData.productService || '',
             instagram: {
                 username: instagram?.username || '',
                 password: instagram?.password || '' // TODO: Encrypt password before storing

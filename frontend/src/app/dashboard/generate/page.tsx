@@ -7,14 +7,7 @@ import ImageLightbox from '@/components/ImageLightbox';
 import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-
-interface Post {
-    id: string;
-    caption: string;
-    mediaUrls: string[];
-    scheduledFor: string;
-    type: string;
-}
+import { useDropzone } from 'react-dropzone';
 
 interface CarouselCard {
     prompt: string;
@@ -87,17 +80,9 @@ const LayoutIcon = () => (
     </svg>
 );
 
-const TypeIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="4 7 4 4 20 4 20 7"></polyline>
-        <line x1="9" y1="20" x2="15" y2="20"></line>
-        <line x1="12" y1="4" x2="12" y2="20"></line>
-    </svg>
-);
-
 export default function GeneratePage() {
     const router = useRouter();
-    const { profiles, selectedProfile, setSelectedProfile } = useBusinessProfile();
+    const { selectedProfile } = useBusinessProfile();
 
     // Simple mode states
     const [prompt, setPrompt] = useState('');
@@ -106,6 +91,7 @@ export default function GeneratePage() {
     const [carouselDescription, setCarouselDescription] = useState('');
     const [carouselCards, setCarouselCards] = useState<CarouselCard[]>([]);
     const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+    const [referenceImage, setReferenceImage] = useState<string | null>(null); // New state for reference image
 
     // Idea Generation states
     const [isGeneratingIdeas, setIsGeneratingIdeas] = useState(false);
@@ -115,8 +101,7 @@ export default function GeneratePage() {
     // Common states
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '16:9' | '9:16'>('1:1');
     const [imageCount, setImageCount] = useState<number>(1);
-    const [scheduledPosts, setScheduledPosts] = useState<Post[]>([]);
-    const [selectedDate, setSelectedDate] = useState<string>('');
+    const [selectedDate] = useState<string>('');
     const [view, setView] = useState<'generate' | 'calendar'>('generate');
 
     // Lightbox states
@@ -133,72 +118,26 @@ export default function GeneratePage() {
     // Preview modal state
     const [showPreview, setShowPreview] = useState(false);
 
-    // Editorial Mode States
     const [generationMode, setGenerationMode] = useState<'standard' | 'editorial'>('standard');
-    const [editorialSubject, setEditorialSubject] = useState('');
-    const [editorialHeadline, setEditorialHeadline] = useState('');
-    const [editorialSubtext, setEditorialSubtext] = useState('');
-    const [editorialBrand, setEditorialBrand] = useState('VIVER MAIS PSICOLOGIA STREAMING'); // Default or load from profile
 
-    // Auto-load brand name if available
-    useEffect(() => {
-        if (selectedProfile?.name && !editorialBrand) {
-            setEditorialBrand(selectedProfile.name.toUpperCase());
-        }
-    }, [selectedProfile]);
-
-    const buildEditorialPrompt = (subject: string, headline: string, subtext: string, brand: string) => {
-        return `A premium vertical social media post with a cinematic, high-contrast aesthetic.
-The upper 60% of the image shows a powerful symbolic scene related to psychology and mental strength:
-${subject}
-small particles and dust floating in the air, dramatic directional lighting, shallow depth of field,
-dark, textured background, cinematic atmosphere, ultra-realistic, high-detail, dramatic mood.
-
-The lower 40% of the image fades into a dense black-to-deep-purple gradient,
-creating a solid base for bold typography without abruptly cutting the image.
-
-Centered, bold motivational typography in ALL CAPS, using a condensed sans-serif style similar to Bebas Neue or Champion Gothic
-(not referencing specific font names, only style).
-
-Text content (Portuguese), centered and stacked, with tight line spacing and strong hierarchy:
-
-"${headline.toUpperCase()}"
-${subtext ? `\n"${subtext.toUpperCase()}"` : ''}
-
-Color usage:
-• Main text in pure white (#FFFFFF)
-• Strategic emphasis words in Viver Mais brand purple (deep, rich purple — not neon)
-Use emphasis sparingly on 2–3 key words only.
-
-Letter spacing slightly condensed, dense and impactful text block.
-Text occupies approximately one-third of the total image height.
-Generous side margins (around 10%), no text touching edges.
-
-Between image and text, a thin horizontal line in subtle purple,
-with a small minimalist logo placeholder centered (no real logo details, just symbolic).
-
-At the very bottom, small, elegant brand text:
-"${brand.toUpperCase()}"
-
-Overall style:
-• Editorial, cinematic, premium
-• Dark psychology aesthetic
-• Strong emotional impact
-• Clean, modern, high-end
-• Designed to feel authoritative, reflective, and professional
-
-Lighting must remain dramatic.
-Contrast must be high.
-No clutter.
-No stock-photo look.
-No cartoon style.
-No exaggerated neon colors.
-VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
+    // Reference Image Upload Handler
+    const onDrop = (acceptedFiles: File[]) => {
+        const file = acceptedFiles[0];
+        const reader = new FileReader();
+        reader.onload = () => {
+            setReferenceImage(reader.result as string);
+            toast.success('Imagem de referência carregada!');
+        };
+        reader.readAsDataURL(file);
     };
 
-    useEffect(() => {
-        fetchScheduledPosts();
+    const { getRootProps: getReferenceRootProps, getInputProps: getReferenceInputProps } = useDropzone({
+        onDrop,
+        accept: { 'image/*': [] },
+        maxFiles: 1
+    });
 
+    useEffect(() => {
         // Load reused prompt from history
         const reusedPrompt = localStorage.getItem('reusedPrompt');
         if (reusedPrompt) {
@@ -223,15 +162,26 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
     useEffect(() => {
         if (carouselCards.length > 0 || carouselDescription) {
             const saveInterval = setInterval(() => {
+                // Create a lean version of cards without the heavy image data to avoid QuotaExceededError
+                const leanCards = carouselCards.map(card => ({
+                    ...card,
+                    image: undefined, // Do not save base64 images in localStorage
+                }));
+
                 const draft = {
                     description: carouselDescription,
-                    cards: carouselCards,
+                    cards: leanCards,
                     aspectRatio,
                     imageCount,
                     lastSaved: new Date().toISOString()
                 };
-                localStorage.setItem('carouselDraft', JSON.stringify(draft));
-                console.log('💾 Auto-save: Draft saved');
+
+                try {
+                    localStorage.setItem('carouselDraft', JSON.stringify(draft));
+                    console.log('💾 Auto-save: Draft saved (Lite Mode)');
+                } catch (e) {
+                    console.error('Auto-save failed:', e);
+                }
             }, 5000); // Save every 5 seconds
 
             return () => clearInterval(saveInterval);
@@ -253,15 +203,23 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
         // Removed reset for imageCount === 1 to allow advanced mode for single images
     }, [imageCount]);
 
-    const fetchScheduledPosts = async () => {
-        try {
-            const res = await api.get('/api/posts');
-            if (res.data.posts) {
-                setScheduledPosts(res.data.posts.filter((p: Post) => p.scheduledFor));
-            }
-        } catch (error) {
-            console.error('Failed to fetch posts:', error);
+    const looksLikeEditorialTemplatePrompt = (p: string) => {
+        const t = (p || '').trim();
+        if (!t) return false;
+        // Heuristic: prompts gerados no modo editorial já vêm no template completo.
+        return (
+            t.startsWith('A premium') &&
+            (t.includes('The upper 60% of the image') || t.includes('TEXT AREA:') || t.includes('MANDATORY RESTRICTIONS'))
+        );
+    };
+
+    const getApiErrorMessage = (error: unknown, fallback: string) => {
+        if (error && typeof error === 'object') {
+            const maybeAxios = error as { response?: { data?: { error?: string } } };
+            const msg = maybeAxios.response?.data?.error;
+            if (msg && typeof msg === 'string') return msg;
         }
+        return fallback;
     };
 
     // Generate all prompts at once for carousel
@@ -277,9 +235,25 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
             const response = await api.post('/api/ai/generate-carousel-prompts', {
                 carouselDescription,
                 totalCards: imageCount,
+                aspectRatio,
                 profileDescription: selectedProfile?.description,
                 guidelines: selectedProfile?.branding?.guidelines,
-                savedPrompts: selectedProfile?.aiPreferences?.favoritePrompts
+                savedPrompts: selectedProfile?.aiPreferences?.favoritePrompts,
+                isEditorial: generationMode === 'editorial',
+                brandName: selectedProfile?.name || 'VIVER MAIS PSICOLOGIA STREAMING',
+                context: {
+                    primaryColor: selectedProfile?.branding?.primaryColor,
+                    secondaryColor: selectedProfile?.branding?.secondaryColor,
+                    brandTone: selectedProfile?.branding?.tone, // Assuming tone is in branding or aiPreferences? checking profile structure...
+                    // Actually profile structure has tone in aiPreferences usually, but let's check profile object.
+                    // For now, let's pass what we know exists on the profile object based on my updates.
+                    targetAudience: selectedProfile?.targetAudience,
+                    productService: selectedProfile?.productService,
+                    brandingStyle: selectedProfile?.branding?.style
+                },
+                referenceImage // Pass the reference image to the API
+            }, {
+                timeout: 120000 // 2 minutes timeout for AI generation
             });
 
             if (response.data.success && response.data.prompts) {
@@ -290,9 +264,9 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
                 setCarouselCards(newCards);
                 toast.success(`${newCards.length} prompts gerados com sucesso!`);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error generating prompts:', error);
-            toast.error(error.response?.data?.error || 'Erro ao gerar prompts');
+            toast.error(getApiErrorMessage(error, 'Erro ao gerar prompts'));
         } finally {
             setIsGeneratingPrompt(false);
         }
@@ -319,9 +293,9 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
                 setShowIdeasModal(true);
                 toast.success('💡 3 Ideias geradas com sucesso!');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error generating ideas:', error);
-            toast.error(error.response?.data?.error || 'Erro ao gerar ideias');
+            toast.error(getApiErrorMessage(error, 'Erro ao gerar ideias'));
         } finally {
             setIsGeneratingIdeas(false);
         }
@@ -355,21 +329,10 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
             // Build enhanced prompt with profile template
             let enhancedPrompt = card.prompt;
 
-            // If in Editorial Mode, build the prompt using the template
+            // If in Editorial Mode, the prompt is likely already formatted (by Auto-Generate or Manual Button)
             if (generationMode === 'editorial') {
-                // If it's a carousel card generated from "Generate All Prompts", it might already be a full prompt.
-                // But if the user is typing manually or we want to enforce the style:
-                // For now, let's assume if it's editorial mode, we use the specific editorial builder 
-                // BUT we need to handle "multiple cards" logic differently for editorial.
-                // If it's single card manual input:
-                if (carouselCards.length === 1 && editorialSubject) {
-                    enhancedPrompt = buildEditorialPrompt(editorialSubject, editorialHeadline, editorialSubtext, editorialBrand);
-                } else {
-                    // For multiple cards in editorial mode, we might need to assume the 'card.prompt' IS the subject
-                    // and we reuse the headline/brand? Or maybe we don't support multi-card editorial auto-generation yet?
-                    // Let's support it by assuming card.prompt is the SUBJECT of the scene.
-                    enhancedPrompt = buildEditorialPrompt(card.prompt, editorialHeadline, editorialSubtext, editorialBrand);
-                }
+                // We use the prompt as-is because we ensure it is built correctly when created
+                enhancedPrompt = card.prompt;
             } else if (selectedProfile?.aiPreferences?.promptTemplate) {
                 enhancedPrompt = `${selectedProfile.aiPreferences.promptTemplate}\n\n${card.prompt}`;
             }
@@ -386,9 +349,18 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
             const response = await api.post('/api/ai/generate-single-image', {
                 prompt: enhancedPrompt,
                 aspectRatio,
-                brandingStyle: brandingContext
+                brandingStyle: brandingContext,
+                // Se o prompt já estiver no template editorial completo, não transformar novamente no backend.
+                isEditorial: generationMode === 'editorial' && !looksLikeEditorialTemplatePrompt(enhancedPrompt),
+                context: {
+                    primaryColor: selectedProfile?.branding?.primaryColor,
+                    targetAudience: selectedProfile?.targetAudience,
+                    productService: selectedProfile?.productService,
+                    brandName: selectedProfile?.name
+                },
+                referenceImage // Pass reference image directly to image generation model
             }, {
-                timeout: 90000 // 90 seconds timeout
+                timeout: 120000 // 120 seconds timeout (longer for multimodal)
             });
 
             if (response.data.success) {
@@ -404,7 +376,7 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
                 });
                 toast.success(`✅ Imagem do card ${cardIndex + 1} gerada!`);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(`Error generating image for card ${cardIndex + 1}:`, error);
 
             // Retry logic - max 3 attempts
@@ -525,9 +497,9 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
                 setGeneratedCaption(res.data.caption);
                 toast.success('✅ Caption gerada com IA!');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error generating caption:', error);
-            toast.error(error.response?.data?.error || 'Erro ao gerar caption');
+            toast.error(getApiErrorMessage(error, 'Erro ao gerar caption'));
         } finally {
             setIsGeneratingCaption(false);
         }
@@ -536,8 +508,20 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
     // Download a single image
     const handleDownloadImage = async (imageUrl: string, cardIndex: number) => {
         try {
-            const response = await fetch(imageUrl);
-            const blob = await response.blob();
+            let blob: Blob;
+            if (imageUrl.startsWith('data:')) {
+                const [meta, data] = imageUrl.split(',', 2);
+                const mimeMatch = meta.match(/^data:(.*?)(;base64)?$/);
+                const mime = mimeMatch?.[1] || 'image/png';
+                const isBase64 = meta.includes(';base64');
+                const bytes = isBase64
+                    ? Uint8Array.from(atob(data), c => c.charCodeAt(0))
+                    : new TextEncoder().encode(decodeURIComponent(data));
+                blob = new Blob([bytes], { type: mime });
+            } else {
+                const response = await fetch(imageUrl);
+                blob = await response.blob();
+            }
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -572,7 +556,7 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
             }
             toast.dismiss();
             toast.success(`${images.length} imagens baixadas!`);
-        } catch (error) {
+        } catch {
             toast.dismiss();
             toast.error('Erro ao baixar imagens');
         }
@@ -601,9 +585,9 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
             });
 
             toast.success('Salvo no histórico!');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error saving to history:', error);
-            toast.error(error.response?.data?.error || 'Erro ao salvar no histórico');
+            toast.error(getApiErrorMessage(error, 'Erro ao salvar no histórico'));
         }
     };
 
@@ -631,25 +615,9 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
         router.push('/dashboard/calendar');
     };
 
-
-    const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    const daysInMonth = getDaysInMonth(currentYear, currentMonth);
-
-    const getPostsForDay = (day: number) => {
-        return scheduledPosts.filter(p => {
-            const date = new Date(p.scheduledFor);
-            return date.getDate() === day && date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-        });
-    };
-
-
-
-
     return (
         <div style={{ minHeight: '100vh', padding: '2rem', background: '#000', color: '#fff' }}>
+
             <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
                 <PageHeader
                     title="AI Generator"
@@ -874,64 +842,88 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
 
                             {generationMode === 'editorial' ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+
+                                    {/* EDITORIAL: Description Input for Auto-Generate */}
                                     <div>
                                         <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            🎭 Assunto da Cena (Visual)
-                                            <span style={{ fontSize: '0.7rem', color: '#71717a' }}>(Upper 60%)</span>
+                                            📝 Descrição Geral (Para Geração Automática)
+                                            <span style={{ fontSize: '0.7rem', color: '#71717a' }}>(Opcional: Preencha para criar prompts automaticamente)</span>
                                         </label>
                                         <textarea
-                                            value={editorialSubject}
-                                            onChange={(e) => {
-                                                setEditorialSubject(e.target.value);
-                                                if (imageCount === 1) {
-                                                    // Sync with main prompt for single image compatibility
-                                                    // setPrompt(buildEditorialPrompt(e.target.value, editorialHeadline, editorialSubtext, editorialBrand));
-                                                }
-                                            }}
-                                            placeholder="Descreva a cena visual... Ex: Um cérebro de pedra rachando com luz roxa saindo de dentro..."
+                                            value={carouselDescription} // Use the SAME state as Standard Mode
+                                            onChange={(e) => setCarouselDescription(e.target.value)}
+                                            placeholder="Ex: 5 dicas estoicas para controlar a ansiedade..."
                                             className="input"
-                                            rows={3}
+                                            rows={2}
                                             style={{ width: '100%' }}
                                         />
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                        <div>
-                                            <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <TypeIcon /> Título Principal
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={editorialHeadline}
-                                                onChange={(e) => setEditorialHeadline(e.target.value)}
-                                                placeholder="Ex: NÃO É O MUNDO..."
-                                                className="input"
-                                                style={{ width: '100%', fontWeight: 'bold' }}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="input-label">Texto Secundário (Opcional)</label>
-                                            <input
-                                                type="text"
-                                                value={editorialSubtext}
-                                                onChange={(e) => setEditorialSubtext(e.target.value)}
-                                                placeholder="Complemento..."
-                                                className="input"
-                                                style={{ width: '100%' }}
-                                            />
-                                        </div>
+                                    <div className="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800 text-sm text-zinc-400">
+                                        <p>✨ <strong>Modo Editorial Ativo:</strong> O sistema irá gerar automaticamente o Assunto Visual, Títulos e Estilo Cinematográfico baseados na sua descrição e na marca do perfil selecionado.</p>
                                     </div>
 
-                                    <div>
-                                        <label className="input-label" style={{ fontSize: '0.75rem' }}>Rodapé (Marca)</label>
-                                        <input
-                                            type="text"
-                                            value={editorialBrand}
-                                            onChange={(e) => setEditorialBrand(e.target.value)}
-                                            placeholder="Nome da Marca"
-                                            className="input"
-                                            style={{ width: '100%', fontSize: '0.8rem', padding: '0.5rem' }}
-                                        />
+                                    {/* EDITORIAL: Reference Image Upload */}
+                                    <div style={{ marginBottom: '1rem' }}>
+                                        <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            🖼️ Imagem de Referência (Opcional)
+                                            <span style={{ fontSize: '0.7rem', color: '#71717a' }}>(O estilo visual desta imagem será copiado)</span>
+                                        </label>
+
+                                        {!referenceImage ? (
+                                            <div
+                                                {...getReferenceRootProps()}
+                                                style={{
+                                                    border: '2px dashed #3f3f46',
+                                                    borderRadius: '0.5rem',
+                                                    padding: '2rem',
+                                                    textAlign: 'center',
+                                                    cursor: 'pointer',
+                                                    background: 'rgba(24, 24, 27, 0.5)',
+                                                    transition: 'border-color 0.2s'
+                                                }}
+                                            >
+                                                <input {...getReferenceInputProps()} />
+                                                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>
+                                                    Arraste uma imagem ou clique para selecionar
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div style={{ position: 'relative', width: '100px', height: '100px' }}>
+                                                <img
+                                                    src={referenceImage}
+                                                    alt="Referência"
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        objectFit: 'cover',
+                                                        borderRadius: '0.5rem',
+                                                        border: '1px solid #7c3aed'
+                                                    }}
+                                                />
+                                                <button
+                                                    onClick={() => setReferenceImage(null)}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '-0.5rem',
+                                                        right: '-0.5rem',
+                                                        background: '#ef4444',
+                                                        color: '#fff',
+                                                        border: 'none',
+                                                        borderRadius: '50%',
+                                                        width: '20px',
+                                                        height: '20px',
+                                                        fontSize: '0.75rem',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ) : (
@@ -986,313 +978,305 @@ VISUAL STYLE: Dark, Cinematic, Premium, Editorial, High Contrast`;
                             {generationMode === 'editorial' && (
                                 <button
                                     onClick={() => {
-                                        // For editorial mode, we just verify inputs and set up the cards
-                                        if (!editorialSubject || !editorialHeadline) {
-                                            toast.error('Preencha o Assunto e o Título!');
+                                        if (!carouselDescription || carouselDescription.trim().length < 3) {
+                                            toast.error('Por favor, descreva o conteúdo do carrossel!');
                                             return;
                                         }
-                                        // Creating a single card prompt (or multiple with same structure?)
-                                        // Let's create 'imageCount' cards using the same subject for now, 
-                                        // or maybe the user wants 1 card specifically. 
-                                        // If imageCount > 1, we might need a way to vary the subject.
-                                        // For now, let's treat it as:
-                                        // 1. Create cards based on imageCount
-                                        // 2. Each card's "prompt" stores the SUBJECT (so we can see it in UI)
-                                        const newCards = Array(imageCount).fill(null).map(() => ({
-                                            prompt: editorialSubject, // In editorial mode, prompt = subject
-                                            isGeneratingImage: false
-                                        }));
-                                        setCarouselCards(newCards);
-                                        toast.success('Pronto para gerar! Clique em "Gerar Todas as Imagens"');
+                                        handleGenerateAllPrompts();
                                     }}
+                                    disabled={isGeneratingPrompt}
                                     className="btn btn-primary"
-                                    style={{ width: '100%', marginBottom: '0.5rem', background: '#ec4899' }}
+                                    style={{ width: '100%', marginBottom: '0.5rem', background: isGeneratingPrompt ? '#db2777' : '#ec4899' }}
                                 >
-                                    Preparar Cards Editorial 🎬
+                                    {isGeneratingPrompt ? '🧠 Criando Conceito Editorial...' : '✨ Gerar Cards Editoriais (Auto)'}
                                 </button>
                             )}
 
                             {/* Bulk Image Generation Button */}
-                            {carouselCards.length > 0 && carouselCards.some(c => !c.image) && (
-                                <button
-                                    onClick={handleGenerateAllImages}
-                                    disabled={carouselCards.every(c => c.isGeneratingImage)}
-                                    className="btn"
-                                    style={{
-                                        width: '100%',
-                                        marginBottom: '1rem',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                        border: 'none',
-                                        color: '#fff'
-                                    }}
-                                >
-                                    🎨 Gerar Todas as Imagens ({carouselCards.filter(c => !c.image).length} pendentes)
-                                </button>
-                            )}
+                            {
+                                carouselCards.length > 0 && carouselCards.some(c => !c.image) && (
+                                    <button
+                                        onClick={handleGenerateAllImages}
+                                        disabled={carouselCards.every(c => c.isGeneratingImage)}
+                                        className="btn"
+                                        style={{
+                                            width: '100%',
+                                            marginBottom: '1rem',
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            border: 'none',
+                                            color: '#fff'
+                                        }}
+                                    >
+                                        🎨 Gerar Todas as Imagens ({carouselCards.filter(c => !c.image).length} pendentes)
+                                    </button>
+                                )
+                            }
 
                             {/* Carousel Cards */}
-                            {carouselCards.length > 0 && (
-                                <div style={{ marginTop: '2rem' }}>
-                                    <h3 style={{ marginBottom: '1rem', color: '#a78bfa' }}>
-                                        {imageCount > 1 ? `Cards do Carrossel (${carouselCards.length}/${imageCount})` : 'Card do Post'}
-                                    </h3>
+                            {
+                                carouselCards.length > 0 && (
+                                    <div style={{ marginTop: '2rem' }}>
+                                        <h3 style={{ marginBottom: '1rem', color: '#a78bfa' }}>
+                                            {imageCount > 1 ? `Cards do Carrossel (${carouselCards.length}/${imageCount})` : 'Card do Post'}
+                                        </h3>
 
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(3, 1fr)',
-                                        gap: '1rem'
-                                    }}>
-                                        {carouselCards.map((card, index) => (
-                                            <div
-                                                key={index}
-                                                style={{
-                                                    background: '#18181b',
-                                                    border: '1px solid #27272a',
-                                                    borderRadius: '1rem',
-                                                    padding: '1rem'
-                                                }}
-                                            >
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
-                                                    <h4 style={{ color: '#a78bfa', fontSize: '0.75rem', fontWeight: 600 }}>
-                                                        Card {index + 1}
-                                                    </h4>
-                                                    {card.image && (
-                                                        <span style={{ fontSize: '0.625rem', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', padding: '0.25rem 0.5rem', borderRadius: '9999px' }}>
-                                                            ✓ Gerada
-                                                        </span>
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(3, 1fr)',
+                                            gap: '1rem'
+                                        }}>
+                                            {carouselCards.map((card, index) => (
+                                                <div
+                                                    key={index}
+                                                    style={{
+                                                        background: '#18181b',
+                                                        border: '1px solid #27272a',
+                                                        borderRadius: '1rem',
+                                                        padding: '1rem'
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
+                                                        <h4 style={{ color: '#a78bfa', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                            Card {index + 1}
+                                                        </h4>
+                                                        {card.image && (
+                                                            <span style={{ fontSize: '0.625rem', background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', padding: '0.25rem 0.5rem', borderRadius: '9999px' }}>
+                                                                ✓ Gerada
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div style={{ marginBottom: '0.75rem' }}>
+                                                        <label style={{ fontSize: '0.625rem', color: '#71717a', display: 'block', marginBottom: '0.5rem' }}>
+                                                            Prompt
+                                                        </label>
+                                                        <p style={{
+                                                            background: '#09090b',
+                                                            padding: '0.5rem',
+                                                            borderRadius: '0.5rem',
+                                                            fontSize: '0.75rem',
+                                                            color: '#d4d4d8',
+                                                            lineHeight: '1.4',
+                                                            maxHeight: '4.5rem',
+                                                            overflow: 'auto'
+                                                        }}>
+                                                            {card.prompt}
+                                                        </p>
+                                                    </div>
+
+                                                    {card.image ? (
+                                                        <>
+                                                            <img
+                                                                src={card.image}
+                                                                alt={`Card ${index + 1}`}
+                                                                onClick={() => {
+                                                                    const allImages = carouselCards
+                                                                        .filter(c => c.image)
+                                                                        .map(c => c.image!);
+                                                                    const imageIndex = allImages.indexOf(card.image!);
+                                                                    handleOpenLightbox(allImages, imageIndex);
+                                                                }}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    height: '200px',
+                                                                    objectFit: 'cover',
+                                                                    borderRadius: '0.5rem',
+                                                                    marginBottom: '0.5rem',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'transform 0.2s'
+                                                                }}
+                                                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                                                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                            />
+                                                            <button
+                                                                onClick={() => handleDownloadImage(card.image!, index)}
+                                                                className="btn btn-secondary"
+                                                                style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
+                                                            >
+                                                                <DownloadIcon /> Baixar
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleRegenerateCard(index)}
+                                                                className="btn"
+                                                                style={{
+                                                                    width: '100%',
+                                                                    fontSize: '0.75rem',
+                                                                    padding: '0.5rem',
+                                                                    marginTop: '0.5rem',
+                                                                    background: 'rgba(239, 68, 68, 0.15)',
+                                                                    color: '#f87171',
+                                                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem'
+                                                                }}
+                                                            >
+                                                                <RefreshIcon /> Regenerar
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleGenerateImageForCard(index)}
+                                                            disabled={card.isGeneratingImage}
+                                                            className="btn btn-primary"
+                                                            style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem' }}
+                                                        >
+                                                            {card.isGeneratingImage ? '🎨 Gerando...' : '🎨 Gerar Imagem'}
+                                                        </button>
                                                     )}
                                                 </div>
-
-                                                <div style={{ marginBottom: '0.75rem' }}>
-                                                    <label style={{ fontSize: '0.625rem', color: '#71717a', display: 'block', marginBottom: '0.5rem' }}>
-                                                        Prompt
-                                                    </label>
-                                                    <p style={{
-                                                        background: '#09090b',
-                                                        padding: '0.5rem',
-                                                        borderRadius: '0.5rem',
-                                                        fontSize: '0.75rem',
-                                                        color: '#d4d4d8',
-                                                        lineHeight: '1.4',
-                                                        maxHeight: '4.5rem',
-                                                        overflow: 'auto'
-                                                    }}>
-                                                        {card.prompt}
-                                                    </p>
-                                                </div>
-
-                                                {card.image ? (
-                                                    <>
-                                                        <img
-                                                            src={card.image}
-                                                            alt={`Card ${index + 1}`}
-                                                            onClick={() => {
-                                                                const allImages = carouselCards
-                                                                    .filter(c => c.image)
-                                                                    .map(c => c.image!);
-                                                                const imageIndex = allImages.indexOf(card.image!);
-                                                                handleOpenLightbox(allImages, imageIndex);
-                                                            }}
-                                                            style={{
-                                                                width: '100%',
-                                                                height: '200px',
-                                                                objectFit: 'cover',
-                                                                borderRadius: '0.5rem',
-                                                                marginBottom: '0.5rem',
-                                                                cursor: 'pointer',
-                                                                transition: 'transform 0.2s'
-                                                            }}
-                                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                                        />
-                                                        <button
-                                                            onClick={() => handleDownloadImage(card.image!, index)}
-                                                            className="btn btn-secondary"
-                                                            style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}
-                                                        >
-                                                            <DownloadIcon /> Baixar
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleRegenerateCard(index)}
-                                                            className="btn"
-                                                            style={{
-                                                                width: '100%',
-                                                                fontSize: '0.75rem',
-                                                                padding: '0.5rem',
-                                                                marginTop: '0.5rem',
-                                                                background: 'rgba(239, 68, 68, 0.15)',
-                                                                color: '#f87171',
-                                                                border: '1px solid rgba(239, 68, 68, 0.2)',
-                                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem'
-                                                            }}
-                                                        >
-                                                            <RefreshIcon /> Regenerar
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => handleGenerateImageForCard(index)}
-                                                        disabled={card.isGeneratingImage}
-                                                        className="btn btn-primary"
-                                                        style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem' }}
-                                                    >
-                                                        {card.isGeneratingImage ? '🎨 Gerando...' : '🎨 Gerar Imagem'}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {carouselCards.some(c => c.image) && (
-                                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-                                            <button
-                                                onClick={handleDownloadAllImages}
-                                                style={{
-                                                    flex: '1 1 auto',
-                                                    padding: '0.625rem',
-                                                    background: '#27272a',
-                                                    border: '1px solid #3f3f46',
-                                                    borderRadius: '0.5rem',
-                                                    color: '#e4e4e7',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 500,
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '0.5rem',
-                                                    transition: 'all 0.2s ease'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = '#3f3f46';
-                                                    e.currentTarget.style.color = '#fff';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = '#27272a';
-                                                    e.currentTarget.style.color = '#e4e4e7';
-                                                }}
-                                            >
-                                                <DownloadIcon /> Baixar Todas ({carouselCards.filter(c => c.image).length})
-                                            </button>
-                                            <button
-                                                onClick={() => setShowCaptionGenerator(true)}
-                                                style={{
-                                                    flex: '1 1 auto',
-                                                    padding: '0.625rem',
-                                                    background: '#27272a',
-                                                    border: '1px solid #3f3f46',
-                                                    borderRadius: '0.5rem',
-                                                    color: '#e4e4e7',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 500,
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '0.5rem',
-                                                    transition: 'all 0.2s ease'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = '#3f3f46';
-                                                    e.currentTarget.style.color = '#fff';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = '#27272a';
-                                                    e.currentTarget.style.color = '#e4e4e7';
-                                                }}
-                                            >
-                                                <MagicIcon /> Gerar Caption
-                                            </button>
-                                            <button
-                                                onClick={handleSaveToHistory}
-                                                style={{
-                                                    flex: '1 1 auto',
-                                                    padding: '0.625rem',
-                                                    background: '#27272a',
-                                                    border: '1px solid #3f3f46',
-                                                    borderRadius: '0.5rem',
-                                                    color: '#e4e4e7',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 500,
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '0.5rem',
-                                                    transition: 'all 0.2s ease'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = '#3f3f46';
-                                                    e.currentTarget.style.color = '#fff';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = '#27272a';
-                                                    e.currentTarget.style.color = '#e4e4e7';
-                                                }}
-                                            >
-                                                <SaveIcon /> Salvar Histórico
-                                            </button>
-                                            <button
-                                                onClick={handleSendToCalendar}
-                                                style={{
-                                                    flex: '1 1 auto',
-                                                    padding: '0.625rem',
-                                                    background: '#27272a',
-                                                    border: '1px solid #3f3f46',
-                                                    borderRadius: '0.5rem',
-                                                    color: '#e4e4e7',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 500,
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '0.5rem',
-                                                    transition: 'all 0.2s ease'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = '#3f3f46';
-                                                    e.currentTarget.style.color = '#fff';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = '#27272a';
-                                                    e.currentTarget.style.color = '#e4e4e7';
-                                                }}
-                                            >
-                                                <CalendarIcon /> Calendar ({carouselCards.filter(c => c.image).length})
-                                            </button>
-                                            <button
-                                                onClick={handleSendToPost}
-                                                style={{
-                                                    flex: '1 1 auto',
-                                                    padding: '0.625rem',
-                                                    background: '#27272a',
-                                                    border: '1px solid #22c55e',
-                                                    borderRadius: '0.5rem',
-                                                    color: '#4ade80',
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 500,
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '0.5rem',
-                                                    transition: 'all 0.2s ease',
-                                                    boxShadow: '0 0 10px rgba(34, 197, 94, 0.1)'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = 'rgba(34, 197, 94, 0.1)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = '#27272a';
-                                                }}
-                                            >
-                                                <RocketIcon /> Postar ({carouselCards.filter(c => c.image).length})
-                                            </button>
+                                            ))}
                                         </div>
-                                    )}
-                                </div>
-                            )}
+
+                                        {carouselCards.some(c => c.image) && (
+                                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+                                                <button
+                                                    onClick={handleDownloadAllImages}
+                                                    style={{
+                                                        flex: '1 1 auto',
+                                                        padding: '0.625rem',
+                                                        background: '#27272a',
+                                                        border: '1px solid #3f3f46',
+                                                        borderRadius: '0.5rem',
+                                                        color: '#e4e4e7',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 500,
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '0.5rem',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = '#3f3f46';
+                                                        e.currentTarget.style.color = '#fff';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = '#27272a';
+                                                        e.currentTarget.style.color = '#e4e4e7';
+                                                    }}
+                                                >
+                                                    <DownloadIcon /> Baixar Todas ({carouselCards.filter(c => c.image).length})
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowCaptionGenerator(true)}
+                                                    style={{
+                                                        flex: '1 1 auto',
+                                                        padding: '0.625rem',
+                                                        background: '#27272a',
+                                                        border: '1px solid #3f3f46',
+                                                        borderRadius: '0.5rem',
+                                                        color: '#e4e4e7',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 500,
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '0.5rem',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = '#3f3f46';
+                                                        e.currentTarget.style.color = '#fff';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = '#27272a';
+                                                        e.currentTarget.style.color = '#e4e4e7';
+                                                    }}
+                                                >
+                                                    <MagicIcon /> Gerar Caption
+                                                </button>
+                                                <button
+                                                    onClick={handleSaveToHistory}
+                                                    style={{
+                                                        flex: '1 1 auto',
+                                                        padding: '0.625rem',
+                                                        background: '#27272a',
+                                                        border: '1px solid #3f3f46',
+                                                        borderRadius: '0.5rem',
+                                                        color: '#e4e4e7',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 500,
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '0.5rem',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = '#3f3f46';
+                                                        e.currentTarget.style.color = '#fff';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = '#27272a';
+                                                        e.currentTarget.style.color = '#e4e4e7';
+                                                    }}
+                                                >
+                                                    <SaveIcon /> Salvar Histórico
+                                                </button>
+                                                <button
+                                                    onClick={handleSendToCalendar}
+                                                    style={{
+                                                        flex: '1 1 auto',
+                                                        padding: '0.625rem',
+                                                        background: '#27272a',
+                                                        border: '1px solid #3f3f46',
+                                                        borderRadius: '0.5rem',
+                                                        color: '#e4e4e7',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 500,
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '0.5rem',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = '#3f3f46';
+                                                        e.currentTarget.style.color = '#fff';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = '#27272a';
+                                                        e.currentTarget.style.color = '#e4e4e7';
+                                                    }}
+                                                >
+                                                    <CalendarIcon /> Calendar ({carouselCards.filter(c => c.image).length})
+                                                </button>
+                                                <button
+                                                    onClick={handleSendToPost}
+                                                    style={{
+                                                        flex: '1 1 auto',
+                                                        padding: '0.625rem',
+                                                        background: '#27272a',
+                                                        border: '1px solid #22c55e',
+                                                        borderRadius: '0.5rem',
+                                                        color: '#4ade80',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 500,
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '0.5rem',
+                                                        transition: 'all 0.2s ease',
+                                                        boxShadow: '0 0 10px rgba(34, 197, 94, 0.1)'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = 'rgba(34, 197, 94, 0.1)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = '#27272a';
+                                                    }}
+                                                >
+                                                    <RocketIcon /> Postar ({carouselCards.filter(c => c.image).length})
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            }
                         </section>
                     </>
                 ) : (

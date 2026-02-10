@@ -24,13 +24,15 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, description, branding, aiPreferences } = req.body;
+        const { name, description, branding, aiPreferences, targetAudience, productService } = req.body;
 
         const profile = await createBusinessProfile(req.userId, {
             name,
             description,
             branding,
-            aiPreferences
+            aiPreferences,
+            targetAudience, // Add field
+            productService  // Add field
         });
 
         res.json({
@@ -111,11 +113,13 @@ router.put('/:id', async (req, res) => {
             });
         }
 
-        const { name, description, branding, aiPreferences } = req.body;
+        const { name, description, branding, aiPreferences, targetAudience, productService } = req.body;
         const updates = {};
 
         if (name !== undefined) updates.name = name;
         if (description !== undefined) updates.description = description;
+        if (targetAudience !== undefined) updates.targetAudience = targetAudience; // Update field
+        if (productService !== undefined) updates.productService = productService; // Update field
         if (branding !== undefined) updates.branding = { ...profile.branding, ...branding };
         if (aiPreferences !== undefined) updates.aiPreferences = { ...profile.aiPreferences, ...aiPreferences };
 
