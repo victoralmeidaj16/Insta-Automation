@@ -59,20 +59,22 @@ export async function createPost(userId, accountId, postData) {
             businessProfile?.description,
             businessProfile?.branding?.style,
         ];
-        const isInnerBoostProfile = profileSignals.some(value =>
-            typeof value === 'string' && value.toLowerCase().includes('inner boost')
-        );
-        const shouldUseUploadPostScheduler = Boolean(scheduledDate && isInnerBoostProfile);
+        const shouldUseUploadPostScheduler = Boolean(scheduledDate);
 
         let externalScheduleInfo = null;
         if (shouldUseUploadPostScheduler) {
-            externalScheduleInfo = await scheduleWithUploadPost({
-                account,
-                type,
-                mediaUrls,
-                caption,
-                scheduledDate,
-            });
+            try {
+                externalScheduleInfo = await scheduleWithUploadPost({
+                    account,
+                    type,
+                    mediaUrls,
+                    caption,
+                    scheduledDate,
+                });
+            } catch (apiError) {
+                console.warn(`⚠️ Falha ao agendar via API externa (fallback para local): ${apiError.message}`);
+                // externalScheduleInfo permanece null, o que fará o status ser 'pending' (agendamento local)
+            }
         }
 
         const post = {
@@ -331,6 +333,18 @@ export async function executePost(postId) {
                     }
                 } catch (e) {
                     console.warn('⚠️ Erro ao deletar mídia:', e.message);
+                }
+            }
+
+            // Mark the associated Library Item as posted
+            if (post.libraryItemId) {
+                try {
+                    await db.collection('library_items').doc(post.libraryItemId).update({
+                        isPosted: true
+                    });
+                    console.log(`✅ Library Item ${post.libraryItemId} marcado como postado.`);
+                } catch (libraryErr) {
+                    console.error(`⚠️ Falha ao marcar Library Item ${post.libraryItemId} como postado:`, libraryErr);
                 }
             }
 

@@ -156,7 +156,7 @@ export default function CalendarPage() {
 
     const getPostsForDate = (date) => {
         return posts.filter(post => {
-            const postDate = parseDate(post.scheduledFor);
+            const postDate = parseDate(post.postedAt || post.scheduledFor || post.createdAt);
             if (!postDate || isNaN(postDate.getTime())) return false;
 
             return postDate.getDate() === date.getDate() &&
@@ -273,7 +273,7 @@ export default function CalendarPage() {
     };
 
     const handleEditPost = (post) => {
-        const postDate = parseDate(post.scheduledFor);
+        const postDate = parseDate(post.postedAt || post.scheduledFor || post.createdAt);
         setEditingPost(post);
         setEditData({
             date: postDate,
@@ -612,7 +612,7 @@ export default function CalendarPage() {
                                                                                         post.type === 'story' ? '📖' : '📸'}
                                                                         </span>
                                                                         <span style={{ fontWeight: '600', fontSize: '0.6rem' }}>
-                                                                            {parseDate(post.scheduledFor).toLocaleTimeString('pt-BR', {
+                                                                            {parseDate(post.postedAt || post.scheduledFor || post.createdAt).toLocaleTimeString('pt-BR', {
                                                                                 hour: '2-digit',
                                                                                 minute: '2-digit'
                                                                             })}
