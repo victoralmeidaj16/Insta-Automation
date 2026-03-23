@@ -311,16 +311,31 @@ export async function executePost(postId) {
         }
 
         // Verificar sucesso na resposta do Upload-Post
-        // A resposta tem formato: { success: true, results: { instagram: { success: true, ... } } }
+        // Formato Síncrono: { success: true, results: { instagram: { success: true, ... } } }
+        // Formato Assíncrono (Handoff): { success: true, job_id: '...', message: '...' }
         const instagramResult = result.results && result.results[platform];
+        const isBackgroundSuccess = result.success && result.job_id && !result.results;
+        const isSynchronousSuccess = result.success && instagramResult && instagramResult.success;
 
-        if (result.success && instagramResult && instagramResult.success) {
-            console.log(`✅ Upload sucesso para ${account.username}`);
+        if (isSynchronousSuccess || isBackgroundSuccess) {
+            const isAsync = isBackgroundSuccess;
+            console.log(`✅ Upload ${isAsync ? 'iniciado em background' : 'sucesso'} para ${account.username}`);
 
-            await updatePostStatus(postId, 'success', null, new Date());
+            // Se for assíncrono, salvamos o job_id para o sync monitorar
+            if (isAsync && result.job_id) {
+                await db.collection('posts').doc(postId).update({
+                    externalJobId: result.job_id,
+                    externalScheduler: 'upload-post',
+                    status: 'processing'
+                });
+            } else {
+                await updatePostStatus(postId, 'success', null, new Date());
+            }
 
-            // Deletar mídias do Storage após sucesso (economia de espaço)
-            // Mantemos essa lógica de limpeza
+            // Deletar mídias do Storage após sucesso (apensar se for síncrono ou se confiarmos no worker)
+            // Se for assíncrono, talvez devêssemos manter até o worker terminar? 
+            // Mas o Upload-Post já baixou as mídias (conforme logs "Downloading photo 1/1").
+            // Então podemos deletar.
             for (const url of post.mediaUrls) {
                 try {
                     if (url.includes('/o/')) {
@@ -336,23 +351,24 @@ export async function executePost(postId) {
                 }
             }
 
-            // Mark the associated Library Item as posted
+            // Mark the associated Library Item accordingly
             if (post.libraryItemId) {
                 try {
                     await db.collection('library_items').doc(post.libraryItemId).update({
-                        isPosted: true
+                        isPosted: !isAsync, // Se for síncrono, já foi postado
+                        status: isAsync ? 'processing' : 'posted'
                     });
-                    console.log(`✅ Library Item ${post.libraryItemId} marcado como postado.`);
+                    console.log(`✅ Library Item ${post.libraryItemId} atualizado (${isAsync ? 'processing' : 'posted'}).`);
                 } catch (libraryErr) {
-                    console.error(`⚠️ Falha ao marcar Library Item ${post.libraryItemId} como postado:`, libraryErr);
+                    console.error(`⚠️ Falha ao atualizar Library Item ${post.libraryItemId}:`, libraryErr);
                 }
             }
 
-            return { success: true, ...instagramResult };
+            return { success: true, async: isAsync, ...result };
 
         } else {
             // Falha
-            const errorMsg = instagramResult?.error || 'Erro desconhecido na API de Upload';
+            const errorMsg = instagramResult?.error || result.message || 'Erro desconhecido na API de Upload';
             console.error(`❌ Falha no upload: ${errorMsg}`);
             await updatePostStatus(postId, 'error', errorMsg);
             return { success: false, message: errorMsg };
@@ -445,6 +461,108 @@ async function scheduleWithUploadPost({ account, type, mediaUrls, caption, sched
             response,
         },
     };
+}
+
+/**
+ * Syncs the status of posts that are scheduled via the external Upload-Post API.
+ * This should be called periodically (e.g. by a cron job)
+ */
+export async function syncScheduledPosts() {
+    try {
+        console.log('🔄 Sincronizando posts agendados externamente...');
+        const now = new Date();
+        // Check posts that are 'scheduled' and filter the rest in memory to avoid Firebase Composite Index requirement
+        // Using limit(10) to avoid memory overload if there are too many scheduled posts pending sync
+        const snapshot = await db.collection('posts')
+            .where('status', '==', 'scheduled')
+            .limit(20)
+            .get();
+
+        if (snapshot.empty) {
+            return;
+        }
+
+        let postsToCheck = [];
+
+        snapshot.forEach(doc => {
+            const post = { id: doc.id, ...doc.data() };
+            if (post.externalScheduler === 'upload-post' && post.externalJobId) {
+                // Removemos o bloqueio de "scheduledTime <= now" porque se a API
+                // externa já tiver processado o post (ou houver bugs de fuso horário),
+                // nós ainda queremos atualizar a UI para "Postado".
+                postsToCheck.push(post);
+            }
+        });
+
+        if (postsToCheck.length === 0) {
+            return;
+        }
+
+        console.log(`📌 Verificando status de ${postsToCheck.length} post(s) agendado(s)...`);
+
+        const { checkJobStatus } = await import('./uploadPostService.js');
+
+        for (const post of postsToCheck) {
+            if (post.externalJobId) {
+                const jobStatus = await checkJobStatus(post.externalJobId);
+
+                if (jobStatus && (jobStatus.status === 'completed' || (jobStatus.scheduler_status === 'completed' && (jobStatus.status === 'processing' || jobStatus.status === 'queued')))) {
+                    console.log(`✅ Post ${post.id} foi publicado externamente com sucesso!`);
+
+                    // Mark as success locally
+                    await updatePostStatus(post.id, 'success', null, jobStatus.last_update ? new Date(jobStatus.last_update.$date || jobStatus.last_update) : new Date());
+
+                    // Delete media from storage since it's published
+                    if (post.mediaUrls && post.mediaUrls.length > 0) {
+                        for (const url of post.mediaUrls) {
+                            try {
+                                if (url.includes('/o/')) {
+                                    const filePath = url.split('/o/')[1]?.split('?')[0];
+                                    if (filePath) {
+                                        const decodedPath = decodeURIComponent(filePath);
+                                        await storage.file(decodedPath).delete();
+                                        console.log(`🗑️ Mídia deletada do Storage (Sync): ${decodedPath}`);
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('⚠️ Erro ao deletar mídia no Sync:', e.message);
+                            }
+                        }
+                    }
+
+                    // Update library item if it exists
+                    // Fallback: If libraryItemId is missing in the post, try to find it in library_items via scheduledPostId
+                    let libraryItemId = post.libraryItemId;
+                    if (!libraryItemId) {
+                        const libSnapshot = await db.collection('library_items')
+                            .where('scheduledPostId', '==', post.id)
+                            .limit(1)
+                            .get();
+                        if (!libSnapshot.empty) {
+                            libraryItemId = libSnapshot.docs[0].id;
+                            console.log(`🔗 Refeito o link perdido: Post ${post.id} -> Library Item ${libraryItemId}`);
+                        }
+                    }
+
+                    if (libraryItemId) {
+                        try {
+                            await db.collection('library_items').doc(libraryItemId).update({
+                                isPosted: true,
+                                status: 'posted' // Também atualizamos o status string para consistência
+                            });
+                        } catch (libraryErr) {
+                            console.error(`⚠️ Falha ao atualizar Library Item no Sync:`, libraryErr);
+                        }
+                    }
+                } else if (jobStatus && jobStatus.status === 'failed') {
+                    console.log(`❌ Post ${post.id} falhou no upload externo.`);
+                    await updatePostStatus(post.id, 'error', 'External upload failed.');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('❌ Erro na sincronização de posts agendados:', error);
+    }
 }
 
 function extractUploadPostJobId(response, platform) {
