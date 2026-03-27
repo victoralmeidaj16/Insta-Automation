@@ -215,29 +215,36 @@ router.post('/upload-files', upload.array('files', 50), async (req, res) => {
 });
 
 /**
- * POST /api/library - Create library item from existing media URLs (e.g. AI generated)
+ * POST /api/library - Create library item from existing media URLs (e.g. AI generated) or HTML code
  */
 router.post('/', async (req, res) => {
     try {
-        const { businessProfileId, mediaUrls, caption, tag, type } = req.body;
+        const { businessProfileId, mediaUrls, caption, tag, type, htmlCode } = req.body;
 
-        if (!businessProfileId || !mediaUrls || !Array.isArray(mediaUrls)) {
+        if (!businessProfileId) {
             return res.status(400).json({
-                error: 'businessProfileId e mediaUrls (array) são obrigatórios'
+                error: 'businessProfileId é obrigatório'
+            });
+        }
+        
+        if (type !== 'html' && (!mediaUrls || !Array.isArray(mediaUrls))) {
+            return res.status(400).json({
+                error: 'mediaUrls (array) são obrigatórios, exceto no modo HTML'
             });
         }
 
-        console.log('📚 Saving to library from URLs...', { count: mediaUrls.length, type });
+        console.log('📚 Saving to library...', { count: mediaUrls?.length || 0, type });
 
         // Persist images (download external -> upload to firebase)
         // using the shared helper from historyService
-        const processedUrls = await Promise.all(mediaUrls.map(url => uploadImage(url)));
+        const processedUrls = mediaUrls ? await Promise.all(mediaUrls.map(url => uploadImage(url))) : [];
 
         const libraryItem = {
             userId: req.userId,
             businessProfileId,
-            type: type || (mediaUrls.length > 1 ? 'carousel' : 'static'),
+            type: type || (processedUrls.length > 1 ? 'carousel' : 'static'),
             mediaUrls: processedUrls,
+            htmlCode: htmlCode || null,
             caption: caption || '',
             tag: tag || 'editar',
             createdAt: new Date(),
@@ -261,11 +268,12 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * GET /api/library - Get library items
+ * GET /api/library - Get library items (paginated)
+ * Query params: businessProfileId (required), limit (default 24, max 50), lastId (cursor for next page)
  */
 router.get('/', async (req, res) => {
     try {
-        const { businessProfileId } = req.query;
+        const { businessProfileId, limit: limitParam, lastId } = req.query;
 
         if (!businessProfileId) {
             return res.status(400).json({
@@ -273,26 +281,37 @@ router.get('/', async (req, res) => {
             });
         }
 
+        const PAGE_SIZE = Math.min(parseInt(limitParam) || 24, 50);
+
         // Tenta sincronizar os posts agendados em background (fire and forget)
-        // para garantir que se algum já foi postado, a library será atualizada.
         import('../services/postService.js')
             .then(({ syncScheduledPosts }) => syncScheduledPosts())
             .catch(err => console.error('Erro no auto-sync ao carregar library:', err));
 
-        const snapshot = await db.collection('library_items')
+        let query = db.collection('library_items')
             .where('userId', '==', req.userId)
             .where('businessProfileId', '==', businessProfileId)
             .orderBy('createdAt', 'desc')
-            .get();
+            .limit(PAGE_SIZE + 1); // fetch one extra to detect hasMore
 
-        const items = snapshot.docs.map(doc => ({
+        if (lastId) {
+            const cursorDoc = await db.collection('library_items').doc(lastId).get();
+            if (cursorDoc.exists) {
+                query = query.startAfter(cursorDoc);
+            }
+        }
+
+        const snapshot = await query.get();
+        const docs = snapshot.docs;
+        const hasMore = docs.length > PAGE_SIZE;
+        const items = docs.slice(0, PAGE_SIZE).map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
 
-        console.log(`📚 Found ${items.length} library items for businessProfile ${businessProfileId}`);
+        console.log(`📚 Found ${items.length} library items (hasMore: ${hasMore}) for businessProfile ${businessProfileId}`);
 
-        res.status(200).json(items);
+        res.status(200).json({ items, hasMore });
 
     } catch (error) {
         console.error('❌ Erro ao buscar library items:', error);

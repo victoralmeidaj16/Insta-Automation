@@ -1,5 +1,8 @@
 import express from 'express';
-import { generateImages, generateCarousel, generateNextCarouselPrompt, generateCarouselPrompts, generateImageCaption, generatePostIdeas, extractStyleFromPrompt } from '../services/aiService.js';
+import { generateImages, generateCarousel, generateNextCarouselPrompt, generateCarouselPrompts, generateImageCaption, generatePostIdeas, extractStyleFromPrompt, generateVariations, generateImagePrompt, generateRelatedIdeas, generateHtmlCarousel } from '../services/aiService.js';
+import { createScientificComposition } from '../services/scientificCompositionService.js';
+import { getBusinessProfile } from '../services/businessProfileService.js';
+import { getBrandReferenceImages } from '../utils/brandProfiles.js';
 
 const router = express.Router();
 
@@ -143,6 +146,77 @@ router.post('/generate-next-prompt', async (req, res) => {
 });
 
 /**
+ * POST /api/ai/generate-similar-prompts - Gera variações de um prompt salvo
+ */
+router.post('/generate-similar-prompts', async (req, res) => {
+    try {
+        const {
+            basePrompt,
+            count = 3,
+            context = {}
+        } = req.body;
+
+        console.log(`📝 Gerando variações para o prompt: ${basePrompt?.substring(0, 50)}...`);
+
+        if (!basePrompt) {
+            return res.status(400).json({
+                error: 'Prompt base é obrigatório',
+            });
+        }
+
+        const { generateSimilarPrompts } = await import('../services/aiService.js');
+        const prompts = await generateSimilarPrompts(basePrompt, count, context);
+
+        res.json({
+            success: true,
+            prompts
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao gerar variações do prompt:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar variações do modelo',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+/**
+ * POST /api/ai/generate-carousel-concepts - Gera apenas os textos (conceitos) de cada slide do carrossel
+ */
+router.post('/generate-carousel-concepts', async (req, res) => {
+    try {
+        const {
+            carouselDescription,
+            totalCards,
+            context
+        } = req.body;
+
+        console.log(`📝 Gerando conceitos para carrossel: ${totalCards} cards`);
+
+        if (!carouselDescription) {
+            return res.status(400).json({ error: 'Descrição do carrossel é obrigatória' });
+        }
+
+        const { generateCarouselSlideConcepts } = await import('../services/aiService.js');
+        const concepts = await generateCarouselSlideConcepts(carouselDescription, totalCards, context);
+
+        res.json({
+            success: true,
+            concepts,
+            totalCards
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao gerar conceitos do carrossel:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar conceitos',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+/**
  * POST /api/ai/generate-carousel-prompts - Gera TODOS os prompts do carrossel de uma vez
  */
 router.post('/generate-carousel-prompts', async (req, res) => {
@@ -154,6 +228,8 @@ router.post('/generate-carousel-prompts', async (req, res) => {
             guidelines,
             savedPrompts,
             isEditorial,
+            isPremiumCarousel,
+            overlayMode,
             brandName,
             aspectRatio,
             context,
@@ -183,6 +259,8 @@ router.post('/generate-carousel-prompts', async (req, res) => {
                 savedPrompts,
                 referenceImage,
                 isEditorial: Boolean(isEditorial),
+                isPremiumCarousel: Boolean(isPremiumCarousel),
+                overlayMode,
                 brandName,
                 aspectRatio,
                 ...context
@@ -205,19 +283,115 @@ router.post('/generate-carousel-prompts', async (req, res) => {
 });
 
 /**
- * POST /api/ai/generate-single-image - Gera UMA imagem a partir de um prompt
+ * POST /api/ai/generate-variations - Gera variações editoriais a partir de uma ideia base
+ */
+router.post('/generate-variations', async (req, res) => {
+    try {
+        const { baseIdea, count = 3, context = {} } = req.body;
+
+        if (!baseIdea) {
+            return res.status(400).json({
+                error: 'Ideia base é obrigatória',
+            });
+        }
+
+        const variations = await generateVariations(baseIdea, count, context);
+
+        res.json({
+            success: true,
+            variations
+        });
+    } catch (error) {
+        console.error('❌ Erro ao gerar variações:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar variações',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+/**
+ * POST /api/ai/generate-image-prompt - Gera um prompt visual a partir de um conceito
+ */
+router.post('/generate-image-prompt', async (req, res) => {
+    try {
+        const { concept, context = {} } = req.body;
+
+        if (!concept) {
+            return res.status(400).json({
+                error: 'Conceito é obrigatório',
+            });
+        }
+
+        const prompt = await generateImagePrompt(concept, context);
+
+        res.json({
+            success: true,
+            prompt
+        });
+    } catch (error) {
+        console.error('❌ Erro ao gerar prompt visual:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar prompt visual',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+/**
+ * POST /api/ai/generate-related - Gera ideias relacionadas a uma ideia base
+ */
+router.post('/generate-related', async (req, res) => {
+    try {
+        const { baseIdea, count = 1, context = {} } = req.body;
+
+        if (!baseIdea) {
+            return res.status(400).json({
+                error: 'Ideia base é obrigatória',
+            });
+        }
+
+        const ideas = await generateRelatedIdeas(baseIdea, count, context);
+
+        res.json({
+            success: true,
+            ideas
+        });
+    } catch (error) {
+        console.error('❌ Erro ao gerar ideias relacionadas:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar ideias relacionadas',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+/**
+ * POST /api/ai/generate-single-image - Gerar uma única imagem com IA
  */
 router.post('/generate-single-image', async (req, res) => {
     try {
-        const { prompt, aspectRatio = '1:1', brandingStyle, isEditorial, context, referenceImage } = req.body;
+        console.log('--- REQ.BODY RECEBIDO EM /generate-single-image ---', JSON.stringify({ ...req.body, prompt: req.body.prompt?.substring(0, 50) + '...' }, null, 2));
 
-        console.log('🎨 Gerando imagem única:', { prompt, aspectRatio, brandingStyle, isEditorial, hasReferenceImage: !!referenceImage });
+        const {
+            prompt,
+            aspectRatio = '1:1',
+            brandingStyle,
+            model = 'gemini',
+            isEditorial = false,
+            isPremiumCarousel = false,
+            overlayMode,
+            businessProfileId,
+            referenceImage,
+            context,
+            brandName,
+            brandKit,
+            profileDescription,
+            guidelines,
+            savedPrompts
+        } = req.body;
 
-        if (!prompt) {
-            return res.status(400).json({
-                error: 'Prompt é obrigatório',
-            });
-        }
+        console.log('📝 Requisição de geração de imagem única:', { prompt: prompt?.substring(0, 50), aspectRatio, brandingStyle, model, isEditorial, businessProfileId });
 
         // Validar aspect ratio
         const validAspectRatios = ['1:1', '4:5', '16:9', '9:16'];
@@ -227,19 +401,120 @@ router.post('/generate-single-image', async (req, res) => {
             });
         }
 
-        const imageUrls = await generateImages(prompt, aspectRatio, 1, brandingStyle, isEditorial, context, referenceImage);
+        if (!prompt) {
+            return res.status(400).json({
+                error: 'Prompt é obrigatório',
+            });
+        }
+
+        let profile = null;
+        if (businessProfileId) {
+            try {
+                profile = await getBusinessProfile(businessProfileId);
+            } catch (err) {
+                console.warn('⚠️ Could not load profile context:', err.message);
+            }
+        }
+
+        // FALLBACK: If no reference image provided, try to fetch logo from profile
+        let finalReferenceImage = referenceImage;
+        if (!finalReferenceImage && businessProfileId && !isPremiumCarousel && overlayMode !== 'premium') {
+            try {
+                const { getFallbackLogo } = await import('../services/postService.js');
+                finalReferenceImage = await getFallbackLogo(businessProfileId);
+                if (finalReferenceImage) console.log('✅ Logo fallback attached successfully');
+            } catch (err) {
+                console.warn('⚠️ Could not grab fallback logo:', err.message);
+            }
+        }
+
+        const mergedReferenceImages = [
+            ...(Array.isArray(finalReferenceImage) ? finalReferenceImage : (finalReferenceImage ? [finalReferenceImage] : [])),
+            ...getBrandReferenceImages(profile || {})
+        ].filter(Boolean);
+
+        const aiContext = {
+            profileDescription: profile?.description || profileDescription,
+            guidelines: profile?.branding?.guidelines || guidelines,
+            savedPrompts: profile?.aiPreferences?.favoritePrompts || savedPrompts,
+            referenceImage: [...new Set(mergedReferenceImages)],
+            isEditorial: Boolean(isEditorial),
+            isPremiumCarousel: Boolean(isPremiumCarousel || context?.isPremiumCarousel),
+            overlayMode: overlayMode || context?.overlayMode,
+            brandName: profile?.name || brandName,
+            brandKey: profile?.brandKey || context?.brandKey,
+            brandContext: profile?.brandContext || context?.brandContext,
+            brandKit: profile?.brandKit || context?.brandKit,
+            targetAudience: profile?.targetAudience || context?.targetAudience,
+            productService: profile?.productService || context?.productService,
+            contentStrategy: profile?.contentStrategy || context?.contentStrategy,
+            branding: profile?.branding || context?.branding,
+            ...context,
+            ...profile
+        };
+
+        const imageUrls = await generateImages(prompt, aspectRatio, 1, brandingStyle, isEditorial, aiContext, finalReferenceImage, model);
 
         res.json({
             success: true,
-            image: imageUrls[0],
+            image: imageUrls[0], // Explicitly return 'image', not 'images', to match frontend expectations
             prompt,
-            aspectRatio
+            aspectRatio,
+            model,
         });
 
     } catch (error) {
-        console.error('❌ Erro ao gerar imagem:', error);
+        console.error('❌ Erro na rota de geração de imagem única:', error);
         res.status(500).json({
-            error: 'Erro ao gerar imagem',
+            error: 'Erro ao gerar imagem única',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+router.post('/composite-scientific', async (req, res) => {
+    try {
+        const { imageUrl, prompt, businessProfileId } = req.body;
+
+        if (!imageUrl || !prompt) {
+            return res.status(400).json({
+                error: 'imageUrl e prompt são obrigatórios',
+            });
+        }
+
+        let profile = null;
+        if (businessProfileId) {
+            try {
+                profile = await getBusinessProfile(businessProfileId);
+            } catch (err) {
+                console.warn('⚠️ Could not load profile context for composite-scientific:', err.message);
+            }
+        }
+
+        const hlMatch = prompt.match(/\[HEADLINE:\s*(.*?)\]/i);
+        const subMatch = prompt.match(/\[SUBHEADLINE:\s*(.*?)\]/i);
+        const hgMatch = prompt.match(/\[HIGHLIGHTS:\s*(.*?)\]/i);
+
+        const image = await createScientificComposition(
+            imageUrl,
+            hlMatch ? hlMatch[1].trim() : '',
+            subMatch ? subMatch[1].trim() : '',
+            hgMatch ? hgMatch[1].trim().split(',').map(item => item.trim().toUpperCase()) : [],
+            profile?.branding?.logoUrl || profile?.branding?.logo || null,
+            {
+                primaryColor: profile?.branding?.primaryColor,
+                brandName: profile?.name || 'Sua Marca'
+            }
+        );
+
+        res.json({
+            success: true,
+            image
+        });
+    } catch (error) {
+        console.error('❌ Erro em /api/ai/composite-scientific:', error);
+        res.status(500).json({
+            error: 'Erro ao compor design científico',
             message: process.env.NODE_ENV === 'development' ? error.message : undefined,
         });
     }
@@ -350,9 +625,9 @@ router.post('/generate-caption-from-image', async (req, res) => {
  */
 router.post('/generate-ideas', async (req, res) => {
     try {
-        const { profileName, profileDescription, guidelines, brandingStyle } = req.body;
+        const { profileName, profileDescription, guidelines, brandingStyle, brandContext, contentStrategy, brandKey, isBatchMode, count, baseTopic } = req.body;
 
-        console.log('💡 Requisição para gerar ideias:', { profileName });
+        console.log('💡 Requisição para gerar ideias:', { profileName, isBatchMode, count, baseTopic });
 
         if (!profileDescription) {
             return res.status(400).json({
@@ -364,7 +639,13 @@ router.post('/generate-ideas', async (req, res) => {
             profileName,
             profileDescription,
             guidelines,
-            brandingStyle
+            brandingStyle,
+            brandContext,
+            brandKey,
+            contentStrategy,
+            isBatchMode,
+            count,
+            baseTopic
         });
 
         res.json({
@@ -407,6 +688,65 @@ router.post('/extract-style', async (req, res) => {
         console.error('❌ Erro ao extrair estilo:', error);
         res.status(500).json({
             error: 'Erro ao extrair estilo',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+/**
+ * POST /api/ai/generate-html-carousel - Gera um carrossel em formato HTML/CSS
+ */
+router.post('/generate-html-carousel', async (req, res) => {
+    try {
+        const { topic, context, htmlTemplate, libraryImages } = req.body;
+        
+        if (!topic) {
+            return res.status(400).json({ error: 'Tópico é obrigatório' });
+        }
+
+        const enrichedContext = {
+            ...(context || {}),
+            libraryImages: Array.isArray(libraryImages) ? libraryImages.slice(0, 10) : []
+        };
+
+        const html = await generateHtmlCarousel(topic, enrichedContext, htmlTemplate);
+
+        res.json({
+            success: true,
+            html
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao gerar carrossel HTML:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar carrossel HTML',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+
+
+/**
+ * POST /api/ai/fix-html-carousel - Corrige / ajusta um carrossel HTML existente com base nas instruções do usuário
+ */
+router.post('/fix-html-carousel', async (req, res) => {
+    try {
+        const { html, instruction } = req.body;
+
+        if (!html || !instruction) {
+            return res.status(400).json({ error: 'html e instruction são obrigatórios' });
+        }
+
+        const { fixHtmlCarousel } = await import('../services/aiService.js');
+        const fixedHtml = await fixHtmlCarousel(html, instruction);
+
+        res.json({ success: true, html: fixedHtml });
+
+    } catch (error) {
+        console.error('❌ Erro ao corrigir carrossel HTML:', error);
+        res.status(500).json({
+            error: 'Erro ao corrigir carrossel HTML',
             message: process.env.NODE_ENV === 'development' ? error.message : undefined,
         });
     }

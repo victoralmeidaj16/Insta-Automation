@@ -170,6 +170,46 @@ function hexToColorName(hex) {
     return 'dark accent tone';
 }
 
+function buildImageBrandingPrompt(context = {}, options = {}) {
+    const { backgroundOnly = false } = options;
+    const branding = context.branding || {};
+    const brandName = String(context.brandName || context.name || '').trim();
+    const primaryColor = branding.primaryColor || context.primaryColor || '';
+    const secondaryColor = branding.secondaryColor || context.secondaryColor || '';
+    const brandStyle = String(branding.style || context.brandingStyle || '').trim();
+    const guidelines = String(branding.guidelines || context.guidelines || '').trim();
+    const brandContext = String(context.brandContext || context.profileDescription || '').trim();
+    const instructions = [];
+
+    if (brandName) {
+        instructions.push(`Brand: ${brandName}.`);
+    }
+
+    if (primaryColor || secondaryColor) {
+        const describedPrimary = primaryColor ? `${primaryColor} (${hexToColorName(primaryColor)})` : 'the brand primary accent';
+        const describedSecondary = secondaryColor ? `${secondaryColor} (${hexToColorName(secondaryColor)})` : '';
+        instructions.push(`Color direction: prioritize a palette that feels harmonious with ${describedPrimary}${describedSecondary ? ` and ${describedSecondary}` : ''}.`);
+    }
+
+    if (backgroundOnly && primaryColor) {
+        instructions.push(`Background-only mode: use subtle accents, props, lighting, reflections, gradients or wardrobe details that naturally echo ${primaryColor}, while keeping the scene premium and avoiding any clashing dominant hues.`);
+    }
+
+    if (brandStyle) {
+        instructions.push(`Brand style reference: ${brandStyle}.`);
+    }
+
+    if (brandContext) {
+        instructions.push(`Brand context: ${brandContext}.`);
+    }
+
+    if (guidelines) {
+        instructions.push(`Brand guidelines: ${guidelines}.`);
+    }
+
+    return instructions.join('\n');
+}
+
 function buildFitswapBrandContext(context = {}) {
     const merged = mergeBrandProfileDefaults({
         brandKey: context.brandKey || normalizeBrandKey(context),
@@ -183,6 +223,7 @@ function buildFitswapBrandContext(context = {}) {
         branding: context.branding || {
             primaryColor: context.primaryColor,
             secondaryColor: context.secondaryColor,
+            logoUrl: context.logoUrl,
             style: context.brandingStyle,
             guidelines: context.guidelines
         },
@@ -230,6 +271,88 @@ function enforceFitswapPromptGuardrails(prompt = '', context = {}) {
     }
 
     return `${currentPrompt}\n\n${guardrails.join('\n')}`.trim();
+}
+
+function stripSocialHashtags(text = '') {
+    return String(text).replace(/(^|\s)#[A-Za-z][\w-]*/g, '$1').trim();
+}
+
+function isPromptRefusal(text = '') {
+    const normalized = String(text || '').trim().toLowerCase();
+    if (!normalized) return true;
+
+    return [
+        "i'm sorry",
+        'i am sorry',
+        "can't assist",
+        'cannot assist',
+        "can't help",
+        'cannot help',
+        'unable to assist',
+        'unable to help'
+    ].some(pattern => normalized.includes(pattern));
+}
+
+function extractConceptField(concept = '', labelPattern) {
+    const match = String(concept || '').match(labelPattern);
+    return match?.[1]?.trim() || '';
+}
+
+function inferInnerBoostEmotion(text = '') {
+    const normalized = String(text || '').toLowerCase();
+
+    if (/(ansiedade|medo|alarme|ameaça|perigo|stress|estresse)/i.test(normalized)) return 'Anxiety';
+    if (/(procrastina|travado|parado|stop|agir|ação|move|movimento)/i.test(normalized)) return 'Frustration';
+    if (/(clareza|alívio|liberdade|peace|calma|silêncio|presença)/i.test(normalized)) return 'Introspective relief';
+    if (/(passado|narrativa|autoengano|ciclo|loop|rumina)/i.test(normalized)) return 'Overwhelm and introspection';
+
+    return 'Overwhelm';
+}
+
+function buildFallbackImagePrompt(concept, context = {}) {
+    const background = extractConceptField(concept, /\*\*Imagem de Fundo:\*\*\s*([^\n]+)/i);
+    const headline = extractConceptField(concept, /\*\*HEADLINE:\*\*\s*([^\n]+)/i)
+        || extractConceptField(concept, /\*\*Card\s+\d+:\*\*\s*([^\n]+)/i)
+        || String(concept || '').split('\n').map(line => line.trim()).find(Boolean)
+        || 'Mental transformation';
+
+    const brandName = String(context.brandName || context.name || '').toLowerCase();
+    const safeBackground = background || 'Abstract dark psychological background with minimal geometric forms';
+    const safeHeadline = headline.replace(/^["']|["']$/g, '').trim();
+
+    if (brandName.includes('inner boost')) {
+        const emotion = inferInnerBoostEmotion(`${safeHeadline} ${safeBackground}`);
+        const overlayRule = context.isPremiumCarousel
+            ? 'Do not generate any readable text, letters, words, headlines, typography, or UI elements on the image.'
+            : `Reserve clean negative space for overlay text inspired by: "${safeHeadline}".`;
+
+        return `Create a dark, minimalist, emotionally intense vertical image in Inner Boost's modern style (4:5, 1080x1350).
+
+Background: ${safeBackground}, reinterpreted as a dark psychological environment with subtle texture, particles, soft haze, and strong contrast.
+Color palette: Black (#0B0B0D) dominant, Neon Blue (#00C2FF), Neon Green (#00F5A0).
+
+Main subject: A symbolic visual metaphor for "${safeHeadline}", using one human figure or one abstract focal object, layered shadows, fractured reflections, and floating geometric elements to communicate ${emotion}.
+Add floating 3D thought cards with subtle blue/green glow and zero readable text.
+
+Textures: digital noise, soft grain, light haze, neon reflections.
+Lighting: dramatic, cinematic, high contrast.
+Atmosphere: heavy, introspective, uncomfortable, transformative.
+Composition rule: ${overlayRule}`;
+    }
+
+    const primaryColor = context.branding?.primaryColor || '#00C2FF';
+    const secondaryColor = context.branding?.secondaryColor || '#111111';
+    const overlayRule = context.isPremiumCarousel
+        ? 'Generate no readable text on the image.'
+        : `Keep clean negative space for overlay text inspired by "${safeHeadline}".`;
+
+    return `Create a premium vertical editorial image (4:5, 1080x1350) based on the concept "${safeHeadline}".
+
+Background: ${safeBackground}.
+Color palette: primary ${primaryColor}, secondary ${secondaryColor}, plus clean neutrals.
+Main subject: a strong visual metaphor that communicates the concept clearly and emotionally, with professional composition and premium lighting.
+Atmosphere: cinematic, modern, polished.
+Composition rule: ${overlayRule}`;
 }
 
 function sanitizeBackgroundPromptForImageGeneration(prompt = '') {
@@ -311,38 +434,51 @@ If count > ${stages.length}, expand the middle stages. If count < ${stages.lengt
 `;
     }
 
-    // PREMIUM OVERLAY MODE (Universal Premium Template)
+    // PREMIUM OVERLAY MODE (Narrative-Driven Visual Storytelling)
     if (context.isPremiumCarousel || context.overlayMode === 'premium') {
-        return `Você é um Diretor de Arte Sênior e Estrategista de Conteúdo focado em design minimalista de luxo e alta conversão.
-Sua missão é gerar ${count} cards ESTRUTURADOS para um carrossel do Instagram sobre: "${description}".
+        return `Você é um Visual Storytelling Director especializado em carrosséis premium para Instagram.
+Sua missão é gerar ${count} cards para um carrossel sobre: "${description}".
 
-MUDANÇA CRÍTICA: ESTA É UMA ABORDAGEM EM CAMADAS (LAYERED).
-- O sistema aplicará um template PREMIUM por cima (gradiente branco, branding centralizado, títulos grandes com destaque).
-- A IMAGEM DE FUNDO deve ser uma FOTOGRAFIA LIMPA, SEM NENHUM TEXTO, SEM NENHUMA TIPOGRAFIA, SEM NENHUM OVERLAY.
-- TODO o texto será adicionado pelo template de overlay automaticamente. NÃO inclua texto no conceito visual.
+PRINCÍPIO CENTRAL:
+Cada imagem deve ser uma METÁFORA VISUAL DIRETA da mensagem do card.
+A imagem deve comunicar o mesmo significado mesmo sem o texto.
+A imagem não decora — ela REFORÇA e EXPLICA a mensagem.
 
-REGRAS DE ARQUITETURA DA INFORMAÇÃO (MUITO IMPORTANTE):
-O conteúdo NÃO PODE parecer uma aula acadêmica ou lista explicativa. DEVE parecer uma notícia, um insight chocante, uma descoberta ou um dado curioso ("news / insight style").
-- NÃO USE estrutura de título + subtítulo explicativo.
-- USE "curiosity hooks" (ganchos de curiosidade).
-- USE frases curtas e de alto impacto (máximo 10 palavras por linha).
-- O tom deve soar como uma revelação surpreendente, não como uma aula.
-- Crie tensão e curiosidade em cada slide.
-- Concentre-se no lado psicológico, científico ou em uma quebra de mito.
+PROCESSO DE CRIAÇÃO DO BACKGROUND (para cada card):
+1. MENSAGEM: O que o TITLE diz literalmente?
+2. EMOÇÃO: Que emoção essa mensagem desperta? (alívio, frustração, dúvida, confiança, desejo...)
+3. METÁFORA VISUAL: Que cena, momento ou elemento visual representa isso?
+4. COMPOSIÇÃO: Como organizar para leitura rápida no mobile com hierarquia clara?
+Só então descreva a cena fotográfica.
+
+REGRAS DE CONTEÚDO DA IMAGEM:
+- A cena DEVE ilustrar a mensagem do card — não apenas decorar
+- Quando houver pessoas: close no rosto, micro-expressões reais, linguagem corporal autêntica
+- PROIBIDO: pessoas sorrindo sem contexto, objetos soltos sem narrativa, stock photos genéricas
+- Cada imagem conta uma micro-história visual
+
+QUALIDADE VISUAL OBRIGATÓRIA:
+- Iluminação cinematográfica suave
+- Elemento principal único e claro
+- Composição editorial minimalista
+- Alto contraste controlado
+- Aparência moderna e profissional
+
+REGRAS TÉCNICAS:
+- Descreva APENAS a cena fotográfica (sem texto, sem tipografia, sem UI)
+- Cada card deve ter um BACKGROUND DIFERENTE — NÃO repita a mesma cena
+- Deixe espaço negativo limpo na metade inferior para o overlay de texto
+- SEM TEXTO, SEM LOGOS, SEM TIPOGRAFIA na imagem gerada
+
+ARQUITETURA DO TÍTULO (TITLE):
+- Frases curtas de alto impacto (máximo 10 a 15 palavras)
+- Tom de revelação surpreendente, insight chocante ou quebra de mito
+- NÃO use estrutura de aula ou lista explicativa
+- Crie tensão e curiosidade
 
 REGRAS DE OUTPUT:
 Para cada card, retorne exatamente este formato em uma ÚNICA LINHA, sem quebras:
-[PREMIUM_OVERLAY] [BACKGROUND: {CONCEITO_VISUAL_CURTO_EM_INGLES}] [TITLE: {HOOK OU REVELAÇÃO IMPACTANTE EM CAIXA ALTA, máx 10 a 15 palavras}] [HIGHLIGHTS: {1 ou 2 palavras do TITLE que a IA decidiu destacar}]
-
-REGRAS DO BACKGROUND (CRÍTICO):
-- Descreva APENAS a cena fotográfica (sem texto, sem tipografia, sem UI).
-- Cada card deve ter um BACKGROUND DIFERENTE e VARIADO. NÃO repita a mesma cena.
-- Use conceitos diversos e criativos: close-up de texturas, composições abstratas, paisagens urbanas, objetos do cotidiano, natureza, macro fotografia, flat lay, etc.
-- NUNCA descreva "woman holding smartphone" em todos os cards. Varie os sujeitos, objetos e cenários.
-- O backgroundserá gerado por IA de imagem, então descreva a CENA visual, não instruções de design.
-- Exemplos bons: "Close-up of fresh berries on marble surface with soft daylight", "Abstract neural network visualization with soft blue glow", "Aerial view of organized meal prep containers", "Dramatic macro of water drops on a green leaf".
-- Exemplos RUINS: "Woman in white kitchen holding phone", "Text overlay with headline" (NUNCA inclua texto no conceito).
-- SEM TEXTO, SEM LOGOS, SEM TIPOGRAFIA na imagem.
+[PREMIUM_OVERLAY] [BACKGROUND: {METÁFORA VISUAL EM INGLÊS — cena específica que ilustra a mensagem do card}] [TITLE: {HOOK IMPACTANTE EM CAIXA ALTA, máx 10 a 15 palavras}] [HIGHLIGHTS: {1 ou 2 palavras do TITLE para destaque}]
 
 Separe cada card com "---SEPARATOR---".
 `;
@@ -363,10 +499,12 @@ ${guidelines ? `- Guidelines: "${truncate(guidelines, 400)}"` : ''}
 PARA CADA CARD RETORNE EXATAMENTE ESTA ESTRUTURA (em uma linha, separada por |):
 [WHITE_OVERLAY] [BACKGROUND: {Descreva em inglês uma cena fotorrealista premium, clean, relacionada ao conteúdo do card. SEM TEXTO, SEM LOGO.}] [HEADLINE: {TÍTULO EM CAIXA ALTA, máx 6 palavras, em português}] [HIGHLIGHTS: {1 ou 2 palavras da HEADLINE para destaque em verde-lima}]
 
-REGRAS DO BACKGROUND (CRÍTICO):
-- Cenas de cozinha clean, mesa de café, ingredientes frescos, smartphone com app Fitswap (sem texto legível).
+REGRAS DO BACKGROUND (CRÍTICO — NARRATIVA VISUAL):
+- A imagem deve ser uma METÁFORA VISUAL DIRETA da mensagem do card.
+- Processo: (1) O que a HEADLINE diz? (2) Que emoção desperta? (3) Qual cena representa isso visualmente?
+- Quando houver pessoas: foco no rosto, micro-expressões reais, sem poses artificiais.
+- PROIBIDO: objetos soltos sem narrativa, pessoas sorrindo sem contexto, cenas genéricas sem significado.
 - Luz natural suave, fundo branco ou neutro dominante, extrema qualidade fotográfica.
-- Narrativa visual: a imagem deve ilustrar o conceito do card com metáforas visuais claras.
 - SEM TEXTO, SEM LOGOS na imagem gerada.
 
 Separe cada card com "---SEPARATOR---".
@@ -1353,11 +1491,14 @@ export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingS
         context.isPremiumCarousel ||
         context.overlayMode === 'premium'
     );
+    const brandingPrompt = buildImageBrandingPrompt(context, {
+        backgroundOnly: skipLegacyOverlayComposition
+    });
 
     let enhancedReferenceImages = [
         ...(referenceImage ? (Array.isArray(referenceImage) ? referenceImage : [referenceImage]) : []),
         ...getBrandReferenceImages({
-            ...(fitswapProfile || {}),
+            ...(fitswapProfile || context),
             brandName: context.brandName,
             name: context.brandName,
             brandKey
@@ -1389,7 +1530,7 @@ export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingS
     const shouldUseFitswapComposition = isFitswap && fitswapStructured.isStructured;
 
     if (!isViverMais && !shouldUseFitswapComposition && finalPrompt) {
-        finalPrompt = finalPrompt.replace(/#[0-9a-fA-F]{6}\b/g, '').replace(/#[0-9a-fA-F]{3}\b/g, '').trim();
+        finalPrompt = stripSocialHashtags(finalPrompt);
     }
 
     let finalImageUrl = null;
@@ -1455,14 +1596,19 @@ export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingS
                     .replace(/---SEPARATOR---/g, '')
                     .trim();
 
-                finalPrompt = transformedPrompt.replace(/#[0-9a-fA-F]{6}\b/g, '').replace(/#[0-9a-fA-F]{3}\b/g, '').trim();
+                finalPrompt = stripSocialHashtags(transformedPrompt);
             } catch (error) {
                 console.error('⚠️ Falha na transformação do prompt editorial, usando original:', error);
                 finalPrompt = `${finalPrompt}\n\nVISUAL STYLE: ${brandingStyle}`;
             }
-        } else if (!shouldUseFitswapComposition) {
+        }
+
+        if (!shouldUseFitswapComposition) {
             if (brandingStyle) {
                 finalPrompt += `\n\nVISUAL STYLE: ${brandingStyle}`;
+            }
+            if (brandingPrompt) {
+                finalPrompt += `\n\nBRAND DIRECTION:\n${brandingPrompt}`;
             }
         }
 
@@ -1481,7 +1627,7 @@ export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingS
             finalPrompt = `[CRITICAL INSTRUCTION: Generate ONLY the photographic scene. DO NOT render any text, letters, words, headlines, typography, or UI elements on the image. The image must contain NO readable characters whatsoever.]\n\n${finalPrompt}`;
         }
 
-        finalPrompt = finalPrompt.replace(/#[0-9a-fA-F]{6}\b/g, '').replace(/#[0-9a-fA-F]{3}\b/g, '').trim();
+        finalPrompt = stripSocialHashtags(finalPrompt);
         finalPrompt = enforceFitswapPromptGuardrails(finalPrompt, { ...context, brandKey });
 
         if (context.attachLogo) {
@@ -1835,6 +1981,7 @@ export async function generatePostIdeas(context = {}) {
     try {
         console.log('💡 Gerando ideias de posts...');
         const { profileName, profileDescription, guidelines, recentPosts, brandContext, isBatchMode, count } = context;
+        const requestedCount = Math.max(1, Math.min(Number(count) || 3, 10));
         const isFitswap = isFitswapBrand({ brandKey: context.brandKey, brandName: profileName || context.brandName });
         const brandDisplayName = isFitswap ? 'Fitswap' : (profileName || 'Negócio Genérico');
 
@@ -1909,28 +2056,33 @@ O campo 'description' deve conter TODO o conteúdo do post formatado em Markdown
 [texto suave]
 
 **DESCRIÇÃO DA IMAGEM:**
-[descrição objetiva da cena e cores]`;
+[descrição objetiva da cena e cores]
 
-            userPrompt = `Gere ${count || 3} ideias de posts variados (posts estáticos/únicos) focados no contexto desta marca.`;
+IMPORTANTE:
+- Retorne EXATAMENTE ${requestedCount} ideias dentro de "ideas".
+- Não retorne menos nem mais que ${requestedCount} ideias.`;
+
+            userPrompt = `Gere EXATAMENTE ${requestedCount} ideias de posts variados (posts estáticos/únicos) focados no contexto desta marca.`;
 
         } else {
             // --- MODO CARROSSEL (News / Insight Style) ---
             systemPrompt = `Você é um estrategista de conteúdo para Instagram experiente.
-Sua tarefa é gerar ${count || 3} ideias de posts altamente engajadores e relevantes para o perfil fornecido.
+Sua tarefa é gerar EXATAMENTE ${requestedCount} ideias de posts altamente engajadores e relevantes para o perfil fornecido.
 
 CONTEXTO DO CLIENTE:
 ${systemContext}
 
 OBJETIVO DA ARQUITETURA DE INFORMAÇÃO:
-Criar ${count || 3} sugestões de carrosséis focados no estilo "news / insight".
+Criar EXATAMENTE ${requestedCount} sugestões de carrosséis focados no estilo "news / insight".
 A ESTRUTURA É RIGOROSA:
 - NÃO USE estrutura de título + subtítulo explicativo.
 - USE "curiosity hooks" (ganchos de curiosidade).
 - O tom deve soar como uma revelação surpreendente, não como uma aula.
 - Concentre-se no lado psicológico, científico ou em uma quebra de mito.
-- Eles não parecem conteúdo educativo. Eles parecem descoberta científica, insight secreto ou informação privilegiada.`;
+- Eles não parecem conteúdo educativo. Eles parecem descoberta científica, insight secreto ou informação privilegiada.
+- Retorne EXATAMENTE ${requestedCount} itens dentro de "ideas".`;
 
-            userPrompt = `Gere ${count || 3} ideias de posts no formato JSON.
+            userPrompt = `Gere EXATAMENTE ${requestedCount} ideias de posts no formato JSON.
 Para cada ideia inclua:
 - title: Título da Ideia
 - description: Estrutura do post (Roteiro em Bullet points)
@@ -1960,8 +2112,11 @@ Para cada ideia inclua:
        3) O texto EXATO que cada card (do 1 até o último) deve ter escrito.
     - O texto dos cards DEVE seguir a fórmula de News-Style Hook: CURIOSITY -> SURPRISING FACT -> BRAIN / SCIENCE ANGLE -> SHORT SENTENCES.
     
-    EXEMPLO DE 'description' PARA CARROSSEL (News-Style):
-        "**Número de Cards Sugerido:** 5\n\n**Imagem de Fundo:** Fotografia lifestyle vertical premium, fundo branco clean com iluminação natural suave, sem distrações.\n\n**Card 1:** A PROCRASTINAÇÃO NÃO É PREGUIÇA. É rejeição emocional.\n\n**Card 2:** Quando a tarefa é desconfortável, o cérebro busca um alívio imediato na dopamina barata.\n\n**Card 3:** Não é um problema de gestão de tempo, mas sim de incapacidade de gerir emoções.\n\n**Card 4:** A solução não é forçar mais disciplina. É diminuir radicalmente a resistência emocional inicial.\n\n**Card 5:** Ação: Comece ridiculamente pequeno. Sente na cadeira, apenas abra o arquivo e aguarde."
+	    EXEMPLO DE 'description' PARA CARROSSEL (News-Style):
+	        "**Número de Cards Sugerido:** 5\n\n**Imagem de Fundo:** Fotografia lifestyle vertical premium, fundo branco clean com iluminação natural suave, sem distrações.\n\n**Card 1:** A PROCRASTINAÇÃO NÃO É PREGUIÇA. É rejeição emocional.\n\n**Card 2:** Quando a tarefa é desconfortável, o cérebro busca um alívio imediato na dopamina barata.\n\n**Card 3:** Não é um problema de gestão de tempo, mas sim de incapacidade de gerir emoções.\n\n**Card 4:** A solução não é forçar mais disciplina. É diminuir radicalmente a resistência emocional inicial.\n\n**Card 5:** Ação: Comece ridiculamente pequeno. Sente na cadeira, apenas abra o arquivo e aguarde."
+
+    CRÍTICO:
+    - O array "ideas" deve conter EXATAMENTE ${requestedCount} objetos.
 `;
         }
 
@@ -1977,7 +2132,72 @@ Para cada ideia inclua:
 
         const content = completion.choices[0].message.content;
         const parsed = JSON.parse(content);
-        const ideas = parsed.ideas || parsed;
+        let ideas = Array.isArray(parsed?.ideas)
+            ? parsed.ideas
+            : (Array.isArray(parsed) ? parsed : []);
+
+        if (ideas.length > requestedCount) {
+            ideas = ideas.slice(0, requestedCount);
+        }
+
+        if (ideas.length < requestedCount) {
+            const missing = requestedCount - ideas.length;
+            const repairIdeaExample = isBatchMode
+                ? `    {
+      "title": "...",
+      "description": "...",
+      "type": "static",
+      "slideCount": 1,
+      "reason": "..."
+    }`
+                : `    {
+      "title": "...",
+      "description": "...",
+      "type": "carousel",
+      "slideCount": 5,
+      "reason": "..."
+    }`;
+            console.warn(`⚠️ A IA retornou ${ideas.length}/${requestedCount} ideias. Gerando ${missing} restantes...`);
+
+            const repairPrompt = `Você retornou apenas ${ideas.length} ideias, mas eu preciso de EXATAMENTE ${requestedCount}.
+Gere APENAS as ${missing} ideias restantes no mesmo formato JSON.
+Não repita ideias já retornadas.
+Retorne APENAS:
+{
+  "ideas": [
+${repairIdeaExample}
+  ]
+}
+
+IDEIAS JÁ GERADAS (NÃO REPETIR):
+${JSON.stringify(ideas, null, 2)}`;
+
+            const repairCompletion = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: repairPrompt }
+                ],
+                temperature: 0.4,
+                response_format: { type: "json_object" }
+            });
+
+            const repairContent = repairCompletion.choices[0].message.content;
+            const repairParsed = JSON.parse(repairContent);
+            const extraIdeas = Array.isArray(repairParsed?.ideas)
+                ? repairParsed.ideas
+                : (Array.isArray(repairParsed) ? repairParsed : []);
+
+            ideas = [...ideas, ...extraIdeas].slice(0, requestedCount);
+        }
+
+        if (ideas.length === 0) {
+            throw new Error('Nenhuma ideia válida foi retornada pela IA.');
+        }
+
+        if (ideas.length < requestedCount) {
+            throw new Error(`A IA retornou ${ideas.length}/${requestedCount} ideias mesmo após a correção.`);
+        }
 
         console.log(`✅ ${ideas.length} ideias geradas com sucesso!`);
         return ideas;
@@ -2287,25 +2507,34 @@ export async function generateImagePrompt(concept, context = {}) {
         let extractedSubheadline = '';
 
         try {
+            const headlineMatch = concept.match(/\*\*HEADLINE:\*\*\s*([^\n]+)/i) || concept.match(/^#\s+([^\n]+)/m);
+            const subheadlineMatch = concept.match(/\*\*SUBHEADLINE:\*\*\s*([^\n]+)/i);
+            const cardMatch = concept.match(/\*\*Card\s+\d+:\*\*\s*([^\n]+)/i);
+
+            if (headlineMatch) extractedHeadline = headlineMatch[1].trim();
+            else if (cardMatch) extractedHeadline = cardMatch[1].trim();
+            if (subheadlineMatch) extractedSubheadline = subheadlineMatch[1].trim();
+
             const lines = concept.split('\n');
             for (const line of lines) {
                 const trimmed = line.trim();
-                // Procura por # Headline ou **Headline**
-                if (!extractedHeadline && (trimmed.startsWith('# ') || trimmed.startsWith('**'))) {
-                    extractedHeadline = trimmed.replace(/^#\s*/, '').replace(/\*\*/g, '').replace(':', '').trim();
+                if (!trimmed) continue;
+
+                if (!extractedHeadline && trimmed.startsWith('# ')) {
+                    extractedHeadline = trimmed.replace(/^#\s*/, '').trim();
+                    continue;
                 }
-                // Procura por ### Subheadline ou apenas texto logo abaixo
-                else if (!extractedSubheadline && trimmed.length > 10 && !trimmed.startsWith('#') && !trimmed.startsWith('**')) {
-                    // Check se é uma linha de conteúdo relevante (não separador)
-                    extractedSubheadline = trimmed.replace(/\*\*/g, '').trim();
-                }
-                // Se achou subheadline com marcardor específico
-                if (trimmed.includes('🔹 SUBHEADLINE')) {
-                    // A próxima linha provavelmente é a subheadline
+
+                if (!extractedSubheadline && trimmed.includes('🔹 SUBHEADLINE')) {
                     const index = lines.indexOf(line);
                     if (lines[index + 1]) {
                         extractedSubheadline = lines[index + 1].trim().replace(/\*\*/g, '');
                     }
+                    continue;
+                }
+
+                if (!extractedSubheadline && trimmed.length > 10 && !trimmed.startsWith('#') && !trimmed.startsWith('**')) {
+                    extractedSubheadline = trimmed.replace(/\*\*/g, '').trim();
                 }
             }
         } catch (e) {
@@ -2321,7 +2550,122 @@ export async function generateImagePrompt(concept, context = {}) {
 
         let systemPrompt = '';
 
-        if (isFitswapBrand({ brandKey: context.brandKey, brandName })) {
+        if (context.isPremiumCarousel) {
+            // Extract the card-specific message and background style separately
+            const cardMessageMatch = concept.match(/\*\*Card\s+\d+:\*\*\s*([\s\S]+?)$/i);
+            const backgroundStyleMatch = concept.match(/\*\*Imagem de Fundo:\*\*\s*([\s\S]*?)(?=\n\s*\*\*Card\s+\d+:\*\*|$)/i);
+            const centralThemeMatch = concept.match(/\*\*Tema Central:\*\*\s*([\s\S]*?)(?=\n\s*\*\*|$)/i);
+
+            const cardMessage = cardMessageMatch ? cardMessageMatch[1].trim() : concept;
+            const backgroundStyle = backgroundStyleMatch ? backgroundStyleMatch[1].trim() : '';
+            const centralTheme = centralThemeMatch ? centralThemeMatch[1].trim() : '';
+
+            const isFitswap = isFitswapBrand({ brandKey: context.brandKey, brandName });
+
+            if (isFitswap) {
+                console.log('💎🎬 Using FITSWAP NARRATIVE-DRIVEN PREMIUM CAROUSEL TEMPLATE');
+                console.log(`📝 Card message extracted: "${cardMessage.substring(0, 80)}..."`);
+
+                const fitswapGuidelines = context?.branding?.guidelines || context?.guidelines || '';
+
+                systemPrompt = `You are a Senior Art Director for Fitswap — a Brazilian AI-powered food decision engine that transforms what people have, crave, or habitually eat into personalized healthy meals, without manual planning.
+
+CRITICAL RULE — THE MOST IMPORTANT INSTRUCTION:
+The overlay text will be rendered IN LARGE BOLD TYPOGRAPHY directly on top of this image.
+Your job is NOT to illustrate or re-explain the card message visually.
+Your job is to create a BACKGROUND SCENE that makes the overlay text land HARDER when the viewer reads it.
+Ask yourself: "What food/kitchen scene would amplify the emotional impact of this specific text?"
+The image and the text must feel like they belong together — image sets the stage, text delivers the revelation.
+
+FITSWAP'S WORLD — ALL VISUALS MUST LIVE HERE:
+Fitswap is about food decisions, kitchen moments, eating habits, meal prep, ingredients, cravings, and nutrition.
+Every scene must be grounded in a real food/kitchen/eating context that a Brazilian user recognizes from daily life.
+NEVER use abstract philosophical objects (bowls balanced on rods, scales, hourglasses, geometric metaphors) as the hero subject.
+The viewer must immediately recognize the world as their own food reality.
+
+FITSWAP BRAND DNA (NON-NEGOTIABLE):
+- Background: 70-80% clean white or very light neutral — always dominant
+- Color palette: White (#FFFFFF) primary, Dark Gray (#111827) secondary, Neon Lime (#A6F000) as subtle accent only
+- Food: Real, achievable, everyday — never gourmet, never overly staged
+- Mood: Calm, Smart, Effortless, Modern — never aggressive, never fitness cliché
+- FORBIDDEN: dark backgrounds, fitness aesthetic, influencer poses, messy kitchens, heavy gradients, cartoon style, generic smiling models, busy scenes, abstract non-food props as main subject
+
+STOP-SCROLLING METHODOLOGY — choose ONE, always anchored to FOOD/KITCHEN world:
+1. FOOD PARADOX: A surprising food scene that contradicts expectations (e.g., apple cut open revealing candy → "natural ≠ nutritious"; a chain made of broccoli → "habits are chains you choose")
+2. FOOD JUXTAPOSITION: Two food-related objects side by side creating unexpected tension (e.g., a cookie on one side of a scale, a salad on the other — balanced; identical meal prep containers in a perfect row)
+3. FOOD CLOSE-UP: Extreme editorial close-up of ONE food hero element — a single ingredient, a hand reaching for food, a specific texture — that embodies the card's emotional tone
+4. HUMAN + FOOD MICRO-MOMENT: An authentic, raw human gesture or expression in a real kitchen/eating context — a tired hand, a relieved exhale, an impulsive reach — that makes the viewer say "isso sou eu"
+
+REASONING PROCESS (think step by step before writing):
+1. OVERLAY TEXT: What exact words will appear on this image?
+2. EMOTIONAL TONE: What feeling should those words land on? (relief, revelation, guilt-free, empowerment, identification?)
+3. COMPLEMENT: What food/kitchen scene would make those words resonate MORE deeply?
+4. STOP-SCROLL CHECK: Does this scene make someone pause even before reading the text?
+5. FOOD ANCHOR: Is the main subject clearly in the world of food, kitchen, or eating?
+
+REAL EXAMPLES OF CORRECT REASONING:
+- Overlay: "A CONSISTÊNCIA NÃO É SOBRE FORÇA DE VONTADE. É SOBRE ESTRUTURA." → CORRECT: 5 identical meal prep containers perfectly aligned in a row, top-down shot on white surface. Neon lime lid on each. → WRONG: a ceramic bowl balanced on a glass rod (abstract, no food context)
+- Overlay: "VOCÊ NÃO FALHOU NA DIETA. VOCÊ FALHOU NA DECISÃO." → CORRECT: A hand frozen mid-reach between two options on a white counter — a granola bar and a chocolate bar — caught in the moment of indecision. → WRONG: generic sad portrait without food
+- Overlay: "INGREDIENTES 'NATURAIS' NEM SEMPRE SIGNIFICAM NUTRITIVOS." → CORRECT: Red apple cut open revealing colorful candy inside. (This is ideal — visual paradox in food context)
+- Overlay: "SUA ALIMENTAÇÃO PRECISA CABER NA SUA VIDA." → CORRECT: A realistic weekly meal calendar filled with simple, diverse meals — not a gourmet spread, but an achievable plan.
+
+TECHNICAL SPECS:
+- Ratio 4:5 vertical (1080×1350)
+- Soft directional daylight, high-key lighting
+- Canon EOS R5, 50mm f/2.0
+- Clean negative space in the lower 40% for text overlay — keep this zone light, simple, and uncluttered
+- NEVER generate readable text, letters, or words in the image
+${fitswapGuidelines ? `- Additional brand guidelines: ${fitswapGuidelines}` : ''}
+
+OUTPUT FORMAT:
+Return ONLY the final image prompt in English. Start with the visual scene/concept, then lighting, camera angle, and technique. Be specific, grounded in food context, and intentional.`;
+
+            } else {
+                console.log('🎬 Using NARRATIVE-DRIVEN PREMIUM CAROUSEL TEMPLATE');
+                const primaryColor = context.branding?.primaryColor || '#00C2FF';
+                const brandStyle = brandingStyle || 'premium editorial lifestyle';
+                console.log(`📝 Card message extracted: "${cardMessage.substring(0, 80)}..."`);
+
+                systemPrompt = `You are a Visual Storytelling Director specialized in premium Instagram carousels.
+
+CORE PRINCIPLE:
+Every image must be a STOP-SCROLLING VISUAL METAPHOR of THIS SPECIFIC CARD'S MESSAGE.
+The image must communicate the same meaning as the card text — even without words.
+IGNORE the background suggestion — it is only a mood reference, NOT the visual concept.
+
+STOP-SCROLLING METHODOLOGY — choose ONE per card:
+1. VISUAL PARADOX: Something conceptually impossible or contradictory (e.g., an apple filled with candy to say "natural ≠ nutritious")
+2. UNEXPECTED JUXTAPOSITION: Two things that shouldn't be together, creating immediate tension
+3. CONCEPTUAL CLOSE-UP: Extreme close-up of ONE hero element that embodies the entire message — maximum impact
+4. EMOTIONAL MICRO-MOMENT: Real, raw human expression or gesture that instantly communicates the emotion
+
+MANDATORY PROCESS (reason step by step):
+1. MESSAGE: What does THIS CARD's text say literally?
+2. TENSION/PARADOX: What is the core contradiction, revelation, or emotional hook in this message?
+3. STOP-SCROLLING CHOICE: Which approach (paradox/juxtaposition/close-up/emotion) best communicates it?
+4. SCENE: Translate into a specific, surprising visual — NOT the obvious illustration of the topic
+
+IMAGE RULES:
+- FORBIDDEN: generic stock aesthetics, obvious topic illustrations (e.g., "health card = apple on table"), reusing background scenes, people smiling without reason
+- Every card MUST have a DISTINCT visual concept — not variations of the same scene
+- Real micro-expressions if human: authentic, unposed, emotionally specific
+- The image must answer: "Does this stop my scroll and make me feel something?" — if not, it's wrong
+
+TECHNICAL SPECS:
+- Ratio 4:5 vertical (1080×1350)
+- Shot on Canon EOS R5, 50mm f/2.0
+- Clean negative space in the lower 40% for text overlay
+- NEVER generate readable text, letters, or words in the image
+- Brand color (${primaryColor}) subtly in lighting, props, or accents — never dominant
+- Brand aesthetic: ${brandStyle}
+${guidelines ? `- Brand guidelines: ${guidelines}` : ''}
+
+OUTPUT FORMAT:
+Return ONLY the image prompt in English. Start with the visual scene/concept, then camera angle, lighting, and technique.
+Be specific, surprising, and intentional.`;
+            }
+
+        } else if (isFitswapBrand({ brandKey: context.brandKey, brandName })) {
             console.log('💎 Using EXCLUSIVE FITSWAP MASTER TEMPLATE');
 
             systemPrompt = `Você é um Diretor de Arte Sênior da Fitswap.
@@ -2485,19 +2829,356 @@ ${overlayInstruction}
 Retorne APENAS o texto do prompt final, em INGLÊS. SEJA CRIATIVO e EVITE repetições robóticas de templates.`;
         }
 
+        // Build user message: for premium carousel, clearly separate card message from style context
+        let userMessage;
+        if (context.isPremiumCarousel) {
+            const cardMessageMatch = concept.match(/\*\*Card\s+\d+:\*\*\s*([\s\S]+?)$/i);
+            const backgroundStyleMatch = concept.match(/\*\*Imagem de Fundo:\*\*\s*([\s\S]*?)(?=\n\s*\*\*Card\s+\d+:\*\*|$)/i);
+            const centralThemeMatch = concept.match(/\*\*Tema Central:\*\*\s*([\s\S]*?)(?=\n\s*\*\*|$)/i);
+
+            const cardMessage = cardMessageMatch ? cardMessageMatch[1].trim() : concept;
+            const backgroundStyle = backgroundStyleMatch ? backgroundStyleMatch[1].trim() : '';
+            const centralTheme = centralThemeMatch ? centralThemeMatch[1].trim() : '';
+
+            userMessage = `OVERLAY TEXT (this is what will appear in large bold typography ON TOP of the image):
+"${cardMessage}"
+
+This text already says the words. Your image must SET THE STAGE so these words land harder — not re-explain them.
+Create a food/kitchen scene that COMPLEMENTS this specific overlay text.
+${centralTheme ? `\nCARROUSSEL THEME (context only): "${centralTheme}"` : ''}
+${backgroundStyle ? `\nSTYLE REFERENCE (mood/color only, do NOT copy this scene literally): "${backgroundStyle}"` : ''}`;
+        } else {
+            userMessage = `Conceito Visual: "${concept}"`;
+        }
+
         const completion = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: `Conceito Visual: \"${concept}\"` }
+                { role: "user", content: userMessage }
             ],
             temperature: 0.7,
         });
 
-        return completion.choices[0].message.content.trim();
+        const generatedPrompt = completion.choices[0].message.content?.trim() || '';
+        console.log(`✅ Prompt gerado (primeiros 120 chars): "${generatedPrompt.substring(0, 120)}..."`);
+
+        if (isPromptRefusal(generatedPrompt)) {
+            console.warn('⚠️ Modelo recusou o conceito. Usando fallback determinístico para gerar prompt visual.');
+            return buildFallbackImagePrompt(concept, context);
+        }
+
+        return generatedPrompt;
 
     } catch (error) {
         console.error('❌ Erro ao gerar prompt de imagem:', error);
-        throw new Error(`Falha na geração de prompt de imagem: ${error.message}`);
+        console.warn('⚠️ Aplicando fallback determinístico após erro no modelo de prompt.');
+        return buildFallbackImagePrompt(concept, context);
+    }
+}
+/**
+ * Gera um carrossel em HTML/CSS completo (pronto para captura de tela individual).
+ * @param {string} topic O tema ou conceito
+ * @param {object} context Informações da marca
+ */
+export async function generateHtmlCarousel(topic, context = {}, htmlTemplate = 'template1') {
+    try {
+        console.log(`📠 Gerando Carrossel HTML para: "${topic.substring(0, 50)}..."`);
+        
+        const {
+            brandName,
+            brandKey,
+            branding = {},
+            targetAudience,
+            contentStrategy,
+            profileDescription,
+            guidelines,
+            libraryImages = [],
+        } = context;
+
+        // Ensure we load complete brand context if available
+        const isFitswap = isFitswapBrand({ brandKey, brandName });
+        const primaryColor = branding.primaryColor || (isFitswap ? '#A6F000' : '#4C1D95');
+        const secondaryColor = branding.secondaryColor || '#111827';
+
+        // Build library images instruction if images are available
+        const hasLibraryImages = Array.isArray(libraryImages) && libraryImages.length > 0;
+        const libraryImagesBlock = hasLibraryImages ? `
+
+## REAL BRAND IMAGES (USE THESE — mandatory):
+The following are REAL images from this brand's library.
+CRITICAL INSTRUCTION: These images ALREADY HAVE TEXT baked into them. Therefore, you MUST NOT use them as simple <img> tags where the old text would compete with the new HTML text.
+Instead, use them strictly as full-slide BACKGROUND IMAGES (using CSS \`background-image\`) and apply a HEAVY DARKENING OVERLAY (e.g. \`background-color: rgba(0, 0, 0, 0.7)\` or a very strong dark gradient on top of the image structure) so the original baked-in text becomes almost invisible, and your new HTML text stands out clearly in the foreground.
+Alternatively, you can apply CSS \`filter: blur(8px) brightness(0.4)\` to the background image container.
+
+These are the ONLY external image URLs you should use:
+
+${libraryImages.map((url, i) => `Image ${i + 1}: ${url}`).join('\n')}
+
+If there are more slides than images, reuse the images or create pure CSS slides (gradients, shapes) for the remaining slides. Do NOT use Unsplash URLs or placeholders.
+` : '';
+
+        
+        const systemPrompt = `You are an Instagram carousel design system. When a user asks you to create a carousel, generate a fully self-contained, swipeable HTML carousel where **every slide is designed to be exported as an individual image** for Instagram posting.
+
+## Brand Details
+- **Brand name**: ${brandName || 'Sua Marca'}
+- **Primary brand color**: ${primaryColor}
+- **Secondary brand color**: ${secondaryColor}
+- **Tone/Guidelines**: ${guidelines || 'Professional and engaging'}
+- **Context**: ${profileDescription || 'Instagram carousel post'}
+${contentStrategy ? `- **Strategy**: ${contentStrategy}` : ''}
+
+## IMPORTANT DESIGN INSTRUCTIONS (AESTHETICS & LAYOUT):
+- Derive the full Color System from the primary color (BRAND_PRIMARY, BRAND_LIGHT, BRAND_DARK, LIGHT_BG, LIGHT_BORDER, DARK_BG).
+- Use modern, premium typography. Load a high-end Google Font (e.g., 'Inter', 'Outfit', or 'Plus Jakarta Sans').
+- Establish a strict Visual Hierarchy: massive bold headlines (h1), clear legible body text (p), and subtle micro-copy (e.g., "@username" on top/bottom).
+- Apply modern UI aesthetics: use soft shadows (\`box-shadow: 0 10px 30px rgba(0,0,0,0.05)\`), subtle gradients (\`linear-gradient\`), or glassmorphism (\`backdrop-filter: blur(10px); background: rgba(255,255,255,0.8)\` for text cards over images/dark backgrounds).
+- Avoid plain flat designs unless the brand strictly demands it. Incorporate interesting abstract shapes, geometric accents, or pill-shaped tags to make the slides look like professional Instagram Carousel posts from top-tier agencies.
+- Aspect ratio is 4:5 (Instagram carousel standard). Built for a 420x525 preview wrapper.
+- To make it swipable in a web view, MUST set \`.carousel\` to \`display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth;\`. Hide scrollbars with \`::-webkit-scrollbar { display: none; }\`.
+- MUST set \`.slide\` to \`flex-shrink: 0; width: 420px; height: 525px; scroll-snap-align: start; position: relative; box-sizing: border-box; padding: 40px;\`.
+- Use flexbox or grid to perfectly align content in each slide (e.g., center text, or pin user handle to the top and progress bar to the bottom).
+- Alternate LIGHT_BG and DARK_BG backgrounds or use a continuous flowing gradient/pattern across slides to encourage swiping.
+- Embed a sleek Progress Indicator (e.g., dots or a thin bar at the bottom) and a minimalist Swipe Arrow (right edge, except last slide).
+- End with a striking CTA slide on a Brand gradient background.
+- Do NOT use broken placeholder images. If you need images, use high-quality Unsplash source URLs (e.g., \`https://source.unsplash.com/random/420x525/?fitness,gym\`) or use pure CSS abstract patterns.
+
+Generate ONLY the raw HTML code containing the full carousel layout, ready to be previewed and exported. Do not wrap in markdown \`\`\`html tags.`;
+
+        let templatePrompt = '';
+        if (htmlTemplate === 'template1') {
+            templatePrompt = `
+
+## TEMPLATE INSTRUCTION: 
+MUST strictly follow this exact HTML layout and CSS structure. Only change the text content (headlines, paragraphs), adapt the colors to the primary brand color, and use relevant background image URLs from Unsplash. DO NOT change the CSS classes or the DOM tree structure. Produce multiple slides (at least 3-5) following this structure.
+Here is the template to strictly follow:
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Carousel (Bold Overlay)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0d0d0d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 32px 16px;
+}
+.ig-frame {
+  width: 420px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+  background: #111;
+}
+.ig-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  background: #111827;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.ig-avatar { width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid ${primaryColor}; }
+.ig-handle { font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#fff; }
+.ig-sub { font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.4); }
+.ig-more { margin-left:auto;color:rgba(255,255,255,0.4);font-size:20px;line-height:1; }
+.carousel-viewport { width:420px;aspect-ratio:4/5;overflow:x-auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;display:flex; }
+.carousel-viewport::-webkit-scrollbar { display:none; }
+.carousel-track { display:flex;height:100%;transition:transform 0.38s cubic-bezier(0.4,0,0.2,1);will-change:transform; }
+.slide { flex-shrink:0;width:420px;height:525px;scroll-snap-align:start;position:relative;overflow:hidden; }
+.ig-dots { display:flex;justify-content:center;gap:5px;padding:10px 0 8px;background:#111827; }
+.dot { width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);transition:background 0.3s,width 0.3s; }
+.dot.active { background:${primaryColor};width:18px;border-radius:3px; }
+.ig-actions { display:flex;align-items:center;gap:16px;padding:12px 16px 8px;background:#111827; }
+.ig-actions svg { color:rgba(255,255,255,0.7); }
+.ig-save { margin-left:auto; }
+.ig-caption { padding:6px 16px 14px;background:#111827;font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,0.55);line-height:1.5; }
+.ig-caption strong { color:#fff;font-weight:700; }
+</style>
+</head>
+<body>
+<div class="ig-frame">
+  <div class="ig-header">
+    <div class="ig-avatar"><img src="https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=100&q=80" style="width:100%;height:100%;object-fit:cover;"></div>
+    <div>
+      <div class="ig-handle">${brandName || 'Sua Marca'}</div>
+      <div class="ig-sub">Conteúdo de valor</div>
+    </div>
+    <div class="ig-more">···</div>
+  </div>
+  <div class="carousel-viewport" id="viewport">
+    <div class="carousel-track" id="track">
+      <!-- SLIDE 1 -->
+      <div class="slide">
+        <div style="position:absolute;inset:0;background:linear-gradient(135deg,#0a0f1e 0%,#0d1a35 40%,#091428 100%);"></div>
+        <div style="position:absolute;inset:0;background-image:linear-gradient(${primaryColor} 1px,transparent 1px),linear-gradient(90deg,${primaryColor} 1px,transparent 1px);background-size:40px 40px;opacity:0.06;"></div>
+        <div style="position:absolute;top:60px;left:50%;transform:translateX(-50%);width:340px;height:340px;background:radial-gradient(circle,${primaryColor} 0%,transparent 65%);opacity:0.22;"></div>
+        <div style="position:absolute;top:80px;left:50%;transform:translateX(-50%);width:160px;height:160px;border-radius:50%;background:linear-gradient(135deg,${primaryColor},${secondaryColor});border:1px solid rgba(255,255,255,0.1);opacity:0.3;"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:65%;background:linear-gradient(0deg,rgba(0,0,0,0.97) 0%,rgba(0,0,0,0.85) 40%,rgba(0,0,0,0) 100%);z-index:2;pointer-events:none;"></div>
+        <div style="position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;padding:0 28px 60px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:28px;">
+            <div style="display:flex;align-items:center;gap:16px;">
+              <div style="width:80px;height:2px;background:rgba(255,255,255,0.5);border-radius:1px;"></div>
+              <div style="width:44px;height:44px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.2);flex-shrink:0;">
+                <img src="https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=100&q=80" style="width:100%;height:100%;object-fit:cover;">
+              </div>
+              <div style="width:80px;height:2px;background:rgba(255,255,255,0.5);border-radius:1px;"></div>
+            </div>
+          </div>
+          <h1 style="font-family:'Inter',sans-serif;font-size:36px;font-weight:900;color:#fff;line-height:1.1;letter-spacing:-1px;margin-bottom:16px;text-transform:uppercase;">
+            SUA HEADLINE <span style="color:${primaryColor};">AQUI</span>
+          </h1>
+          <p style="font-family:'Inter',sans-serif;font-size:16px;color:rgba(255,255,255,0.7);line-height:1.5;max-width:320px;">
+            Subtítulo criativo.
+          </p>
+        </div>
+      </div>
+      <!-- SLIDE 2 -->
+      <div class="slide">
+        <div style="position:absolute;inset:0;">
+          <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&q=80" style="width:100%;height:100%;object-fit:cover;opacity:0.4;">
+        </div>
+        <div style="position:absolute;inset:0;background:linear-gradient(135deg,#0a0f1e 0%,#0d1a35 40%,#091428 100%);opacity:0.8;"></div>
+        <div style="position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0 28px;">
+          <h2 style="font-family:'Inter',sans-serif;font-size:28px;font-weight:800;color:#fff;margin-bottom:20px;">Segundo Ponto</h2>
+          <p style="font-family:'Inter',sans-serif;font-size:15px;color:rgba(255,255,255,0.8);line-height:1.6;">
+            Texto de explicação detalhada para este slide. Altere as imagens de fundo conforme necessário com Unsplash.
+          </p>
+        </div>
+      </div>
+      <!-- MORE SLIDES AS NEEDED -->
+    </div>
+</div>
+</body>
+</html>
+`;
+        }
+
+        const finalSystemPrompt = systemPrompt + templatePrompt + libraryImagesBlock;
+
+        if (hasLibraryImages) {
+            console.log(`🖼️ Injetando ${libraryImages.length} imagens da library no prompt do HTML Carousel.`);
+        }
+
+
+        const userPrompt = `Make me a carousel about: "${topic}"`;
+
+        const geminiApiKey = process.env.GEMINI_API_KEY;
+        if (!geminiApiKey) {
+            throw new Error('GEMINI_API_KEY não está configurada no ambiente.');
+        }
+
+        console.log('🤖 Chamando Gemini (3.1 Pro Preview) para gerar HTML do Carrossel...');
+        
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${geminiApiKey}`;
+        
+        const response = await axios.post(url, {
+            system_instruction: {
+                parts: [{ text: finalSystemPrompt }]
+            },
+            contents: [{
+                role: 'user',
+                parts: [{ text: userPrompt }]
+            }],
+            generationConfig: {
+                temperature: 0.7
+            }
+        }, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const candidate = response.data?.candidates?.[0];
+        if (!candidate || !candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+           throw new Error('O Gemini não retornou nenhum texto/HTML.');
+        }
+
+        let html = candidate.content.parts[0].text.trim();
+
+        // Remove markdown formatting if the AI still adds it
+        if (html.startsWith('\`\`\`html')) {
+            html = html.replace(/^\`\`\`html\n/, '').replace(/\n\`\`\`$/, '');
+        } else if (html.startsWith('\`\`\`')) {
+            html = html.replace(/^\`\`\`\n/, '').replace(/\n\`\`\`$/, '');
+        }
+
+        return html;
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar HTML Carousel:', error?.response?.data || error);
+        throw new Error(`Falha na geração de HTML Carousel: ${error.message}`);
+    }
+}
+
+/**
+ * Corrige / ajusta um carrossel HTML existente com base nas instruções do usuário.
+ * @param {string} html O HTML atual do carrossel
+ * @param {string} instruction A instrução do usuário descrevendo o que deve ser corrigido
+ */
+export async function fixHtmlCarousel(html, instruction) {
+    try {
+        console.log(`🔧 Corrigindo HTML Carousel com instrução: "${instruction.substring(0, 80)}..."`);
+
+        const geminiApiKey = process.env.GEMINI_API_KEY;
+        if (!geminiApiKey) {
+            throw new Error('GEMINI_API_KEY não está configurada no ambiente.');
+        }
+
+        const systemPrompt = `You are an expert HTML/CSS carousel editor for Instagram posts.
+You will receive an existing HTML carousel and a user instruction describing what needs to be fixed or changed.
+Your job is to apply ONLY the requested changes while preserving everything else exactly as it is.
+
+RULES:
+- Apply only the changes described in the instruction
+- Keep all existing slides, content, styles, and structure intact unless the instruction says to change them
+- Maintain the same overall design language (colors, fonts, layout)
+- Return ONLY the complete, raw HTML — no markdown, no explanation, no code fences
+- The output must be a fully self-contained, valid HTML document ready to preview in a browser`;
+
+        const userPrompt = `Here is the current HTML carousel:
+
+${html}
+
+USER INSTRUCTION (apply this change):
+${instruction}
+
+Return the updated HTML with ONLY the requested changes applied.`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${geminiApiKey}`;
+
+        const response = await axios.post(url, {
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+            generationConfig: { temperature: 0.3 }
+        }, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const candidate = response.data?.candidates?.[0];
+        if (!candidate?.content?.parts?.length) {
+            throw new Error('O Gemini não retornou HTML corrigido.');
+        }
+
+        let fixedHtml = candidate.content.parts[0].text.trim();
+
+        // Strip markdown code fences if present
+        if (fixedHtml.startsWith('```html')) {
+            fixedHtml = fixedHtml.replace(/^```html\n/, '').replace(/\n```$/, '');
+        } else if (fixedHtml.startsWith('```')) {
+            fixedHtml = fixedHtml.replace(/^```\n/, '').replace(/\n```$/, '');
+        }
+
+        return fixedHtml;
+
+    } catch (error) {
+        console.error('❌ Erro ao corrigir HTML Carousel:', error?.response?.data || error);
+        throw new Error(`Falha ao corrigir HTML Carousel: ${error.message}`);
     }
 }
