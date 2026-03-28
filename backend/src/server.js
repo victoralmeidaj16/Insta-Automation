@@ -67,16 +67,20 @@ app.get('/api/proxy-download', async (req, res) => {
         return res.status(400).send('Missing url parameter');
     }
 
+    console.log(`📥 Proxy download request for: ${url}`);
+
     try {
         // Fetch the remote file
         const response = await fetch(url);
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch file: ${response.statusText}`);
+            console.error(`❌ Proxy fetch failed (${response.status} ${response.statusText}) for URL: ${url}`);
+            return res.status(response.status).send(`Failed to fetch file: ${response.statusText}`);
         }
 
         // Get headers
         const contentType = response.headers.get('content-type') || 'application/octet-stream';
+        console.log(`✅ Proxy fetch success (${contentType}). Sending to client...`);
 
         // Determine filename/extension
         let finalFilename = filename || 'download';
@@ -91,13 +95,11 @@ app.get('/api/proxy-download', async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename="${finalFilename}"`);
 
         // Stream the response body to the client
-        // Node 18+ fetch returns a ReadableStream, we need to convert or attach to res
-        // If using 'node-fetch' or native fetch:
         const arrayBuffer = await response.arrayBuffer();
         res.send(Buffer.from(arrayBuffer));
 
     } catch (error) {
-        console.error('Proxy download error:', error);
+        console.error('❌ Proxy download exception:', error);
         res.status(500).send('Error downloading file');
     }
 });

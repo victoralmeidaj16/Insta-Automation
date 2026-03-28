@@ -11,11 +11,15 @@ import toast from 'react-hot-toast';
 export default function BusinessProfilesPage() {
     const router = useRouter();
     const { profiles, selectedProfile, setSelectedProfile, createProfile, updateProfile, deleteProfile, loadProfiles } = useBusinessProfile();
+    const parseLines = (value) => value.split('\n').map(line => line.trim()).filter(Boolean);
     const [showModal, setShowModal] = useState(false);
     const [editingProfile, setEditingProfile] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
+        brandKey: '',
         description: '',
+        brandContext: '',
+        contentStrategy: '',
         targetAudience: '',
         productService: '',
         instagram: {
@@ -26,13 +30,19 @@ export default function BusinessProfilesPage() {
             secondaryColor: '#e74c3c',
             logoUrl: '',
             style: '',
-            guidelines: '' // New: Brand guidelines document
+            guidelines: ''
+        },
+        brandKit: {
+            visualReferenceUrls: [],
+            appUiReferenceUrls: [],
+            referencePrompts: []
         },
         aiPreferences: {
             defaultAspectRatio: '1:1',
             style: '',
             tone: '',
-            // promptTemplate removed
+            photographyStyle: '',
+            prohibitedElements: '',
             favoritePrompts: []
         }
     });
@@ -55,18 +65,25 @@ export default function BusinessProfilesPage() {
             setEditingProfile(profile);
             setFormData({
                 name: profile.name,
+                brandKey: profile.brandKey || '',
                 description: profile.description || '',
+                brandContext: profile.brandContext || '',
+                contentStrategy: profile.contentStrategy || '',
                 targetAudience: profile.targetAudience || '',
                 productService: profile.productService || '',
                 instagram: profile.instagram || { username: '' },
                 branding: profile.branding || formData.branding,
+                brandKit: profile.brandKit || formData.brandKit,
                 aiPreferences: profile.aiPreferences || formData.aiPreferences
             });
         } else {
             setEditingProfile(null);
             setFormData({
                 name: '',
+                brandKey: '',
                 description: '',
+                brandContext: '',
+                contentStrategy: '',
                 targetAudience: '',
                 productService: '',
                 instagram: {
@@ -79,10 +96,17 @@ export default function BusinessProfilesPage() {
                     style: '',
                     guidelines: ''
                 },
+                brandKit: {
+                    visualReferenceUrls: [],
+                    appUiReferenceUrls: [],
+                    referencePrompts: []
+                },
                 aiPreferences: {
                     defaultAspectRatio: '1:1',
                     style: '',
                     tone: '',
+                    photographyStyle: '',
+                    prohibitedElements: '',
                     favoritePrompts: []
                 }
             });
@@ -237,14 +261,30 @@ export default function BusinessProfilesPage() {
                             }}
                         >
                             <div className="flex-between mb-md">
-                                <h3 style={{
-                                    color: '#fff',
-                                    fontSize: '1.1rem',
-                                    fontWeight: 600,
-                                    margin: 0
-                                }}>
-                                    {profile.name}
-                                </h3>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                    {profile.name?.toLowerCase().includes('inner boost') && (
+                                        <img
+                                            src="/logos/inner-boost-logo.png"
+                                            alt="Inner Boost Logo"
+                                            style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                objectFit: 'cover',
+                                                borderRadius: '50%',
+                                                border: '2px solid rgba(124, 58, 237, 0.5)',
+                                                flexShrink: 0
+                                            }}
+                                        />
+                                    )}
+                                    <h3 style={{
+                                        color: '#fff',
+                                        fontSize: '1.1rem',
+                                        fontWeight: 600,
+                                        margin: 0
+                                    }}>
+                                        {profile.name}
+                                    </h3>
+                                </div>
                                 {selectedProfile?.id === profile.id && (
                                     <span style={{
                                         background: 'rgba(142, 68, 173, 0.2)',
@@ -410,6 +450,23 @@ export default function BusinessProfilesPage() {
                                 </div>
 
                                 <div className="input-group">
+                                    <label className="input-label">Brand Key</label>
+                                    <select
+                                        className="input"
+                                        value={formData.brandKey || ''}
+                                        onChange={(e) => setFormData({ ...formData, brandKey: e.target.value })}
+                                    >
+                                        <option value="">Automático pelo nome</option>
+                                        <option value="fitswap">Fitswap</option>
+                                        <option value="inner-boost">Inner Boost</option>
+                                        <option value="viver-mais">Viver Mais</option>
+                                    </select>
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        Use um identificador estável da marca para evitar depender de match por nome.
+                                    </small>
+                                </div>
+
+                                <div className="input-group">
                                     <label className="input-label">Descrição</label>
                                     <textarea
                                         className="input"
@@ -418,6 +475,36 @@ export default function BusinessProfilesPage() {
                                         placeholder="Breve descrição do negócio"
                                         rows={2}
                                     />
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Contexto da Marca (para a IA) 🧠</label>
+                                    <textarea
+                                        className="input"
+                                        value={formData.brandContext}
+                                        onChange={(e) => setFormData({ ...formData, brandContext: e.target.value })}
+                                        placeholder="Ex: A Nutriverse é uma marca de suplementos premium com posicionamento clean e moderno. Foco em nutrição esportiva para atletas de alta performance. Tom de voz: científico mas acessível."
+                                        rows={4}
+                                        style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        Informações detalhadas sobre a marca que a IA usará para gerar ideias e variações de posts mais relevantes.
+                                    </small>
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Estratégia de Conteúdo / Pilares Editoriais 📚</label>
+                                    <textarea
+                                        className="input"
+                                        value={formData.contentStrategy}
+                                        onChange={(e) => setFormData({ ...formData, contentStrategy: e.target.value })}
+                                        placeholder="Cole aqui os pilares de conteúdo, frequências e tipos de posts (ex: Conteúdo Âncora, Utilitário, etc.)"
+                                        rows={6}
+                                        style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        Define os tipos de posts e a frequência sugerida que a IA deve priorizar ao gerar ideias.
+                                    </small>
                                 </div>
 
                                 <div className="input-group">
@@ -496,6 +583,48 @@ export default function BusinessProfilesPage() {
                                 </div>
 
                                 <div className="input-group">
+                                    <label className="input-label">Referências Visuais da Marca (URLs)</label>
+                                    <textarea
+                                        className="input"
+                                        value={(formData.brandKit?.visualReferenceUrls || []).join('\n')}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            brandKit: {
+                                                ...formData.brandKit,
+                                                visualReferenceUrls: parseLines(e.target.value)
+                                            }
+                                        })}
+                                        placeholder="Uma URL por linha para posts aprovados, fotos de produto, layouts, etc."
+                                        rows={4}
+                                        style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        Essas imagens são anexadas automaticamente como referência visual para a IA.
+                                    </small>
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Referências da UI do App (URLs)</label>
+                                    <textarea
+                                        className="input"
+                                        value={(formData.brandKit?.appUiReferenceUrls || []).join('\n')}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            brandKit: {
+                                                ...formData.brandKit,
+                                                appUiReferenceUrls: parseLines(e.target.value)
+                                            }
+                                        })}
+                                        placeholder="Uma URL por linha para screenshots reais da interface do app"
+                                        rows={3}
+                                        style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        Para Fitswap, isso ajuda o modelo a sugerir uma interface mais fiel que um glow genérico.
+                                    </small>
+                                </div>
+
+                                <div className="input-group">
                                     <div className="flex-between">
                                         <label className="input-label">Estilo Visual (Prompt Base para Imagens)</label>
                                         <button
@@ -557,6 +686,40 @@ export default function BusinessProfilesPage() {
                                     />
                                     <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
                                         Este estilo será aplicado automaticamente em todas as imagens geradas.
+                                    </small>
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Estilo Fotográfico / Direção de Arte 📸</label>
+                                    <textarea
+                                        className="input"
+                                        value={formData.aiPreferences?.photographyStyle || ''}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            aiPreferences: { ...formData.aiPreferences, photographyStyle: e.target.value }
+                                        })}
+                                        placeholder="Ex: Minimalista premium, iluminação dramática de estúdio, grão de filme 35mm, tons pastéis..."
+                                        rows={3}
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        Define a estética visual profunda das fotos de fundo.
+                                    </small>
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Elementos Proibidos ou Evitar 🚫</label>
+                                    <textarea
+                                        className="input"
+                                        value={formData.aiPreferences?.prohibitedElements || ''}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            aiPreferences: { ...formData.aiPreferences, prohibitedElements: e.target.value }
+                                        })}
+                                        placeholder="Ex: Fotos de banco genéricas, luz solar direta, cor vermelha, crianças, ambientes bagunçados..."
+                                        rows={2}
+                                    />
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        O que a IA NUNCA deve incluir nas imagens de fundo.
                                     </small>
                                 </div>
 

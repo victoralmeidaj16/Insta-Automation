@@ -41,19 +41,33 @@ export default function ProfileSwitcher({ style = {}, className = '' }) {
             >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {selectedProfile ? (
-                        <span style={{
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            background: '#7c3aed',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.625rem',
-                            fontWeight: 700
-                        }}>
-                            {selectedProfile.name.charAt(0).toUpperCase()}
-                        </span>
+                        selectedProfile.name?.toLowerCase().includes('inner boost') ? (
+                            <img
+                                src="/logos/inner-boost-logo.png"
+                                alt="Inner Boost"
+                                style={{
+                                    width: '20px',
+                                    height: '20px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    flexShrink: 0
+                                }}
+                            />
+                        ) : (
+                            <span style={{
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                background: '#7c3aed',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.625rem',
+                                fontWeight: 700
+                            }}>
+                                {selectedProfile.name.charAt(0).toUpperCase()}
+                            </span>
+                        )
                     ) : (
                         <span>🌐</span>
                     )}
@@ -131,20 +145,34 @@ export default function ProfileSwitcher({ style = {}, className = '' }) {
                                 e.currentTarget.style.background = 'transparent';
                             }}
                         >
-                            <span style={{
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '50%',
-                                background: '#7c3aed',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.625rem',
-                                fontWeight: 700,
-                                flexShrink: 0
-                            }}>
-                                {profile.name.charAt(0).toUpperCase()}
-                            </span>
+                            {profile.name?.toLowerCase().includes('inner boost') ? (
+                                <img
+                                    src="/logos/inner-boost-logo.png"
+                                    alt="Inner Boost"
+                                    style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '50%',
+                                        objectFit: 'cover',
+                                        flexShrink: 0
+                                    }}
+                                />
+                            ) : (
+                                <span style={{
+                                    width: '20px',
+                                    height: '20px',
+                                    borderRadius: '50%',
+                                    background: '#7c3aed',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.625rem',
+                                    fontWeight: 700,
+                                    flexShrink: 0
+                                }}>
+                                    {profile.name.charAt(0).toUpperCase()}
+                                </span>
+                            )}
                             <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {profile.name}
                             </span>

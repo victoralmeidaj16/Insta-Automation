@@ -28,9 +28,15 @@ export default function LibraryPage() {
     const [editCaption, setEditCaption] = useState('');
     const [editScheduledFor, setEditScheduledFor] = useState('');
     const [editTag, setEditTag] = useState('');
-    const [editType, setEditType] = useState('');
+    const [editType, setEditType] = useState('static');
     const [replaceFiles, setReplaceFiles] = useState([]);
+
+    // AI Refinement states
+    const [refinePrompt, setRefinePrompt] = useState('');
+    const [isRefining, setIsRefining] = useState(false);
+    const [refinedImageUrl, setRefinedImageUrl] = useState(null);
     const [generatingCaption, setGeneratingCaption] = useState(false);
+    const [attachLogoToAI, setAttachLogoToAI] = useState(false);
 
     // Upload states
     const [showUploadModal, setShowUploadModal] = useState(false);
@@ -54,6 +60,47 @@ export default function LibraryPage() {
     const [selectedItems, setSelectedItems] = useState(new Set());
     const [showBulkTagModal, setShowBulkTagModal] = useState(false);
     const [bulkTagTarget, setBulkTagTarget] = useState('pronto');
+    const [quickRefiningId, setQuickRefiningId] = useState(null);
+    const [quickCaptionId, setQuickCaptionId] = useState(null);
+
+    // Pagination state
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [lastItemId, setLastItemId] = useState<string | null>(null);
+
+    // Image dimensions state (postId -> { w: number, h: number })
+    const [imageDimensions, setImageDimensions] = useState<Record<string, { w: number; h: number }>>({});
+
+    // Reformatting state — tracks which posts are currently being formatted by Gemini
+    const [formattingIds, setFormattingIds] = useState<Set<string>>(new Set());
+
+    // Helper: returns true if the image dimension is outside the ideal ratio for the post type
+    const isOutOfFormat = (postId: string, postType: string): boolean => {
+        const dims = imageDimensions[postId];
+        if (!dims || dims.w === 0 || dims.h === 0) return false;
+        const currentRatio = dims.w / dims.h;
+        const idealRatio = (postType === 'story' || postType === 'stories') ? (9 / 16) : (4 / 5);
+        return Math.abs(currentRatio - idealRatio) / idealRatio > 0.10; // > 10% deviation (to accommodate Gemini 3:4 output for 4:5 target)
+    };
+
+    // Format a single post via Gemini
+    const handleFormatPost = async (post) => {
+        if (formattingIds.has(post.id)) return;
+        setFormattingIds(prev => new Set(prev).add(post.id));
+        const toastId = toast.loading('🎨 Reformatando imagem com Gemini...');
+        try {
+            const response = await api.post(`/api/library/${post.id}/format`);
+            toast.success(response.data.message || 'Imagem reformatada!', { id: toastId });
+            // Remove cached dimensions so the badge disappears after reload
+            setImageDimensions(prev => { const next = { ...prev }; delete next[post.id]; return next; });
+            loadPosts();
+        } catch (error) {
+            console.error('Format error:', error);
+            toast.error(error.response?.data?.error || 'Erro ao formatar imagem', { id: toastId });
+        } finally {
+            setFormattingIds(prev => { const next = new Set(prev); next.delete(post.id); return next; });
+        }
+    };
 
     // Stats state
     const [stats, setStats] = useState({
@@ -68,39 +115,67 @@ export default function LibraryPage() {
         }
     }, [selectedProfile, typeFilter, statusFilter]);
 
-    const loadPosts = async () => {
-        setLoading(true);
+    const sortPosts = (items) => {
+        return [...items].sort((a, b) => {
+            // First criteria: isPosted (false < true)
+            if (a.isPosted !== b.isPosted) {
+                return a.isPosted ? 1 : -1;
+            }
+
+            // Second criteria: Recency
+            // For posted items, we use updatedAt (when they were marked as posted)
+            // For unposted, we use createdAt
+            const getSortTime = (item) => {
+                const date = item.isPosted ? (item.updatedAt || item.createdAt) : item.createdAt;
+                if (!date) return 0;
+                if (date.seconds) return date.seconds * 1000;
+                if (date instanceof Date) return date.getTime();
+                return new Date(date).getTime();
+            };
+
+            return getSortTime(b) - getSortTime(a);
+        });
+    };
+
+    const loadPosts = async (reset = true) => {
+        if (reset) {
+            setLoading(true);
+            setLastItemId(null);
+        } else {
+            setLoadingMore(true);
+        }
         try {
             const params = new URLSearchParams();
-
-            if (selectedProfile) {
-                params.append('businessProfileId', selectedProfile.id);
-            }
+            if (selectedProfile) params.append('businessProfileId', selectedProfile.id);
+            if (!reset && lastItemId) params.append('lastId', lastItemId);
 
             const response = await api.get(`/api/library?${params}`);
-            let items = response.data;
+            const { items: rawItems, hasMore: more } = response.data;
 
             // Apply filters on frontend
-            if (typeFilter !== 'all') {
-                items = items.filter(item => item.type === typeFilter);
-            }
-            if (tagFilter !== 'all') {
-                items = items.filter(item => item.tag === tagFilter);
+            let items = rawItems;
+            if (typeFilter !== 'all') items = items.filter(item => item.type === typeFilter);
+            if (tagFilter !== 'all') items = items.filter(item => item.tag === tagFilter);
+
+            if (reset) {
+                setPosts(sortPosts(items));
+                setStats({
+                    total: items.length,
+                    published: 0,
+                    scheduled: items.filter(item => item.isScheduled).length,
+                });
+            } else {
+                setPosts(prev => sortPosts([...prev, ...items]));
             }
 
-            setPosts(items);
-
-            // Calculate stats
-            setStats({
-                total: items.length,
-                published: 0,  // Library items are not published
-                scheduled: items.filter(item => item.isScheduled).length,
-            });
+            setHasMore(more);
+            if (rawItems.length > 0) setLastItemId(rawItems[rawItems.length - 1].id);
         } catch (error) {
             console.error('Error loading library items:', error);
             toast.error('Erro ao carregar biblioteca');
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     };
 
@@ -144,6 +219,7 @@ export default function LibraryPage() {
                 caption: selectedItem.caption,
                 scheduledFor: scheduledFor.toISOString(),
                 tag: selectedItem.tag,
+                libraryItemId: selectedItem.id,
             });
 
             // Update library item as scheduled
@@ -201,6 +277,39 @@ export default function LibraryPage() {
         }
     };
 
+    const handleTogglePosted = async (item) => {
+        try {
+            const newIsPosted = !item.isPosted;
+            const now = new Date();
+
+            // Optimistic update
+            const updatedPosts = posts.map(p => {
+                if (p.id === item.id) {
+                    return {
+                        ...p,
+                        isPosted: newIsPosted,
+                        updatedAt: newIsPosted ? now : p.updatedAt
+                    };
+                }
+                return p;
+            });
+
+            // Re-sort locally so the item moves to correct section immediately
+            setPosts(sortPosts(updatedPosts));
+
+            await api.put(`/api/library/${item.id}`, {
+                isPosted: newIsPosted
+            });
+
+            toast.success(newIsPosted ? 'Marcado como Já Postado' : 'Desmarcado como Postado');
+        } catch (error) {
+            console.error('Toggle posted error:', error);
+            toast.error('Erro ao atualizar status');
+            // Revert optimistic update
+            loadPosts();
+        }
+    };
+
     const handleDownload = async (post) => {
         try {
             toast.loading('Iniciando download...', { id: 'download-loading' });
@@ -209,12 +318,16 @@ export default function LibraryPage() {
                 const url = post.mediaUrls[i];
                 const filename = `${post.type}_${i + 1}`;
 
-                // Use the backend proxy endpoint
-                const baseUrl = api.defaults.baseURL || 'http://localhost:3001';
-                const proxyUrl = `${baseUrl}/api/proxy-download?url=${encodeURIComponent(url)}&filename=${filename}`;
+                // If URL is base64, download directly. Otherwise use proxy.
+                const downloadUrl = url.startsWith('data:')
+                    ? url
+                    : `${api.defaults.baseURL || 'http://localhost:3001'}/api/proxy-download?url=${encodeURIComponent(url)}&filename=${filename}`;
 
                 const link = document.createElement('a');
-                link.href = proxyUrl;
+                link.href = downloadUrl;
+                if (url.startsWith('data:')) {
+                    link.download = `${filename}.${url.split(';')[0].split('/')[1] || 'jpg'}`;
+                }
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -236,11 +349,17 @@ export default function LibraryPage() {
     const handleLightboxDownload = (url, index) => {
         try {
             const filename = `image_${index + 1}`;
-            const baseUrl = api.defaults.baseURL || 'http://localhost:3001';
-            const proxyUrl = `${baseUrl}/api/proxy-download?url=${encodeURIComponent(url)}&filename=${filename}`;
+
+            // If URL is base64, download directly. Otherwise use proxy.
+            const downloadUrl = url.startsWith('data:')
+                ? url
+                : `${api.defaults.baseURL || 'http://localhost:3001'}/api/proxy-download?url=${encodeURIComponent(url)}&filename=${filename}`;
 
             const link = document.createElement('a');
-            link.href = proxyUrl;
+            link.href = downloadUrl;
+            if (url.startsWith('data:')) {
+                link.download = `${filename}.${url.split(';')[0].split('/')[1] || 'jpg'}`;
+            }
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -282,6 +401,153 @@ export default function LibraryPage() {
         }
     };
 
+    const handleRefineImage = async () => {
+        if (!refinePrompt && !attachLogoToAI) {
+            toast.error('Descreva o que deseja mudar na imagem ou opte por anexar a logo.');
+            return;
+        }
+
+        setIsRefining(true);
+        try {
+            // Use ideal ratio based on content type (Story vs Feed)
+            const targetRatio = (editType === 'story' || editType === 'stories') ? '9:16' : '4:5';
+            let formattedPrompt = refinePrompt;
+
+            const response = await api.post('/api/ai/generate-single-image', {
+                prompt: formattedPrompt,
+                referenceImage: selectedPost.mediaUrls[0],
+                aspectRatio: targetRatio,
+                businessProfileId: selectedProfile?.id,
+                model: 'gemini',
+                attachLogo: attachLogoToAI
+            });
+
+            if (response.data.success) {
+                setRefinedImageUrl(response.data.image);
+                toast.success('Imagem refinada com sucesso!');
+            }
+        } catch (error) {
+            console.error('Refine image error:', error);
+            toast.error('Erro ao refinar imagem com IA');
+        } finally {
+            setIsRefining(false);
+        }
+    };
+
+    const handleAcceptRefinedImage = async () => {
+        if (!refinedImageUrl) return;
+
+        try {
+            setLoading(true);
+            await api.put(`/api/library/${selectedPost.id}`, {
+                mediaUrls: [refinedImageUrl],
+                tag: 'pronto'
+            });
+
+            toast.success('Imagem atualizada e marcada como "pronto"!');
+            setRefinedImageUrl(null);
+            setRefinePrompt('');
+            setShowEditModal(false);
+            loadPosts();
+        } catch (error) {
+            console.error('Error accepting refined image:', error);
+            toast.error('Erro ao salvar imagem refinada');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleQuickRefine = async (post) => {
+        if (quickRefiningId) return;
+
+        const isInnerBoost = selectedProfile?.name?.toLowerCase().includes('inner boost');
+        const confirmMsg = isInnerBoost
+            ? "Deseja aplicar o '🪄 Super Prompt: Corrigir Inglês & Design' e anexar a Logo automaticamente?"
+            : "Deseja aplicar o '🪄 Super Prompt: Corrigir Inglês & Design' automaticamente?";
+
+        if (!window.confirm(confirmMsg)) return;
+
+        setQuickRefiningId(post.id);
+        const toastId = toast.loading('🪄 Refinando imagem...');
+
+        try {
+            const response = await api.post('/api/ai/generate-single-image', {
+                prompt: `You are a senior creative director and editorial copywriter specialized in premium motivational tech visuals.
+
+Analyze this image and understand the intended message behind the design before making any changes.
+
+Your task:
+
+Identify all incorrect English phrases.
+Remove meaningless numbers, random percentages, and unrelated hex codes.
+Rewrite the text so it makes grammatical and conceptual sense.
+Maintain the futuristic, tech, self-development tone of the design.
+Keep the layout balanced — similar text hierarchy and placement.
+Do NOT overcrowd the image.
+Do NOT change the main visual elements (mirror, silhouettes, lighting, colors).
+Replace broken text with refined, natural English that elevates the concept.`,
+                referenceImage: post.mediaUrls[0],
+                aspectRatio: '4:5',
+                businessProfileId: selectedProfile?.id,
+                model: 'gemini',
+                attachLogo: isInnerBoost // Only attach logo for Inner Boost
+            });
+
+            if (response.data.success) {
+                const newImageUrl = response.data.image;
+
+                // Automatically accept and mark as ready
+                await api.put(`/api/library/${post.id}`, {
+                    mediaUrls: [newImageUrl],
+                    tag: 'pronto'
+                });
+
+                toast.success('✨ Refinado com sucesso!', { id: toastId });
+                loadPosts();
+            } else {
+                throw new Error('Falha na geração da imagem');
+            }
+        } catch (error) {
+            console.error('Quick refine error:', error);
+            toast.error('Erro no refinamento rápido', { id: toastId });
+        } finally {
+            setQuickRefiningId(null);
+        }
+    };
+
+    const handleQuickCaption = async (post) => {
+        if (quickCaptionId || !post?.mediaUrls?.[0]) return;
+
+        setQuickCaptionId(post.id);
+        const toastId = toast.loading('🧠 Analisando imagem e gerando legenda...');
+
+        try {
+            const response = await api.post('/api/ai/generate-caption-from-image', {
+                imageUrl: post.mediaUrls[0],
+                profileName: selectedProfile?.name,
+                profileDescription: selectedProfile?.description,
+                guidelines: selectedProfile?.guidelines
+            });
+
+            if (response.data.caption) {
+                // Automatically save the generated caption to the post
+                await api.put(`/api/library/${post.id}`, {
+                    caption: response.data.caption
+                });
+
+                toast.success('✨ Legenda gerada e salva!', { id: toastId });
+                loadPosts(); // Refresh to show the new caption in the card
+            } else {
+                throw new Error('Falha na geração da legenda');
+            }
+        } catch (error) {
+            console.error('Quick caption error:', error);
+            toast.error('Erro ao gerar legenda: ' + (error.response?.data?.error || error.message), { id: toastId });
+        } finally {
+            setQuickCaptionId(null);
+        }
+    };
+
     const handleEditPost = (post) => {
         setSelectedPost(post);
         setEditCaption(post.caption || '');
@@ -289,28 +555,37 @@ export default function LibraryPage() {
         setEditTag(post.tag || 'editar');
         setEditType(post.type || 'static');
         setReplaceFiles([]);
+
+        // Reset refinement states
+        setRefinePrompt('');
+        setRefinedImageUrl(null);
+        setIsRefining(false);
+        setAttachLogoToAI(false);
+
         setShowEditModal(true);
     };
 
     const handleSaveEdit = async () => {
         try {
-            // If there are files to replace, upload them first
-            let updatedMediaUrls = selectedPost.mediaUrls;
-
-            if (replaceFiles.length > 0) {
-                const formData = new FormData();
-                replaceFiles.forEach(file => {
-                    formData.append('files', file);
-                });
-                formData.append('businessProfileId', selectedPost.businessProfileId);
-
-                const uploadResponse = await api.post('/api/library/upload-files', formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                });
-
-                updatedMediaUrls = uploadResponse.data.mediaUrls;
+            // Auto-format check: if image is out of ideal ratio for the selected type, reformat first
+            if (selectedPost?.id && imageDimensions[selectedPost.id]) {
+                const outOfFormat = isOutOfFormat(selectedPost.id, editType);
+                if (outOfFormat) {
+                    toast.loading('📐 Reformatando imagem para o tamanho ideal...', { id: 'auto-format' });
+                    try {
+                        // Temporarily override the type in the DB so the format endpoint uses the right ratio
+                        await api.put(`/api/library/${selectedPost.id}`, { type: editType });
+                        await api.post(`/api/library/${selectedPost.id}/format`);
+                        toast.success('✅ Imagem reformatada automaticamente!', { id: 'auto-format' });
+                        // Reload updated mediaUrls
+                        const updatedDoc = await api.get(`/api/library?businessProfileId=${selectedPost.businessProfileId}`);
+                        const updated = updatedDoc.data.items.find(p => p.id === selectedPost.id);
+                        if (updated) selectedPost.mediaUrls = updated.mediaUrls;
+                    } catch (fmtErr) {
+                        toast.dismiss('auto-format');
+                        console.warn('Auto-format failed, continuing save:', fmtErr.message);
+                    }
+                }
             }
 
             // Update library item with new data
@@ -319,7 +594,7 @@ export default function LibraryPage() {
                 scheduledFor: editScheduledFor || null,
                 tag: editTag,
                 type: editType,
-                mediaUrls: updatedMediaUrls
+                mediaUrls: selectedPost.mediaUrls
             });
 
             toast.success('Conteúdo atualizado!');
@@ -360,6 +635,22 @@ export default function LibraryPage() {
 
         setUploading(true);
         try {
+            // Check for duplicate filenames before uploading
+            const existingNames = posts.map(p => p.originalName || '').filter(Boolean);
+            const duplicateFileNames = selectedFiles
+                .filter(file => existingNames.includes(file.name))
+                .map(file => file.name);
+
+            if (duplicateFileNames.length > 0) {
+                const proceed = window.confirm(
+                    `As seguintes imagens já existem na biblioteca:\n\n${duplicateFileNames.join('\n')}\n\nDeseja carregar assim mesmo?`
+                );
+                if (!proceed) {
+                    setUploading(false);
+                    return;
+                }
+            }
+
             const formData = new FormData();
             selectedFiles.forEach(file => {
                 formData.append('files', file);
@@ -369,13 +660,13 @@ export default function LibraryPage() {
             formData.append('tag', uploadTag);
             formData.append('type', uploadType);
 
-            await api.post('/api/library/upload', formData, {
+            const response = await api.post('/api/library/upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
 
-            toast.success('Upload realizado com sucesso!');
+            toast.success(response.data.message || 'Upload realizado com sucesso!');
             setShowUploadModal(false);
             setSelectedFiles([]);
             setUploadCaption('');
@@ -481,19 +772,35 @@ export default function LibraryPage() {
         return styles[status] || styles.pending;
     };
 
-    const getTagBadgeStyle = (tag) => {
+    const getTagBadgeStyle = (tag: string, isScheduled?: boolean, isPosted?: boolean) => {
+        if (isPosted) {
+            return {
+                background: '#000000',
+                color: '#4ade80', // Green
+                border: '1px solid #22c55e',
+                boxShadow: '0 0 10px rgba(34, 197, 94, 0.2)'
+            };
+        }
+        if (isScheduled) {
+            return {
+                background: '#000000',
+                color: '#a78bfa', // Purple
+                border: '1px solid #8b5cf6',
+                boxShadow: '0 0 10px rgba(139, 92, 246, 0.2)'
+            };
+        }
         if (tag === 'pronto') {
             return {
-                background: '#000000', // Solid black (not translucent)
-                color: '#4ade80', // Green text
+                background: '#000000',
+                color: '#4ade80',
                 border: '1px solid #22c55e',
                 boxShadow: '0 0 10px rgba(34, 197, 94, 0.2)'
             };
         }
         // Default "A Editar"
         return {
-            background: '#000000', // Solid black (not translucent)
-            color: '#60a5fa', // Blue text
+            background: '#000000',
+            color: '#60a5fa',
             border: '1px solid #3b82f6',
             boxShadow: '0 0 10px rgba(59, 130, 246, 0.2)'
         };
@@ -544,6 +851,13 @@ export default function LibraryPage() {
 
     return (
         <div style={{ minHeight: '100vh', padding: '2rem', background: '#000', color: '#fff' }}>
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            `}} />
             <div className="container" style={{ maxWidth: '1400px', margin: '0 auto' }}>
                 <BackButton />
                 <Breadcrumbs />
@@ -794,6 +1108,65 @@ export default function LibraryPage() {
                             <div style={{ textAlign: 'center', padding: '3rem' }}>
                                 <p>Carregando conteúdos...</p>
                             </div>
+                        ) : !selectedProfile ? (
+                            profiles.length === 0 ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '4rem 2rem',
+                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    borderRadius: '0.75rem',
+                                    border: '1px dashed rgba(255, 255, 255, 0.1)',
+                                    marginTop: '2rem'
+                                }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏢</div>
+                                    <h2 style={{ marginBottom: '0.5rem' }}>Nenhum Perfil de Negócio Encontrado</h2>
+                                    <p style={{ color: '#a1a1aa', marginBottom: '1.5rem' }}>Você precisa criar um Perfil de Negócio antes de acessar a Library.</p>
+                                    <button
+                                        onClick={() => router.push('/dashboard/business-profiles')}
+                                        style={{
+                                            padding: '0.75rem 1.5rem',
+                                            background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                            color: '#fff',
+                                            border: 'none',
+                                            borderRadius: '0.5rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                                    >
+                                        Criar Meu Primeiro Perfil
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '4rem 2rem',
+                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    borderRadius: '0.75rem',
+                                    border: '1px dashed rgba(255, 255, 255, 0.1)',
+                                    marginTop: '2rem'
+                                }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📱</div>
+                                    <h2 style={{ marginBottom: '0.5rem' }}>Selecione um Perfil de Negócio</h2>
+                                    <p style={{ color: '#a1a1aa', marginBottom: '1.5rem' }}>Escolha um perfil no seletor do topo da página para visualizar seus conteúdos salvos.</p>
+                                    {/* Automatically select the first profile as a helper if one exists */}
+                                    <button
+                                        onClick={() => setSelectedProfile(profiles[0])}
+                                        style={{
+                                            padding: '0.5rem 1rem',
+                                            background: 'rgba(124, 58, 237, 0.2)',
+                                            border: '1px solid rgba(124, 58, 237, 0.5)',
+                                            borderRadius: '0.5rem',
+                                            color: '#fff',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Selecionar "{profiles[0].name}"
+                                    </button>
+                                </div>
+                            )
                         ) : posts.length === 0 ? (
                             <div style={{
                                 textAlign: 'center',
@@ -807,6 +1180,7 @@ export default function LibraryPage() {
                                 <p style={{ color: '#a1a1aa' }}>Crie seu primeiro post para começar!</p>
                             </div>
                         ) : (
+                            <>
                             <div style={{
                                 display: 'grid',
                                 gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
@@ -851,9 +1225,43 @@ export default function LibraryPage() {
                                                     style={{
                                                         width: '100%',
                                                         height: '240px',
-                                                        objectFit: 'cover'
+                                                        objectFit: 'cover',
+                                                        filter: post.isPosted ? 'blur(2px) brightness(40%)' : 'none',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
+                                                    onLoad={(e) => {
+                                                        const img = e.currentTarget;
+                                                        setImageDimensions(prev => ({
+                                                            ...prev,
+                                                            [post.id]: { w: img.naturalWidth, h: img.naturalHeight }
+                                                        }));
                                                     }}
                                                 />
+                                                {/* Posted Overlay Badge */}
+                                                {post.isPosted && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: '50%',
+                                                        left: '50%',
+                                                        transform: 'translate(-50%, -50%)',
+                                                        background: 'rgba(34, 197, 94, 0.2)',
+                                                        border: '1px solid rgba(34, 197, 94, 0.5)',
+                                                        color: '#4ade80',
+                                                        padding: '0.5rem 1rem',
+                                                        borderRadius: '2rem',
+                                                        fontWeight: 700,
+                                                        fontSize: '1rem',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.5rem',
+                                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+                                                        zIndex: 10,
+                                                        pointerEvents: 'none'
+                                                    }}>
+                                                        <CheckIcon /> Já Postada
+                                                    </div>
+                                                )}
+
                                                 <div style={{
                                                     position: 'absolute',
                                                     top: '0.75rem',
@@ -870,66 +1278,119 @@ export default function LibraryPage() {
                                                 }}>
                                                     {getTypeEmoji(post.type)}
                                                 </div>
-                                                {post.tag && (
+
+                                                {(post.tag || post.isScheduled || post.isPosted) && (
                                                     <div style={{
                                                         position: 'absolute',
                                                         top: '0.75rem',
                                                         right: '0.75rem',
                                                         padding: '0.25rem 0.5rem',
-                                                        borderRadius: '4px',
+                                                        borderRadius: '6px',
                                                         fontSize: '0.7rem',
-                                                        fontWeight: 500,
+                                                        fontWeight: 600,
                                                         display: 'flex',
                                                         alignItems: 'center',
-                                                        gap: '0.25rem',
-                                                        ...getTagBadgeStyle(post.tag)
+                                                        gap: '0.35rem',
+                                                        zIndex: 2,
+                                                        ...getTagBadgeStyle(post.tag, post.isScheduled, post.isPosted)
                                                     }}>
-                                                        {post.tag === 'pronto' ? <><CheckIcon /> Pronto</> : <><PencilIcon /> A Editar</>}
+                                                        {post.isPosted ? (
+                                                            <><CheckIcon /> Publicado</>
+                                                        ) : post.isScheduled ? (
+                                                            <><CalendarIcon /> Agendado</>
+                                                        ) : post.tag === 'pronto' ? (
+                                                            <><CheckIcon /> Pronto</>
+                                                        ) : (
+                                                            <><PencilIcon /> A Editar</>
+                                                        )}
                                                     </div>
+                                                )}
+
+                                                {/* Dimension Badge + Out-of-Format Warning */}
+                                                {imageDimensions[post.id] && (
+                                                    <>
+                                                        {/* WxH badge — bottom left */}
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            bottom: '0.5rem',
+                                                            left: '0.5rem',
+                                                            background: 'rgba(0,0,0,0.72)',
+                                                            backdropFilter: 'blur(4px)',
+                                                            border: '1px solid rgba(255,255,255,0.12)',
+                                                            borderRadius: '4px',
+                                                            padding: '0.2rem 0.45rem',
+                                                            fontSize: '0.65rem',
+                                                            fontWeight: 600,
+                                                            color: '#e4e4e7',
+                                                            letterSpacing: '0.02em',
+                                                            pointerEvents: 'none',
+                                                            fontFamily: 'monospace'
+                                                        }}>
+                                                            {imageDimensions[post.id].w} × {imageDimensions[post.id].h}
+                                                        </div>
+
+                                                        {/* Out-of-format badge + button — bottom right */}
+                                                        {isOutOfFormat(post.id, post.type) && (
+                                                            <div style={{
+                                                                position: 'absolute',
+                                                                bottom: '0.5rem',
+                                                                right: '0.5rem',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.35rem',
+                                                                background: 'rgba(0,0,0,0.82)',
+                                                                backdropFilter: 'blur(4px)',
+                                                                border: '1px solid rgba(251,146,60,0.4)',
+                                                                borderRadius: '6px',
+                                                                padding: '0.2rem 0.4rem 0.2rem 0.35rem',
+                                                                fontSize: '0.62rem',
+                                                                fontWeight: 600,
+                                                                color: '#fb923c',
+                                                            }}>
+                                                                {formattingIds.has(post.id) ? (
+                                                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
+                                                                        Formatando...
+                                                                    </span>
+                                                                ) : (
+                                                                    <>
+                                                                        <span>⚠️</span>
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); handleFormatPost(post); }}
+                                                                            title="Formatar para o tamanho ideal"
+                                                                            style={{
+                                                                                background: 'rgba(251,146,60,0.18)',
+                                                                                border: '1px solid rgba(251,146,60,0.5)',
+                                                                                borderRadius: '4px',
+                                                                                color: '#fb923c',
+                                                                                fontSize: '0.6rem',
+                                                                                fontWeight: 700,
+                                                                                padding: '0.1rem 0.3rem',
+                                                                                cursor: 'pointer',
+                                                                                transition: 'all 0.15s ease',
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center'
+                                                                            }}
+                                                                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(251,146,60,0.35)'; }}
+                                                                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(251,146,60,0.18)'; }}
+                                                                        >
+                                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                                                                                <path d="m5 3 1 1" /><path d="m19 3-1 1" /><path d="m5 21 1-1" /><path d="m19 21-1-1" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         )}
 
                                         {/* Content */}
                                         <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                                            {/* Status Badge */}
-                                            {post.status === 'posted' || post.status === 'success' ? (
-                                                <div style={{
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '0.5rem',
-                                                    padding: '0.35rem 0.75rem',
-                                                    background: 'rgba(34, 197, 94, 0.1)',
-                                                    border: '1px solid rgba(34, 197, 94, 0.2)',
-                                                    borderRadius: '0.5rem',
-                                                    color: '#4ade80',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: 600,
-                                                    marginBottom: '0.75rem',
-                                                    width: 'fit-content'
-                                                }}>
-                                                    <CheckIcon /> Postado {post.postedAt && `em ${formatDate(post.postedAt)}`}
-                                                </div>
-                                            ) : (post.isScheduled || post.status === 'scheduled' || post.status === 'pending') ? (
-                                                <div style={{
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '0.5rem',
-                                                    padding: '0.35rem 0.75rem',
-                                                    background: 'rgba(167, 139, 250, 0.1)',
-                                                    border: '1px solid rgba(167, 139, 250, 0.2)',
-                                                    borderRadius: '0.5rem',
-                                                    color: '#a78bfa',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: 600,
-                                                    marginBottom: '0.75rem',
-                                                    width: 'fit-content'
-                                                }}>
-                                                    <CalendarIcon />
-                                                    {post.scheduledFor ? `Agendado para ${formatDate(post.scheduledFor)}` : 'Agendado'}
-                                                </div>
-                                            ) : null}
-
                                             {/* Caption */}
                                             {post.caption && (
                                                 <p style={{
@@ -948,15 +1409,7 @@ export default function LibraryPage() {
                                             )}
 
                                             {/* Scheduled Date */}
-                                            {post.scheduledFor && (
-                                                <p style={{
-                                                    fontSize: '0.75rem',
-                                                    color: '#a78bfa',
-                                                    marginBottom: '1rem'
-                                                }}>
-                                                    📅 {formatDate(post.scheduledFor)}
-                                                </p>
-                                            )}
+
 
                                             {/* Actions */}
                                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -1015,7 +1468,7 @@ export default function LibraryPage() {
                                                             e.currentTarget.style.color = '#e4e4e7';
                                                         }}
                                                     >
-                                                        <CalendarIcon /> Agendar
+                                                        <CalendarIcon />
                                                     </button>
                                                 )}
 
@@ -1055,6 +1508,128 @@ export default function LibraryPage() {
                                                         {processingPost === post.id ? '⏳' : '🚀'}
                                                     </button>
                                                 )}
+
+                                                {/* Toggle Posted Button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleTogglePosted(post);
+                                                    }}
+                                                    title={post.isPosted ? "Desmarcar como Postado" : "Marcar como Postado"}
+                                                    style={{
+                                                        padding: '0.625rem',
+                                                        background: post.isPosted ? 'rgba(34, 197, 94, 0.1)' : '#27272a',
+                                                        border: post.isPosted ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid #3f3f46',
+                                                        borderRadius: '0.5rem',
+                                                        color: post.isPosted ? '#4ade80' : '#a1a1aa',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 500,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s ease',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        minWidth: '2.5rem'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if (!post.isPosted) {
+                                                            e.currentTarget.style.background = '#3f3f46';
+                                                            e.currentTarget.style.color = '#fff';
+                                                        } else {
+                                                            e.currentTarget.style.background = 'rgba(34, 197, 94, 0.2)';
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (!post.isPosted) {
+                                                            e.currentTarget.style.background = '#27272a';
+                                                            e.currentTarget.style.color = '#a1a1aa';
+                                                        } else {
+                                                            e.currentTarget.style.background = 'rgba(34, 197, 94, 0.1)';
+                                                        }
+                                                    }}
+                                                >
+                                                    {post.isPosted ? <CheckIcon /> : '👁️‍🗨️'}
+                                                </button>
+
+                                                {/* Super Prompt Quick Refine Button */}
+                                                {(selectedProfile?.name?.toLowerCase().includes('inner boost') || true) && (
+                                                    <button
+                                                        onClick={() => handleQuickRefine(post)}
+                                                        disabled={!!quickRefiningId}
+                                                        title="Super Prompt: Corrigir Inglês & Design + Logo"
+                                                        style={{
+                                                            padding: '0.625rem',
+                                                            background: 'rgba(56, 189, 248, 0.1)',
+                                                            border: '1px solid rgba(56, 189, 248, 0.3)',
+                                                            borderRadius: '0.5rem',
+                                                            color: '#38bdf8',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 500,
+                                                            cursor: quickRefiningId ? 'not-allowed' : 'pointer',
+                                                            transition: 'all 0.2s ease',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            minWidth: '2.5rem',
+                                                            opacity: quickRefiningId && quickRefiningId !== post.id ? 0.5 : 1
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (!quickRefiningId) {
+                                                                e.currentTarget.style.background = 'rgba(56, 189, 248, 0.2)';
+                                                                e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+                                                            }
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            if (!quickRefiningId) {
+                                                                e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                                                                e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+                                                            }
+                                                        }}
+                                                    >
+                                                        {quickRefiningId === post.id ? '⏳' : '🪄'}
+                                                    </button>
+                                                )}
+
+                                                {/* Quick Caption Button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleQuickCaption(post);
+                                                    }}
+                                                    disabled={!!quickCaptionId}
+                                                    title="Gerar Legenda com IA"
+                                                    style={{
+                                                        padding: '0.625rem',
+                                                        background: 'rgba(168, 85, 247, 0.1)',
+                                                        border: '1px solid rgba(168, 85, 247, 0.3)',
+                                                        borderRadius: '0.5rem',
+                                                        color: '#d8b4fe',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 500,
+                                                        cursor: quickCaptionId ? 'not-allowed' : 'pointer',
+                                                        transition: 'all 0.2s ease',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        minWidth: '2.5rem',
+                                                        opacity: quickCaptionId && quickCaptionId !== post.id ? 0.5 : 1
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if (!quickCaptionId) {
+                                                            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)';
+                                                            e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.5)';
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (!quickCaptionId) {
+                                                            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.1)';
+                                                            e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.3)';
+                                                        }
+                                                    }}
+                                                >
+                                                    {quickCaptionId === post.id ? '⏳' : '✨'}
+                                                </button>
+
                                                 <button
                                                     onClick={() => handleEditPost(post)}
                                                     style={{
@@ -1144,6 +1719,28 @@ export default function LibraryPage() {
                                     </div>
                                 ))}
                             </div>
+                            {hasMore && (
+                                <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                                    <button
+                                        onClick={() => loadPosts(false)}
+                                        disabled={loadingMore}
+                                        style={{
+                                            padding: '0.75rem 2.5rem',
+                                            background: 'rgba(124, 58, 237, 0.12)',
+                                            border: '1px solid rgba(124, 58, 237, 0.4)',
+                                            borderRadius: '0.5rem',
+                                            color: '#a78bfa',
+                                            fontSize: '0.875rem',
+                                            fontWeight: 600,
+                                            cursor: loadingMore ? 'default' : 'pointer',
+                                            transition: 'all 0.2s ease',
+                                        }}
+                                    >
+                                        {loadingMore ? '⏳ Carregando...' : '+ Carregar mais'}
+                                    </button>
+                                </div>
+                            )}
+                            </>
                         )}
                     </>
                 )}
@@ -1660,68 +2257,220 @@ export default function LibraryPage() {
                                     />
                                 )}
 
-                                {/* Replace Image */}
-                                <div style={{ marginBottom: '1.5rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#a1a1aa' }}>
-                                        🔄 Substituir Imagem(s)
+
+
+                                {/* AI Refinement Section */}
+                                <div style={{
+                                    marginBottom: '1.5rem',
+                                    padding: '1.25rem',
+                                    background: 'rgba(124, 58, 237, 0.05)',
+                                    borderRadius: '0.75rem',
+                                    border: '1px solid rgba(124, 58, 237, 0.2)'
+                                }}>
+                                    <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: 600, color: '#a78bfa' }}>
+                                        ✨ Refinar com IA (Banana Pro)
                                     </label>
-                                    <p style={{ fontSize: '0.75rem', color: '#71717a', marginBottom: '0.75rem' }}>
-                                        Faça upload da versão corrigida para substituir a imagem atual
+                                    <p style={{ fontSize: '0.75rem', color: '#a1a1aa', marginBottom: '0.5rem' }}>
+                                        Descreva ajustes (ex: "Corrigir texto para ...", "Mudar cor de ...")
                                     </p>
-                                    <label style={{
-                                        display: 'block',
-                                        padding: '1rem',
-                                        background: '#27272a',
-                                        border: '2px dashed rgba(124, 58, 237, 0.5)',
-                                        borderRadius: '0.5rem',
-                                        textAlign: 'center',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease'
-                                    }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.borderColor = '#a78bfa';
-                                            e.currentTarget.style.background = 'rgba(124, 58, 237, 0.1)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.5)';
-                                            e.currentTarget.style.background = '#27272a';
-                                        }}
-                                    >
-                                        <input
-                                            type="file"
-                                            multiple
-                                            accept="image/*,video/*"
-                                            onChange={(e) => setReplaceFiles(Array.from(e.target.files || []))}
-                                            style={{ display: 'none' }}
-                                        />
-                                        <div style={{ color: '#a78bfa', fontWeight: 600, marginBottom: '0.25rem' }}>
-                                            {replaceFiles.length > 0
-                                                ? `✓ ${replaceFiles.length} arquivo(s) selecionado(s)`
-                                                : '+ Selecionar Imagens'}
-                                        </div>
-                                        {replaceFiles.length === 0 && (
-                                            <div style={{ fontSize: '0.75rem', color: '#71717a' }}>
-                                                Clique para escolher arquivos
-                                            </div>
-                                        )}
-                                    </label>
-                                    {replaceFiles.length > 0 && (
+
+                                    {/* Preset Prompts */}
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                                         <button
-                                            onClick={() => setReplaceFiles([])}
+                                            onClick={() => setRefinePrompt(`You are a senior creative director and editorial copywriter specialized in premium motivational tech visuals.
+
+Analyze this image and understand the intended message behind the design before making any changes.
+
+Your task:
+
+Identify all incorrect English phrases.
+Remove meaningless numbers, random percentages, and unrelated hex codes.
+Rewrite the text so it makes grammatical and conceptual sense.
+Maintain the futuristic, tech, self-development tone of the design.
+Keep the layout balanced — similar text hierarchy and placement.
+Do NOT overcrowd the image.
+Do NOT change the main visual elements (mirror, silhouettes, lighting, colors).
+Replace broken text with refined, natural English that elevates the concept.`)}
                                             style={{
-                                                marginTop: '0.5rem',
-                                                padding: '0.5rem 1rem',
-                                                background: 'rgba(248, 113, 113, 0.2)',
-                                                border: '1px solid rgba(248, 113, 113, 0.3)',
-                                                borderRadius: '0.375rem',
-                                                color: '#f87171',
+                                                padding: '0.35rem 0.75rem',
+                                                background: 'rgba(56, 189, 248, 0.1)',
+                                                border: '1px solid rgba(56, 189, 248, 0.3)',
+                                                borderRadius: '0.5rem',
+                                                color: '#38bdf8',
                                                 fontSize: '0.75rem',
-                                                fontWeight: 600,
-                                                cursor: 'pointer'
+                                                fontWeight: 500,
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.25rem'
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = 'rgba(56, 189, 248, 0.2)';
+                                                e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                                                e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.3)';
                                             }}
                                         >
-                                            Limpar seleção
+                                            🪄 Super Prompt: Corrigir Inglês & Design
                                         </button>
+                                    </div>
+
+                                    {/* Checklist/Toggle para a Logo Inner Boost */}
+                                    {selectedProfile?.name?.toLowerCase().includes('inner boost') && (
+                                        <div
+                                            onClick={() => setAttachLogoToAI(!attachLogoToAI)}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.75rem',
+                                                padding: '0.75rem 1rem',
+                                                background: attachLogoToAI
+                                                    ? 'linear-gradient(135deg, rgba(0, 112, 243, 0.15) 0%, rgba(0, 200, 150, 0.15) 100%)'
+                                                    : 'rgba(255, 255, 255, 0.03)',
+                                                border: attachLogoToAI
+                                                    ? '1px solid rgba(0, 200, 150, 0.4)'
+                                                    : '1px solid rgba(255, 255, 255, 0.1)',
+                                                borderRadius: '0.5rem',
+                                                marginBottom: '1rem',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            <div style={{
+                                                width: '18px',
+                                                height: '18px',
+                                                borderRadius: '4px',
+                                                border: attachLogoToAI ? 'none' : '2px solid rgba(255, 255, 255, 0.3)',
+                                                background: attachLogoToAI ? '#0070f3' : 'transparent',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                {attachLogoToAI && <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>✓</span>}
+                                            </div>
+                                            <img src="/logos/inner-boost-logo.png" alt="" style={{ width: '18px', height: '18px', borderRadius: '50%' }} />
+                                            <span style={{ fontSize: '0.875rem', color: attachLogoToAI ? '#67e8f9' : '#a1a1aa', fontWeight: attachLogoToAI ? 600 : 400 }}>
+                                                Anexar Logo Inner Boost na imagem
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                                        <input
+                                            type="text"
+                                            value={refinePrompt}
+                                            onChange={(e) => setRefinePrompt(e.target.value)}
+                                            placeholder="Ex: Corrigir o texto para 'Novo Título'... (Opcional se anexar logo)"
+                                            style={{
+                                                flex: 1,
+                                                padding: '0.75rem',
+                                                background: '#18181b',
+                                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                                borderRadius: '0.5rem',
+                                                color: '#fff',
+                                                fontSize: '0.875rem'
+                                            }}
+                                        />
+                                        <button
+                                            onClick={handleRefineImage}
+                                            disabled={isRefining || (!refinePrompt && !attachLogoToAI)}
+                                            style={{
+                                                padding: '0.75rem 1.25rem',
+                                                background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                                border: 'none',
+                                                borderRadius: '0.5rem',
+                                                color: '#fff',
+                                                fontSize: '0.875rem',
+                                                fontWeight: 600,
+                                                cursor: (isRefining || !refinePrompt) ? 'not-allowed' : 'pointer',
+                                                opacity: (isRefining || !refinePrompt) ? 0.6 : 1,
+                                                whiteSpace: 'nowrap'
+                                            }}
+                                        >
+                                            {isRefining ? '⏳ Processando...' : '🚀 Refinar'}
+                                        </button>
+                                    </div>
+
+                                    {refinedImageUrl && (
+                                        <div style={{ marginTop: '1rem' }}>
+                                            <p style={{ fontSize: '0.875rem', color: '#fff', marginBottom: '0.75rem', fontWeight: 600 }}>
+                                                Nova versão gerada:
+                                            </p>
+                                            <div style={{ position: 'relative' }}>
+                                                <img
+                                                    src={refinedImageUrl}
+                                                    alt="Refined Preview"
+                                                    style={{
+                                                        width: '100%',
+                                                        height: 'auto',
+                                                        borderRadius: '0.5rem',
+                                                        border: '2px solid #7c3aed'
+                                                    }}
+                                                />
+                                                <div style={{
+                                                    display: 'flex',
+                                                    gap: '0.75rem',
+                                                    marginTop: '1rem',
+                                                    flexWrap: 'wrap'
+                                                }}>
+                                                    <button
+                                                        onClick={handleAcceptRefinedImage}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: '0.75rem',
+                                                            background: '#22c55e',
+                                                            border: 'none',
+                                                            borderRadius: '0.5rem',
+                                                            color: '#fff',
+                                                            fontSize: '0.875rem',
+                                                            fontWeight: 600,
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        ✅ Usar esta versão
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedPost({
+                                                                ...selectedPost,
+                                                                mediaUrls: [refinedImageUrl]
+                                                            });
+                                                            setRefinedImageUrl(null);
+                                                            setRefinePrompt('');
+                                                        }}
+                                                        style={{
+                                                            padding: '0.75rem 1rem',
+                                                            background: '#7c3aed',
+                                                            border: 'none',
+                                                            borderRadius: '0.5rem',
+                                                            color: '#fff',
+                                                            fontSize: '0.875rem',
+                                                            fontWeight: 600,
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        ✏️ Editar esta imagem
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setRefinedImageUrl(null)}
+                                                        style={{
+                                                            padding: '0.75rem 1rem',
+                                                            background: 'rgba(255, 255, 255, 0.1)',
+                                                            border: 'none',
+                                                            borderRadius: '0.5rem',
+                                                            color: '#fff',
+                                                            fontSize: '0.875rem',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        Descartar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
 

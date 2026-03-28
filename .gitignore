@@ -2,6 +2,13 @@
 node_modules/
 .venv/
 __pycache__/
+.next/
+.next*
+**/.next*
+**/*_stale_*
+.cache/
+dist/
+build/
 
 # System
 .DS_Store
@@ -20,6 +27,8 @@ yarn-error.log*
 # IDE
 .vscode/
 .idea/
+*.swp
+*.tsbuildinfo
 
 # Debug scripts
 backend/debug-*.js

@@ -15,14 +15,14 @@ export default function UploadManagerPage() {
     const { profiles, selectedProfile, setSelectedProfile } = useBusinessProfile();
     const router = useRouter();
 
-    const handleFileSelect = (e) => {
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            const newFiles = Array.from(e.target.files).map(file => ({
+            const newFiles = Array.from(e.target.files).map((file: File) => ({
                 file,
                 preview: URL.createObjectURL(file),
                 type: file.type.startsWith('video') ? 'video' : 'image'
             }));
-            setFiles(prev => [...prev, ...newFiles]);
+            setFiles((prev: any) => [...prev, ...newFiles] as any);
         }
     };
 
@@ -64,6 +64,26 @@ export default function UploadManagerPage() {
 
         try {
             const filesToUpload = files.filter((_, i) => selectedIndices.includes(i));
+
+            // Fetch existing items for filename duplicate check
+            const existingRes = await api.get(`/api/library?businessProfileId=${selectedProfile.id}`);
+            const existingItems = existingRes.data || [];
+            const existingNames = existingItems.map(item => item.originalName || '').filter(Boolean);
+
+            const duplicateFileNames = filesToUpload
+                .filter(f => existingNames.includes(f.file.name))
+                .map(f => f.file.name);
+
+            if (duplicateFileNames.length > 0) {
+                const proceed = window.confirm(
+                    `As seguintes imagens já existem na biblioteca deste perfil:\n\n${duplicateFileNames.join('\n')}\n\nDeseja carregar assim mesmo?`
+                );
+                if (!proceed) {
+                    toast.dismiss(toastId);
+                    setUploading(false);
+                    return;
+                }
+            }
 
             // If sending as individual items
             if (!asCarousel) {

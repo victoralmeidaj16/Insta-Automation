@@ -15,7 +15,7 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
     try {
-        const { accountId, type, mediaUrls, caption, scheduledFor } = req.body;
+        const { accountId, type, mediaUrls, caption, scheduledFor, libraryItemId } = req.body;
         console.log('📝 Criando post:', { accountId, type, mediaUrlsCount: mediaUrls?.length, caption });
 
         if (!accountId || !type || !mediaUrls || !Array.isArray(mediaUrls)) {
@@ -36,6 +36,7 @@ router.post('/', async (req, res) => {
             mediaUrls,
             caption,
             scheduledFor,
+            libraryItemId,
         });
 
         // Se for imediato, executar agora (sem fila Redis para simplificar)

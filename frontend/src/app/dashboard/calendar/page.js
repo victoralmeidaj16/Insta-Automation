@@ -83,9 +83,9 @@ export default function CalendarPage() {
                 params: { businessProfileId: selectedProfile.id }
             });
 
-            // Filter for 'pronto' items
+            // Filter for 'pronto' items and exclude already posted ones
             const readyItems = res.data
-                .filter(item => item.tag === 'pronto')
+                .filter(item => item.tag === 'pronto' && !item.isPosted && item.status !== 'posted')
                 .map(item => ({
                     id: item.id,
                     type: item.type,
@@ -94,7 +94,8 @@ export default function CalendarPage() {
                     thumbnail: item.mediaUrls[0] || '', // Ensure thumbnail exists
                     isLibraryItem: true,
                     status: item.status, // 'available', 'scheduled', 'posted'
-                    isScheduled: item.isScheduled
+                    isScheduled: item.isScheduled,
+                    isPosted: item.isPosted
                 }));
 
             console.log('📚 Library items loaded:', readyItems.length);

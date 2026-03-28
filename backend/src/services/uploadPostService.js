@@ -3,6 +3,7 @@ import FormData from 'form-data';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import sharp from 'sharp';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '../../.env') });
@@ -19,6 +20,7 @@ const apiClient = axios.create({
     headers: {
         'Authorization': `Apikey ${API_KEY}`,
     },
+    timeout: 60000, // 60 segundos de timeout para evitar travamentos
 });
 
 /**
@@ -41,7 +43,21 @@ export async function uploadVideo(username, platform, videoUrl, title, caption, 
         const formData = new FormData();
         formData.append('user', username);  // Changed from 'username' to 'user'
         formData.append('platform[]', platform);  // Use platform[] for array
-        formData.append('video', videoUrl);
+
+        console.log(`📥 Downloading video from ${videoUrl.substring(0, 50)}...`);
+        const videoResponse = await axios.get(videoUrl, { responseType: 'arraybuffer', timeout: 30000 });
+        const videoBuffer = Buffer.from(videoResponse.data);
+        const contentType = videoResponse.headers['content-type'] || 'video/mp4';
+
+        let filename = 'video.mp4';
+        try {
+            const urlObj = new URL(videoUrl);
+            const basename = path.basename(urlObj.pathname);
+            if (basename && basename.includes('.')) filename = basename;
+        } catch (e) { }
+
+        formData.append('video', videoBuffer, { filename, contentType });
+
         formData.append('title', title || 'New Video');
         formData.append('description', caption || '');
 
@@ -93,10 +109,54 @@ export async function uploadPhotos(username, platform, photoUrls, title, caption
         formData.append('user', username);  // Changed from 'username' to 'user'
         formData.append('platform[]', platform);  // Use platform[] for array
 
-        // For photos, add each URL as photos[]
-        photoUrls.forEach(url => {
-            formData.append('photos[]', url);
-        });
+        // For photos, download each file and add as buffer
+        for (let i = 0; i < photoUrls.length; i++) {
+            const url = photoUrls[i];
+            console.log(`📥 Downloading photo ${i + 1}/${photoUrls.length} from ${url.substring(0, 50)}...`);
+            const photoResponse = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000 });
+            let photoBuffer = Buffer.from(photoResponse.data);
+
+            // Detect original format from Content-Type header
+            const originalContentType = photoResponse.headers['content-type'] || 'image/jpeg';
+            const isOriginallyPng = originalContentType.includes('png');
+
+            // Format for upload-post.com with maximum quality preservation
+            try {
+                const metadata = await sharp(photoBuffer).metadata();
+                let sharpInstance = sharp(photoBuffer);
+
+                // Instagram max usable width is 1350px (for 4:5 feed posts).
+                // Resize only if wider, preserving aspect ratio.
+                const MAX_WIDTH = 1350;
+                if (metadata.width > MAX_WIDTH) {
+                    console.log(`📐 Resizing from ${metadata.width}px to max ${MAX_WIDTH}px width...`);
+                    sharpInstance = sharpInstance.resize({ width: MAX_WIDTH, withoutEnlargement: true });
+                } else {
+                    console.log(`✅ Image width (${metadata.width}px) is within limit. No resize needed.`);
+                }
+
+                if (isOriginallyPng) {
+                    // Keep as PNG — lossless, no quality degradation
+                    console.log(`🖼️ Original is PNG — preserving lossless format...`);
+                    photoBuffer = await sharpInstance
+                        .png({ compressionLevel: 6, effort: 7 })
+                        .toBuffer();
+                } else {
+                    // JPEG: use quality 100 with mozjpeg encoder for best compression without visible loss
+                    console.log(`🖼️ Processing as JPEG at quality 100 (mozjpeg)...`);
+                    photoBuffer = await sharpInstance
+                        .jpeg({ quality: 100, mozjpeg: true })
+                        .toBuffer();
+                }
+            } catch (sharpError) {
+                console.warn(`⚠️ Failed to process image with sharp, sending original buffer:`, sharpError.message);
+            }
+
+            const contentType = isOriginallyPng ? 'image/png' : 'image/jpeg';
+            let filename = `photo_${i}.${isOriginallyPng ? 'png' : 'jpg'}`;
+
+            formData.append('photos[]', photoBuffer, { filename, contentType });
+        }
 
         formData.append('title', title || 'New Post');
         formData.append('description', caption || '');
@@ -138,6 +198,22 @@ export async function cancelScheduledPost(jobId) {
     } catch (error) {
         console.error('❌ Job cancellation failed:', error.response?.data || error.message);
         // We don't throw here to allow the local deletion to proceed even if external cancel fails
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Checks the status of a scheduled post in the Upload-Post API
+ * @param {string} jobId - The job ID to check
+ * @returns {Promise<Object>} - API Response containing status
+ */
+export async function checkJobStatus(jobId) {
+    try {
+        console.log(`🔍 Checking status for job ${jobId} in Upload-Post...`);
+        const response = await apiClient.get(`/uploadposts/status?job_id=${jobId}`);
+        return response.data;
+    } catch (error) {
+        console.error(`❌ Failed to check job ${jobId} status:`, error.response?.data || error.message);
         return { success: false, error: error.message };
     }
 }

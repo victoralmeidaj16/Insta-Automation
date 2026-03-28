@@ -4,7 +4,7 @@ const nextConfig = {
         unoptimized: true, // Necessário para exportação estática
         domains: ['storage.googleapis.com', 'firebasestorage.googleapis.com'],
     },
-    output: 'export',
+
 };
 
 export default nextConfig;

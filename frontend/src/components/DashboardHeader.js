@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import ProfileSwitcher from './ProfileSwitcher';
 
 export default function DashboardHeader() {
     const pathname = usePathname();
+    const router = useRouter();
 
     const navItems = [
         { href: '/dashboard', label: 'Dashboard', icon: '📊' },
@@ -128,6 +129,7 @@ export default function DashboardHeader() {
                         cursor: 'pointer',
                         transition: 'transform 0.2s',
                     }}
+                        onClick={() => router.push('/dashboard/business-profiles')}
                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >

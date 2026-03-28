@@ -24,15 +24,19 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, description, branding, aiPreferences, targetAudience, productService } = req.body;
+        const { name, description, branding, aiPreferences, targetAudience, productService, contentStrategy, brandContext, brandKey, brandKit } = req.body;
 
         const profile = await createBusinessProfile(req.userId, {
             name,
             description,
             branding,
             aiPreferences,
-            targetAudience, // Add field
-            productService  // Add field
+            targetAudience,
+            productService,
+            contentStrategy,
+            brandContext,
+            brandKey,
+            brandKit
         });
 
         res.json({
@@ -113,15 +117,21 @@ router.put('/:id', async (req, res) => {
             });
         }
 
-        const { name, description, branding, aiPreferences, targetAudience, productService } = req.body;
+        const { name, description, branding, aiPreferences, targetAudience, productService, contentStrategy, brandContext, brandKey, brandKit } = req.body;
+        console.log('🔄 [DEBUG] PUT /:id - Body:', JSON.stringify(req.body, null, 2));
+        console.log('🔄 [DEBUG] Content Strategy received:', contentStrategy);
         const updates = {};
 
         if (name !== undefined) updates.name = name;
         if (description !== undefined) updates.description = description;
-        if (targetAudience !== undefined) updates.targetAudience = targetAudience; // Update field
-        if (productService !== undefined) updates.productService = productService; // Update field
+        if (brandKey !== undefined) updates.brandKey = brandKey;
+        if (brandContext !== undefined) updates.brandContext = brandContext;
+        if (targetAudience !== undefined) updates.targetAudience = targetAudience;
+        if (productService !== undefined) updates.productService = productService;
+        if (contentStrategy !== undefined) updates.contentStrategy = contentStrategy;
         if (branding !== undefined) updates.branding = { ...profile.branding, ...branding };
         if (aiPreferences !== undefined) updates.aiPreferences = { ...profile.aiPreferences, ...aiPreferences };
+        if (brandKit !== undefined) updates.brandKit = { ...(profile.brandKit || {}), ...brandKit };
 
         await updateBusinessProfile(id, updates);
 

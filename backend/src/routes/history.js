@@ -13,7 +13,7 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
     try {
-        const { mode, prompt, aspectRatio, images, prompts, businessProfileId } = req.body;
+        const { mode, prompt, aspectRatio, images, prompts, businessProfileId, caption } = req.body;
 
         console.log('💾 Salvando no histórico:', { userId: req.userId, mode, imagesCount: images?.length });
 
@@ -44,6 +44,7 @@ router.post('/', async (req, res) => {
             images,
             prompts,
             businessProfileId,
+            caption,
         });
 
         res.status(201).json({

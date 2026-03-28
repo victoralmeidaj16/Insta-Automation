@@ -26,7 +26,7 @@ const upload = multer({
 /**
  * POST /api/upload - Upload de mídia(s) para Firebase Storage
  */
-router.post('/', upload.array('files', 10), async (req, res) => {
+router.post('/', upload.array('files', 50), async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({
@@ -55,10 +55,10 @@ router.post('/', upload.array('files', 10), async (req, res) => {
             await fileUpload.makePublic();
 
             // Gerar URL pública
-            // Gerar URL pública (formato Firebase Storage)
-            // Ex: https://firebasestorage.googleapis.com/v0/b/[BUCKET]/o/[PATH]?alt=media
-            const encodedPath = encodeURIComponent(fileName);
-            const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${storage.name}/o/${encodedPath}?alt=media`;
+            // Gerar URL pública (formato Google Cloud Storage)
+            // Isso permite que serviços externos (como upload-post.com) baixem a imagem
+            // sem precisar de um token de verificação do Firebase Rules, pois acabamos de usar makePublic().
+            const publicUrl = `https://storage.googleapis.com/${storage.name}/${fileName}`;
 
             uploadedUrls.push(publicUrl);
 

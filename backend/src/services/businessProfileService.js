@@ -1,4 +1,5 @@
 import { db } from '../config/firebase.js';
+import { mergeBrandProfileDefaults, normalizeBrandKey } from '../utils/brandProfiles.js';
 
 /**
  * Business Profile Service
@@ -13,7 +14,12 @@ import { db } from '../config/firebase.js';
  */
 export async function createBusinessProfile(userId, profileData) {
     try {
-        const { name, description, instagram, branding, aiPreferences } = profileData;
+        const normalizedProfile = mergeBrandProfileDefaults({
+            ...profileData,
+            brandKey: profileData.brandKey || normalizeBrandKey(profileData)
+        });
+
+        const { name, description, instagram, branding, aiPreferences, brandKey, brandKit } = normalizedProfile;
 
         // Validate required fields
         if (!name || !userId) {
@@ -24,8 +30,11 @@ export async function createBusinessProfile(userId, profileData) {
             userId,
             name,
             description: description || '',
-            targetAudience: profileData.targetAudience || '',
-            productService: profileData.productService || '',
+            brandKey: brandKey || '',
+            brandContext: normalizedProfile.brandContext || '',
+            contentStrategy: normalizedProfile.contentStrategy || '',
+            targetAudience: normalizedProfile.targetAudience || '',
+            productService: normalizedProfile.productService || '',
             instagram: {
                 username: instagram?.username || '',
                 password: instagram?.password || '' // TODO: Encrypt password before storing
@@ -44,6 +53,7 @@ export async function createBusinessProfile(userId, profileData) {
                 promptTemplate: aiPreferences?.promptTemplate || '',
                 favoritePrompts: aiPreferences?.favoritePrompts || []
             },
+            brandKit: brandKit || {},
             createdAt: new Date(),
             updatedAt: new Date()
         };
@@ -75,10 +85,10 @@ export async function getBusinessProfiles(userId) {
 
         const profiles = [];
         snapshot.forEach(doc => {
-            profiles.push({
+            profiles.push(mergeBrandProfileDefaults({
                 id: doc.id,
                 ...doc.data()
-            });
+            }));
         });
 
         // Sort in JavaScript instead of Firestore
@@ -108,10 +118,10 @@ export async function getBusinessProfile(profileId) {
             throw new Error('Business profile not found');
         }
 
-        return {
+        return mergeBrandProfileDefaults({
             id: doc.id,
             ...doc.data()
-        };
+        });
     } catch (error) {
         console.error('❌ Error fetching business profile:', error);
         throw error;
