@@ -113,8 +113,9 @@ export default function CalendarPage() {
             const res = await api.get('/api/posts', {
                 params: { businessProfileId: selectedProfile.id }
             });
-            // Status correto é 'pending' para posts agendados
-            const scheduledPosts = res.data.posts.filter(p => p.status === 'pending' || p.status === 'scheduled' || p.status === 'success');
+            const scheduledPosts = res.data.posts.filter(p =>
+                p.status === 'scheduled' || p.status === 'processing' || p.status === 'success' || p.status === 'pending'
+            );
             console.log('📋 Posts agendados carregados:', scheduledPosts.length);
             setPosts(scheduledPosts);
         } catch (error) {
@@ -249,7 +250,7 @@ export default function CalendarPage() {
             await api.post('/api/posts', postData);
 
             if (immediate) {
-                toast.success('Post enviado para a fila de execução!');
+                toast.success('Post enviado ao Upload-Post!');
             } else {
                 toast.success('Agendado com sucesso!');
             }
@@ -548,6 +549,7 @@ export default function CalendarPage() {
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                                     {postsForDate.map(post => {
                                                         const isPosted = post.status === 'success';
+                                                        const isInFlight = post.status === 'processing';
                                                         return (
                                                             <div
                                                                 key={post.id}
@@ -555,9 +557,9 @@ export default function CalendarPage() {
                                                                 style={{
                                                                     fontSize: '0.65rem',
                                                                     padding: '0.25rem',
-                                                                    background: isPosted ? 'rgba(34, 197, 94, 0.2)' : 'rgba(142, 68, 173, 0.3)',
+                                                                    background: isPosted ? 'rgba(34, 197, 94, 0.2)' : isInFlight ? 'rgba(251, 191, 36, 0.18)' : 'rgba(142, 68, 173, 0.3)',
                                                                     borderRadius: 'var(--radius-sm)',
-                                                                    borderLeft: isPosted ? '3px solid #22c55e' : '3px solid #8e44ad',
+                                                                    borderLeft: isPosted ? '3px solid #22c55e' : isInFlight ? '3px solid #f59e0b' : '3px solid #8e44ad',
                                                                     overflow: 'hidden',
                                                                     display: 'flex',
                                                                     alignItems: 'center',
@@ -567,14 +569,14 @@ export default function CalendarPage() {
                                                                     opacity: isPosted ? 0.8 : 1
                                                                 }}
                                                                 onMouseEnter={(e) => {
-                                                                    e.currentTarget.style.background = isPosted ? 'rgba(34, 197, 94, 0.3)' : 'rgba(142, 68, 173, 0.5)';
+                                                                    e.currentTarget.style.background = isPosted ? 'rgba(34, 197, 94, 0.3)' : isInFlight ? 'rgba(251, 191, 36, 0.28)' : 'rgba(142, 68, 173, 0.5)';
                                                                     e.currentTarget.style.transform = 'scale(1.02)';
                                                                 }}
                                                                 onMouseLeave={(e) => {
-                                                                    e.currentTarget.style.background = isPosted ? 'rgba(34, 197, 94, 0.2)' : 'rgba(142, 68, 173, 0.3)';
+                                                                    e.currentTarget.style.background = isPosted ? 'rgba(34, 197, 94, 0.2)' : isInFlight ? 'rgba(251, 191, 36, 0.18)' : 'rgba(142, 68, 173, 0.3)';
                                                                     e.currentTarget.style.transform = 'scale(1)';
                                                                 }}
-                                                                title={isPosted ? "Postado" : "Agendado: " + post.caption}
+                                                                title={isPosted ? "Postado" : isInFlight ? "Enviado ao Upload-Post" : "Agendado: " + post.caption}
                                                             >
                                                                 {/* Thumbnail */}
                                                                 {post.mediaUrls && post.mediaUrls[0] && (
@@ -634,10 +636,23 @@ export default function CalendarPage() {
                                                                             <span>✅ Postado</span>
                                                                         </div>
                                                                     )}
+                                                                    {isInFlight && (
+                                                                        <div style={{
+                                                                            fontSize: '0.55rem',
+                                                                            fontWeight: '700',
+                                                                            color: '#fbbf24',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '2px',
+                                                                            marginTop: '2px'
+                                                                        }}>
+                                                                            <span>⏳ Em processamento</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
 
                                                                 {/* Quick Delete "x" */}
-                                                                {!isPosted && (
+                                                                {!isPosted && !isInFlight && (
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
@@ -880,7 +895,7 @@ export default function CalendarPage() {
                                     className="input"
                                     value={editData.type}
                                     onChange={(e) => setEditData({ ...editData, type: e.target.value })}
-                                    disabled={editingPost.status === 'success'}
+                                    disabled={editingPost.status === 'success' || editingPost.status === 'processing'}
                                 >
                                     <option value="static">📸 Post Estático (1 imagem)</option>
                                     <option value="carousel">🎠 Carrossel (múltiplas imagens)</option>
@@ -897,7 +912,7 @@ export default function CalendarPage() {
                                     className="input"
                                     value={editData.time}
                                     onChange={(e) => setEditData({ ...editData, time: e.target.value })}
-                                    disabled={editingPost.status === 'success'}
+                                    disabled={editingPost.status === 'success' || editingPost.status === 'processing'}
                                 />
                             </div>
 
@@ -908,12 +923,12 @@ export default function CalendarPage() {
                                     value={editData.caption}
                                     onChange={(e) => setEditData({ ...editData, caption: e.target.value })}
                                     rows={4}
-                                    disabled={editingPost.status === 'success'}
+                                    disabled={editingPost.status === 'success' || editingPost.status === 'processing'}
                                 />
                             </div>
 
                             <div className="flex gap-md mt-lg">
-                                {editingPost.status === 'success' ? (
+                                {editingPost.status === 'success' || editingPost.status === 'processing' ? (
                                     <div style={{
                                         width: '100%',
                                         padding: '1rem',
@@ -925,7 +940,9 @@ export default function CalendarPage() {
                                         textAlign: 'center',
                                         fontWeight: '500'
                                     }}>
-                                        ✨ Este post já foi publicado e não pode ser alterado.
+                                        {editingPost.status === 'processing'
+                                            ? '⏳ Este post já foi entregue ao Upload-Post e não deve mais ser alterado localmente.'
+                                            : '✨ Este post já foi publicado e não pode ser alterado.'}
                                     </div>
                                 ) : (
                                     <>

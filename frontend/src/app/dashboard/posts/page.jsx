@@ -12,7 +12,7 @@ export default function PostsPage() {
     const [posts, setPosts] = useState([]);
     const [accounts, setAccounts] = useState([]);
     const [selectedAccount, setSelectedAccount] = useState(null); // null = selection screen, 'all' = all accounts, id = specific account
-    const [filter, setFilter] = useState('all'); // 'all', 'pending', 'processing', 'success', 'error', 'calendar'
+    const [filter, setFilter] = useState('all'); // 'all', 'scheduled', 'processing', 'success', 'error', 'calendar'
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -83,6 +83,7 @@ export default function PostsPage() {
 
     const getStatusBadge = (status) => {
         const badges = {
+            scheduled: 'badge-pending',
             pending: 'badge-pending',
             processing: 'badge-warning',
             success: 'badge-success',
@@ -186,7 +187,7 @@ export default function PostsPage() {
                     </div>
 
                     <div className="flex gap-sm">
-                        {['all', 'pending', 'processing', 'success', 'error', 'calendar'].map(f => (
+                        {['all', 'scheduled', 'processing', 'success', 'error', 'calendar'].map(f => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
@@ -261,7 +262,7 @@ export default function PostsPage() {
                                     </p>
                                 )}
 
-                                {post.scheduledFor && post.status === 'pending' && (
+                                {post.scheduledFor && (post.status === 'pending' || post.status === 'scheduled') && (
                                     <p style={{ fontSize: '0.75rem', color: 'var(--accent-warning)', marginBottom: '1rem' }}>
                                         📅 Agendado: {formatDate(post.scheduledFor)}
                                     </p>
@@ -274,7 +275,7 @@ export default function PostsPage() {
                                 )}
 
                                 <div className="flex gap-sm">
-                                    {(post.status === 'pending' || post.status === 'error') && (
+                                    {(post.status === 'pending' || post.status === 'scheduled' || post.status === 'error') && (
                                         <button
                                             onClick={() => handleDelete(post.id)}
                                             className="btn btn-danger"

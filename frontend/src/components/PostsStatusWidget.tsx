@@ -23,58 +23,64 @@ export default function PostsStatusWidget() {
     const { selectedProfile } = useBusinessProfile();
 
     useEffect(() => {
+        const loadStats = async () => {
+            try {
+                const res = await api.get('/api/posts', {
+                    params: selectedProfile ? { businessProfileId: selectedProfile.id } : undefined
+                });
+                const allPosts = res.data.posts || [];
+                const posts = selectedProfile
+                    ? allPosts.filter(p => p.businessProfileId === selectedProfile.id)
+                    : allPosts;
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const todayScheduled = posts.filter(p => {
+                    if (!p.scheduledFor) return false;
+                    const postDate = new Date(p.scheduledFor);
+                    postDate.setHours(0, 0, 0, 0);
+                    return postDate.getTime() === today.getTime() && (p.status === 'scheduled' || p.status === 'pending');
+                }).length;
+
+                const todayPublished = posts.filter(p => {
+                    const sourceDate = p.postedAt || p.executedAt;
+                    if (!sourceDate) return false;
+                    const postDate = new Date(sourceDate);
+                    postDate.setHours(0, 0, 0, 0);
+                    return postDate.getTime() === today.getTime() && p.status === 'success';
+                }).length;
+
+                const futurePosts = posts
+                    .filter(p => p.scheduledFor && new Date(p.scheduledFor) > new Date() && (p.status === 'scheduled' || p.status === 'pending'))
+                    .sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
+
+                const nextPostTime = futurePosts.length > 0
+                    ? new Date(futurePosts[0].scheduledFor).toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                    : null;
+
+                setStats({
+                    todayScheduled,
+                    todayPublished,
+                    nextPostTime,
+                    totalPending: posts.filter(p => p.status === 'scheduled' || p.status === 'pending').length
+                });
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         loadStats();
 
         // Refresh every 60 seconds
         const interval = setInterval(loadStats, 60000);
         return () => clearInterval(interval);
     }, [selectedProfile]);
-
-    const loadStats = async () => {
-        try {
-            const res = await api.get('/api/posts');
-            const posts = res.data.posts || [];
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            const todayScheduled = posts.filter(p => {
-                if (!p.scheduledFor) return false;
-                const postDate = new Date(p.scheduledFor);
-                postDate.setHours(0, 0, 0, 0);
-                return postDate.getTime() === today.getTime() && p.status === 'pending';
-            }).length;
-
-            const todayPublished = posts.filter(p => {
-                if (!p.executedAt) return false;
-                const postDate = new Date(p.executedAt);
-                postDate.setHours(0, 0, 0, 0);
-                return postDate.getTime() === today.getTime() && p.status === 'success';
-            }).length;
-
-            const futurePosts = posts
-                .filter(p => p.scheduledFor && new Date(p.scheduledFor) > new Date() && p.status === 'pending')
-                .sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
-
-            const nextPostTime = futurePosts.length > 0
-                ? new Date(futurePosts[0].scheduledFor).toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                })
-                : null;
-
-            setStats({
-                todayScheduled,
-                todayPublished,
-                nextPostTime,
-                totalPending: posts.filter(p => p.status === 'pending').length
-            });
-        } catch (error) {
-            console.error('Error loading stats:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     if (loading) {
         return (

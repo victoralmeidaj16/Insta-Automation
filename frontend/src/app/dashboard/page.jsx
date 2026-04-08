@@ -112,9 +112,9 @@ export default function DashboardPage() {
                             <p>Gerar imagens com IA e agendar posts</p>
                         </Link>
 
-                        <Link href="/dashboard/create-post" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-                            <h3>📸 Criar Post</h3>
-                            <p>Novo post estático, carrossel, vídeo, story ou reel</p>
+                        <Link href="/dashboard/library" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <h3>📚 Library</h3>
+                            <p>Revisar, editar e reaproveitar conteúdos salvos</p>
                         </Link>
 
                         <Link href="/dashboard/posts" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
