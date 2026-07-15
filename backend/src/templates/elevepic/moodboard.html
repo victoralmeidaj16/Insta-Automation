@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElevePic — Moodboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --cream:  #f5f0e8;
+  --sand:   #d4c9b0;
+  --bone:   #e8e0d0;
+  --ink:    #0f0d0b;
+  --ink2:   #1c1a17;
+  --rust:   #b85c38;
+  --forest: #2d4a3e;
+  --gold:   #3b82f6;
+  --gold-l: #93c5fd;
+  --serif:  'Cormorant Garamond', serif;
+  --sans:   'DM Sans', sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; overflow: hidden;
+}
+
+/* ─── WRAPPER ─── */
+.carousel-wrap {
+  width: 420px; height: 100vh;
+  position: relative; overflow: hidden;
+  background: var(--ink);
+}
+
+/* ─── SLIDE BASE ─── */
+.slide {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none;
+  overflow: hidden;
+}
+.slide.active  { opacity: 1; pointer-events: all; }
+.slide.exit    { opacity: 0; }
+
+/* ─── NOISE TEXTURE OVERLAY ─── */
+.noise {
+  position: absolute; inset: 0; z-index: 50;
+  opacity: 0.025; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px;
+}
+
+/* ─── TOP BAR ─── */
+.top-bar {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: 22px 26px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  z-index: 40;
+}
+.brand {
+  display: flex; align-items: center; gap: 6px;
+}
+.brand-mark {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: #fff; font-weight: 800;
+}
+.brand-name {
+  font-family: var(--serif);
+  font-size: 15px; font-weight: 600;
+  color: var(--cream); letter-spacing: 0.3px;
+}
+.slide-num {
+  font-size: 10px; font-weight: 500;
+  color: rgba(245,240,232,0.35);
+  letter-spacing: 2px;
+}
+
+/* ─── POLAROID FRAME ─── */
+.polaroid {
+  position: absolute;
+  background: #fff;
+  padding: 8px 8px 28px;
+  box-shadow:
+    0 4px 6px rgba(0,0,0,0.07),
+    0 16px 40px rgba(0,0,0,0.35),
+    0 2px 4px rgba(0,0,0,0.08);
+  z-index: 20;
+  will-change: transform;
+}
+.polaroid img {
+  display: block;
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: top center;
+}
+.polaroid-caption {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 0 0 6px;
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 9px; font-weight: 400;
+  color: rgba(15,13,11,0.5);
+  letter-spacing: 0.5px;
+}
+
+/* ─── BORDERED PHOTO FRAME ─── */
+.photo-frame {
+  position: absolute; z-index: 20;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+}
+.photo-frame-inner {
+  overflow: hidden; position: relative;
+  border: 6px solid #fff;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+}
+.photo-frame img {
+  display: block; width: 100%; height: 100%;
+  object-fit: cover; object-position: top center;
+}
+
+/* ─── ROUNDED CARD FRAME ─── */
+.card-frame {
+  position: absolute; z-index: 20;
+  border-radius: 14px; overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+}
+.card-frame img {
+  display: block; width: 100%; height: 100%;
+  object-fit: cover; object-position: top center;
+}
+.card-frame-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 20px 12px 12px;
+  background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+}
+
+/* ─── TAPE STRIP ─── */
+.tape {
+  position: absolute; z-index: 25;
+  height: 18px; width: 50px;
+  background: rgba(245,240,232,0.55);
+  mix-blend-mode: screen;
+  border-radius: 1px;
+}
+
+/* ─── STICKER TAG ─── */
+.tag {
+  position: absolute; z-index: 30;
+  background: var(--gold);
+  color: #fff;
+  font-size: 8px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 2px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  white-space: nowrap;
+}
+.tag.dark {
+  background: var(--ink);
+  color: var(--cream);
+  border: 1px solid rgba(245,240,232,0.15);
+}
+.tag.ghost {
+  background: rgba(59,130,246,0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(59,130,246,0.3);
+  color: var(--gold-l);
+}
+
+/* ─── BOTTOM TEXT AREA ─── */
+.bottom-text {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 0 28px 44px;
+  z-index: 35;
+}
+.eyebrow-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px;
+}
+.eyebrow-dash {
+  width: 22px; height: 1px;
+  background: var(--gold);
+}
+.eyebrow-label {
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--gold);
+}
+.slide-title {
+  font-family: var(--serif);
+  font-size: clamp(32px, 9vw, 44px);
+  font-weight: 300;
+  color: var(--cream);
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+  margin-bottom: 10px;
+}
+.slide-title em {
+  font-style: italic;
+  font-weight: 400;
+}
+.slide-title strong {
+  font-weight: 600;
+}
+.slide-body {
+  font-size: 13px; font-weight: 400;
+  color: rgba(245,240,232,0.5);
+  line-height: 1.7;
+  max-width: 300px;
+}
+
+/* Thin rule */
+.thin-rule {
+  width: 100%; height: 1px;
+  background: rgba(245,240,232,0.08);
+  margin: 14px 0;
+}
+
+/* ─── CTA BUTTON ─── */
+.cta-pill {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--gold);
+  color: #fff;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 13px 22px; border-radius: 30px;
+  margin-top: 20px;
+  box-shadow: 0 8px 24px rgba(59,130,246,0.4);
+}
+.cta-pill span { font-size: 14px; }
+
+/* ─── PROGRESS & NAV ─── */
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 1.5px; background: rgba(245,240,232,0.06); z-index: 60;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+.nav-dots {
+  position: absolute; bottom: 12px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 4px; z-index: 60;
+}
+.dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(245,240,232,0.2); cursor: pointer;
+  transition: all 0.3s ease;
+}
+.dot.active { width: 22px; border-radius: 2px; background: var(--gold); }
+.nav-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(245,240,232,0.05);
+  border: 1px solid rgba(245,240,232,0.1);
+  color: rgba(245,240,232,0.5); font-size: 13px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  z-index: 60; transition: all 0.2s;
+}
+.nav-btn:hover { background: rgba(245,240,232,0.12); border-color: rgba(245,240,232,0.25); color: var(--cream); }
+.nav-prev { left: 10px; }
+.nav-next { right: 10px; }
+
+/* ─── BG TONES ─── */
+.bg-tone {
+  position: absolute; inset: 0;
+}
+
+/* Entry animations for frames */
+@keyframes floatIn {
+  from { opacity: 0; transform: translateY(20px) var(--rot, rotate(0deg)); }
+  to   { opacity: 1; transform: translateY(0)     var(--rot, rotate(0deg)); }
+}
+.slide.active .anim-frame {
+  animation: floatIn 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+.slide.active .anim-frame:nth-child(1) { animation-delay: 0.05s; }
+.slide.active .anim-frame:nth-child(2) { animation-delay: 0.18s; }
+.slide.active .anim-frame:nth-child(3) { animation-delay: 0.3s; }
+.anim-frame { opacity: 0; }
+
+/* Subtle float idle on polaroids */
+@keyframes floatIdle {
+  0%, 100% { transform: translateY(0) var(--rot, rotate(0deg)); }
+  50%       { transform: translateY(-4px) var(--rot, rotate(0deg)); }
+}
+.polaroid.float-idle {
+  animation: floatIdle 4s ease-in-out infinite;
+}
+</style>
+</head>
+<body>
+<div class="carousel-wrap" id="carousel">
+  <div class="noise"></div>
+
+  <!-- ━━━ SLIDE 1: CAPA ━━━ -->
+  <div class="slide active" data-index="0">
+    <div class="bg-tone" style="background: radial-gradient(ellipse at 60% 25%, rgba(59,130,246,0.12) 0%, #0f0d0b 65%);"></div>
+
+    <!-- Hero portrait card -->
+    <div class="card-frame anim-frame" style="
+      --rot:rotate(-3deg);
+      width:210px; height:270px;
+      top:85px; left:50%; margin-left:-60px;
+      transform: rotate(-3deg);
+    ">
+      <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+           data-ai-prompt="Ultra-realistic professional executive portrait, Brazilian business leader, confident expression, dark navy background, premium studio lighting, corporate headshot, sharp focus, photorealistic, 4:5 aspect ratio"
+           alt="Retrato profissional">
+      <div class="card-frame-label" style="color:var(--gold-l);">✦ ElevePic Pro</div>
+    </div>
+
+    <!-- Tape on card -->
+    <div class="tape anim-frame" style="top:81px; left:50%; margin-left:-25px; transform:rotate(-3deg);"></div>
+
+    <!-- Small polaroid bottom-left -->
+    <div class="polaroid anim-frame" style="
+      --rot:rotate(6deg);
+      width:110px; height:115px;
+      top:315px; left:18px;
+      transform: rotate(6deg);
+      z-index:22;
+    ">
+      <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+           data-ai-prompt="Casual selfie of a Brazilian professional, poor lighting, informal clothes, smartphone photo, before transformation, realistic"
+           alt="Antes">
+      <div class="polaroid-caption">antes</div>
+    </div>
+
+    <!-- Tag sticker -->
+    <div class="tag anim-frame" style="top:310px; right:28px; transform:rotate(2deg);">✦ Antes × Depois</div>
+
+    <div class="top-bar">
+      <div class="brand">
+        <div class="brand-mark">E</div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="slide-num">01 / 06</div>
+    </div>
+
+    <div class="bottom-text">
+      <div class="eyebrow-row">
+        <div class="eyebrow-dash"></div>
+        <div class="eyebrow-label"><!--EP:s0_eyebrow-->Imagem & Autoridade<!--/EP:s0_eyebrow--></div>
+      </div>
+      <div class="slide-title"><!--EP:s0_headline-->A foto que<br>define <em>tudo</em><!--/EP:s0_headline--></div>
+      <div class="thin-rule"></div>
+      <div class="slide-body"><!--EP:s0_subtext-->Sua imagem digital diz o que você vale antes de você abrir a boca.<!--/EP:s0_subtext--></div>
+    </div>
+  </div>
+
+  <!-- ━━━ SLIDE 2: ANTES & DEPOIS ━━━ -->
+  <div class="slide" data-index="1">
+    <div class="bg-tone" style="background: radial-gradient(ellipse at 30% 50%, rgba(59,130,246,0.08) 0%, #0f0d0b 65%);"></div>
+
+    <!-- ANTES polaroid (left) -->
+    <div class="polaroid anim-frame" style="
+      --rot:rotate(-8deg);
+      width:148px; height:170px;
+      top:95px; left:18px;
+      transform: rotate(-8deg);
+      z-index:21;
+    ">
+      <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+           data-ai-prompt="Poor quality casual selfie of a Brazilian business person, bad lighting, blurry, informal, unprofessional photo, before professional headshot transformation"
+           alt="Antes">
+      <div class="polaroid-caption">✗  selfie comum</div>
+    </div>
+
+    <!-- Tape on antes -->
+    <div class="tape anim-frame" style="top:91px; left:42px; transform:rotate(-5deg);"></div>
+
+    <!-- DEPOIS photo-frame (right) -->
+    <div class="photo-frame anim-frame" style="
+      top:105px; right:14px;
+      z-index:23;
+    ">
+      <div class="photo-frame-inner" style="width:158px; height:198px;">
+        <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+             data-ai-prompt="Ultra-realistic professional executive headshot, Brazilian corporate leader, premium studio lighting, confident smile, dark suit, white or neutral background, sharp focus, corporate photography"
+             alt="Depois">
+      </div>
+    </div>
+
+    <!-- "Depois" tag -->
+    <div class="tag anim-frame" style="top:268px; right:20px; transform:rotate(3deg);">✓ retrato IA</div>
+
+    <div class="top-bar">
+      <div class="brand">
+        <div class="brand-mark">E</div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="slide-num">02 / 06</div>
+    </div>
+
+    <div class="bottom-text">
+      <div class="eyebrow-row">
+        <div class="eyebrow-dash"></div>
+        <div class="eyebrow-label"><!--EP:s1_eyebrow-->O contraste visual<!--/EP:s1_eyebrow--></div>
+      </div>
+      <div class="slide-title"><!--EP:s1_headline-->Qual versão<br>de você o<br>mercado <em>vê</em>?<!--/EP:s1_headline--></div>
+      <div class="slide-body"><!--EP:s1_subtext-->A diferença entre ser ignorado e ser procurado pode estar numa única imagem.<!--/EP:s1_subtext--></div>
+    </div>
+  </div>
+
+  <!-- ━━━ SLIDE 3: GALERIA GRID ━━━ -->
+  <div class="slide" data-index="2">
+    <div class="bg-tone" style="background: linear-gradient(155deg, rgba(59,130,246,0.09) 0%, #0f0d0b 100%);"></div>
+
+    <!-- Simplified 2-column grid -->
+    <div class="anim-frame" style="
+      position:absolute; top:78px; left:16px; right:16px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 160px 120px;
+      gap:6px;
+      z-index:20;
+    ">
+      <!-- Left tall portrait -->
+      <div style="
+        grid-column:1; grid-row:1/3;
+        border-radius:12px; overflow:hidden;
+        box-shadow:0 8px 24px rgba(0,0,0,0.45);
+        border:1.5px solid rgba(255,255,255,0.06);
+      ">
+        <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+             data-ai-prompt="Ultra-realistic professional female executive portrait, Brazilian business woman, confident expression, dark elegant background, premium studio lighting, corporate headshot, full height shot"
+             style="width:100%;height:100%;object-fit:cover;object-position:top;" alt="">
+      </div>
+
+      <!-- Top right -->
+      <div style="
+        grid-column:2; grid-row:1;
+        border-radius:12px; overflow:hidden;
+        box-shadow:0 8px 24px rgba(0,0,0,0.45);
+        border:1.5px solid rgba(255,255,255,0.06);
+      ">
+        <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+             data-ai-prompt="Ultra-realistic professional male executive headshot, Brazilian business man, dark suit, studio lighting, confident expression, corporate portrait photography"
+             style="width:100%;height:100%;object-fit:cover;object-position:top;" alt="">
+      </div>
+
+      <!-- Bottom right with overlay -->
+      <div style="
+        grid-column:2; grid-row:2;
+        border-radius:12px; overflow:hidden;
+        box-shadow:0 8px 24px rgba(0,0,0,0.45);
+        border:1.5px solid rgba(59,130,246,0.2);
+        position:relative;
+      ">
+        <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+             data-ai-prompt="Professional executive headshot, Brazilian leader, side profile, studio lighting, elegant corporate portrait, premium quality photography"
+             style="width:100%;height:100%;object-fit:cover;object-position:top;" alt="">
+        <div style="
+          position:absolute;inset:0;
+          background:linear-gradient(to top,rgba(10,12,28,0.85) 0%,transparent 55%);
+          display:flex;align-items:flex-end;padding:8px 10px;
+        ">
+          <div style="font-family:var(--serif);font-size:12px;color:var(--gold-l);font-style:italic;">+1.200 líderes</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating tag -->
+    <div class="tag ghost anim-frame" style="top:86px; right:22px; z-index:25; transform:rotate(-1deg);">galeria</div>
+
+    <div class="top-bar">
+      <div class="brand">
+        <div class="brand-mark">E</div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="slide-num">03 / 06</div>
+    </div>
+
+    <div class="bottom-text">
+      <div class="eyebrow-row">
+        <div class="eyebrow-dash"></div>
+        <div class="eyebrow-label"><!--EP:s2_eyebrow-->Resultados reais<!--/EP:s2_eyebrow--></div>
+      </div>
+      <div class="slide-title"><!--EP:s2_headline-->Cada foto,<br>uma <em>autoridade</em><!--/EP:s2_headline--></div>
+      <div class="slide-body"><!--EP:s2_subtext-->Executivos de todas as áreas já elevaram sua presença digital com a ElevePic.<!--/EP:s2_subtext--></div>
+    </div>
+  </div>
+
+  <!-- ━━━ SLIDE 4: PROCESSO ━━━ -->
+  <div class="slide" data-index="3">
+    <div class="bg-tone" style="background: radial-gradient(ellipse at 65% 20%, rgba(59,130,246,0.07) 0%, #0f0d0b 65%);"></div>
+
+    <!-- Large card frame (main) -->
+    <div class="card-frame anim-frame" style="
+      --rot:rotate(-4deg);
+      width:200px; height:250px;
+      top:85px; right:20px;
+      transform: rotate(-4deg);
+      z-index:22;
+      box-shadow: 0 32px 70px rgba(0,0,0,0.7), 0 0 0 1.5px rgba(59,130,246,0.3);
+    ">
+      <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+           data-ai-prompt="Ultra-realistic professional executive headshot result, premium AI-generated corporate portrait, Brazilian leader, perfect studio lighting, sharp details, high-end photography quality"
+           alt="">
+      <div class="polaroid-caption" style="font-family:var(--sans);color:var(--gold-l);font-size:8px;letter-spacing:1px;padding-bottom:8px;">✦ RESULTADO IA</div>
+    </div>
+
+    <!-- Small polaroid left (selfie/before) -->
+    <div class="polaroid anim-frame" style="
+      --rot:rotate(5deg);
+      width:130px; height:140px;
+      top:105px; left:14px;
+      transform: rotate(5deg);
+      z-index:21;
+    ">
+      <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+           data-ai-prompt="Person holding smartphone taking a selfie, casual home environment, bad lighting, informal, everyday photo, before professional transformation"
+           alt="">
+      <div class="polaroid-caption">envie sua selfie</div>
+    </div>
+
+    <!-- Tape on big card -->
+    <div class="tape anim-frame" style="top:81px; right:74px; transform:rotate(2deg);"></div>
+
+    <div class="top-bar">
+      <div class="brand">
+        <div class="brand-mark">E</div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="slide-num">04 / 06</div>
+    </div>
+
+    <div class="bottom-text">
+      <div class="eyebrow-row">
+        <div class="eyebrow-dash"></div>
+        <div class="eyebrow-label"><!--EP:s3_eyebrow-->O processo<!--/EP:s3_eyebrow--></div>
+      </div>
+      <div class="slide-title"><!--EP:s3_headline-->Simples<br>assim. <em>Resultado</em><br>assim.<!--/EP:s3_headline--></div>
+      <div class="slide-body"><!--EP:s3_subtext-->Envie suas fotos, nossa IA aprende seu rosto e gera retratos executivos em 24h.<!--/EP:s3_subtext--></div>
+    </div>
+  </div>
+
+  <!-- ━━━ SLIDE 5: TRANSFORMAÇÃO ━━━ -->
+  <div class="slide" data-index="4">
+    <div class="bg-tone" style="background: linear-gradient(135deg, #0f0d0b 0%, rgba(59,130,246,0.06) 100%);"></div>
+
+    <!-- Back card (before, muted) -->
+    <div class="card-frame anim-frame" style="
+      width:185px; height:235px;
+      top:90px; left:50%; margin-left:-92px;
+      transform: rotate(-8deg) translateX(-28px) translateY(8px);
+      z-index:18; opacity:0.35;
+    ">
+      <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+           data-ai-prompt="Casual selfie of a young Brazilian professional, poor lighting, casual clothes, informal expression, before professional photo transformation"
+           alt="">
+    </div>
+
+    <!-- Front card (after, hero) -->
+    <div class="card-frame anim-frame" style="
+      width:185px; height:235px;
+      top:90px; left:50%; margin-left:-92px;
+      transform: rotate(5deg) translateX(28px) translateY(-4px);
+      z-index:21;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1.5px rgba(59,130,246,0.35);
+    ">
+      <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+           data-ai-prompt="Ultra-realistic AI-generated professional portrait of Brazilian executive, premium studio lighting, confident powerful expression, dark elegant suit, high-end corporate photography, photorealistic"
+           alt="">
+      <div class="card-frame-label" style="color:var(--gold-l);">✦ ElevePic Pro</div>
+    </div>
+
+    <!-- Blue tag top-right -->
+    <div class="tag anim-frame" style="top:102px; right:22px; transform:rotate(3deg);">Novo</div>
+
+    <!-- Ghost stat bottom-right -->
+    <div class="tag ghost anim-frame" style="top:358px; right:18px; transform:rotate(1deg); font-size:9px;">
+      10× + autoridade
+    </div>
+
+    <div class="top-bar">
+      <div class="brand">
+        <div class="brand-mark">E</div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="slide-num">05 / 06</div>
+    </div>
+
+    <div class="bottom-text">
+      <div class="eyebrow-row">
+        <div class="eyebrow-dash"></div>
+        <div class="eyebrow-label"><!--EP:s4_eyebrow-->Transformação<!--/EP:s4_eyebrow--></div>
+      </div>
+      <div class="slide-title"><!--EP:s4_headline-->A melhor<br>versão <em>sua</em><br>já existe<!--/EP:s4_headline--></div>
+      <div class="slide-body"><!--EP:s4_subtext-->Nossa IA revela o líder que você sempre foi — em imagens que cobram caro antes de você falar.<!--/EP:s4_subtext--></div>
+    </div>
+  </div>
+
+  <!-- ━━━ SLIDE 6: CTA FINAL ━━━ -->
+  <div class="slide" data-index="5">
+    <div class="bg-tone" style="background: radial-gradient(ellipse at 50% 35%, rgba(59,130,246,0.14) 0%, #0f0d0b 65%);"></div>
+
+    <!-- Hero portrait centered with blue corner accents -->
+    <div class="anim-frame" style="
+      position:absolute;
+      top:72px; left:50%; margin-left:-108px;
+      z-index:20;
+    ">
+      <div style="position:relative; width:216px; height:268px;">
+        <div style="
+          width:216px; height:268px;
+          border-radius:18px; overflow:hidden;
+          box-shadow:0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(59,130,246,0.2);
+        ">
+          <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+               data-ai-prompt="Ultra-realistic confident Brazilian executive, premium AI-generated professional portrait, warm studio lighting, elegant dark background, powerful executive presence, premium corporate headshot, photorealistic, cinematic quality"
+               style="width:100%;height:100%;object-fit:cover;object-position:top;" alt="">
+          <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,12,28,0.9) 0%,transparent 50%);"></div>
+        </div>
+        <!-- Blue corner accents -->
+        <div style="position:absolute;top:-5px;left:-5px;width:20px;height:20px;border-top:2px solid var(--gold);border-left:2px solid var(--gold);border-radius:4px 0 0 0;"></div>
+        <div style="position:absolute;top:-5px;right:-5px;width:20px;height:20px;border-top:2px solid var(--gold);border-right:2px solid var(--gold);border-radius:0 4px 0 0;"></div>
+        <div style="position:absolute;bottom:-5px;left:-5px;width:20px;height:20px;border-bottom:2px solid var(--gold);border-left:2px solid var(--gold);border-radius:0 0 0 4px;"></div>
+        <div style="position:absolute;bottom:-5px;right:-5px;width:20px;height:20px;border-bottom:2px solid var(--gold);border-right:2px solid var(--gold);border-radius:0 0 4px 0;"></div>
+
+        <!-- Label inside frame -->
+        <div style="position:absolute;bottom:14px;left:0;right:0;text-align:center;">
+          <div style="display:inline-block;background:var(--gold);color:#fff;font-size:8px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 14px;border-radius:20px;">Gerado com IA ✦</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="top-bar">
+      <div class="brand">
+        <div class="brand-mark">E</div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="slide-num">06 / 06</div>
+    </div>
+
+    <div class="bottom-text">
+      <div class="eyebrow-row">
+        <div class="eyebrow-dash"></div>
+        <div class="eyebrow-label"><!--EP:s5_eyebrow-->Seu próximo passo<!--/EP:s5_eyebrow--></div>
+      </div>
+      <div class="slide-title"><!--EP:s5_headline-->Você merece<br>uma foto que<br>te <em>representa</em><!--/EP:s5_headline--></div>
+      <div class="thin-rule"></div>
+      <div class="slide-body"><!--EP:s5_subtext-->Sem estúdio. Sem deslocamento. Resultado executivo premium em 24 horas.<!--/EP:s5_subtext--></div>
+      <div class="cta-pill">
+        <span><!--EP:s5_cta-->Elevar minha imagem<!--/EP:s5_cta--></span>
+        <span>→</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress & Nav -->
+  <div class="progress-bar"><div class="progress-fill" id="progress" style="width:16.66%"></div></div>
+  <div class="nav-dots" id="dots"></div>
+  <button class="nav-btn nav-prev" id="prev">←</button>
+  <button class="nav-btn nav-next" id="next">→</button>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const progress = document.getElementById('progress');
+const dotsContainer = document.getElementById('dots');
+let current = 0;
+const total = slides.length;
+
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  dotsContainer.appendChild(d);
+});
+
+function goTo(n) {
+  const prev = current;
+  slides[prev].classList.remove('active');
+  slides[prev].classList.add('exit');
+
+  slides[prev].querySelectorAll('.anim-frame').forEach(el => {
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = '';
+  });
+
+  setTimeout(() => slides[prev].classList.remove('exit'), 700);
+  current = (n + total) % total;
+
+  slides[current].querySelectorAll('.anim-frame').forEach(el => {
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = '';
+    el.style.opacity = '0';
+  });
+
+  slides[current].classList.add('active');
+  progress.style.width = ((current + 1) / total * 100) + '%';
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+}
+
+document.getElementById('prev').onclick = () => goTo(current - 1);
+document.getElementById('next').onclick = () => goTo(current + 1);
+
+let startX = 0;
+document.getElementById('carousel').addEventListener('touchstart', e => startX = e.touches[0].clientX, { passive: true });
+document.getElementById('carousel').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - startX;
+  if (Math.abs(dx) > 40) dx < 0 ? goTo(current + 1) : goTo(current - 1);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowLeft')  goTo(current - 1);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElevePic — Editorial Premium</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue: #3b82f6;
+  --blue-light: #93c5fd;
+  --blue-dark: #1d4ed8;
+  --dark: #080a12;
+  --serif: 'Playfair Display', serif;
+  --sans: 'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: #0d1020;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* CAROUSEL WRAPPER */
+.carousel-wrap {
+  width: 420px;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* SLIDES */
+.slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+}
+.slide.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: all;
+}
+.slide.exit {
+  opacity: 0;
+  transform: translateX(-60px);
+  pointer-events: none;
+}
+
+/* ─ LIGHT SLIDE ─ */
+.slide-light {
+  background: #f0f4ff;
+}
+.slide-light .grid-bg {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+.slide-light .content {
+  position: relative; z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 52px 40px 40px;
+}
+.slide-light .brand {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: auto;
+}
+.brand-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--blue);
+}
+.brand-name {
+  font-size: 11px; font-weight: 700; letter-spacing: 2.5px;
+  text-transform: uppercase; color: var(--blue);
+}
+.slide-light .tag {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--blue);
+  margin-bottom: 14px;
+}
+.slide-light .title {
+  font-family: var(--serif);
+  font-size: 38px; font-weight: 700;
+  color: var(--dark);
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  margin-bottom: 20px;
+}
+.slide-light .title em { font-style: italic; }
+.slide-light .subtitle {
+  font-size: 15px; color: #4b5563;
+  line-height: 1.6; font-weight: 400;
+}
+.slide-light .cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 32px;
+  font-size: 13px; font-weight: 700;
+  color: var(--blue);
+  letter-spacing: 0.3px;
+}
+.cta-arrow {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #fff;
+  flex-shrink: 0;
+}
+
+/* Bottom accent bar */
+.slide-light .bottom-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--blue-dark), var(--blue), var(--blue-light));
+}
+
+/* ─ DARK SLIDE ─ */
+.slide-dark {
+  background: var(--dark);
+}
+.slide-dark .glow-1 {
+  position: absolute; top: -80px; right: -80px;
+  width: 320px; height: 320px;
+  background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.slide-dark .glow-2 {
+  position: absolute; bottom: 0; left: -60px;
+  width: 260px; height: 260px;
+  background: radial-gradient(circle, rgba(29,78,216,0.08) 0%, transparent 65%);
+  pointer-events: none;
+}
+.slide-dark .content {
+  position: relative; z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 52px 40px 40px;
+}
+.slide-dark .brand {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: auto;
+}
+.slide-dark .brand-name { color: rgba(255,255,255,0.35); }
+.slide-dark .brand-dot { background: rgba(255,255,255,0.2); }
+.slide-dark .tag {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--blue-light);
+  margin-bottom: 14px;
+}
+.slide-dark .title {
+  font-family: var(--serif);
+  font-size: 38px; font-weight: 700;
+  color: #e8eaf0;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  margin-bottom: 20px;
+}
+.slide-dark .title em { font-style: italic; color: var(--blue-light); }
+.slide-dark .subtitle {
+  font-size: 15px; color: rgba(255,255,255,0.55);
+  line-height: 1.6; font-weight: 400;
+}
+.slide-dark .number {
+  font-family: var(--serif);
+  font-size: 120px; font-weight: 700;
+  color: rgba(59,130,246,0.08);
+  line-height: 1;
+  position: absolute; right: 32px; top: 40px;
+  letter-spacing: -4px;
+}
+.slide-dark .list {
+  list-style: none;
+  margin-top: 28px;
+}
+.slide-dark .list li {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin-bottom: 16px;
+  font-size: 15px; color: rgba(255,255,255,0.75);
+  line-height: 1.5;
+}
+.list-bullet {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(59,130,246,0.15);
+  border: 1px solid rgba(59,130,246,0.3);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.list-bullet span { font-size: 9px; font-weight: 700; color: var(--blue-light); }
+
+.slide-dark .bottom-bar {
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent);
+}
+
+/* ─ PROGRESS + NAV ─ */
+.progress-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  z-index: 20;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--blue);
+  transition: width 0.4s ease;
+  border-radius: 0 2px 2px 0;
+}
+
+.nav-dots {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 6px;
+  z-index: 20;
+}
+.dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.dot.active {
+  width: 20px;
+  border-radius: 3px;
+  background: var(--blue);
+}
+
+.nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 20;
+  transition: all 0.2s;
+}
+.nav-btn:hover { background: rgba(59,130,246,0.4); border-color: var(--blue); }
+.nav-prev { left: 12px; }
+.nav-next { right: 12px; }
+
+/* slide counter */
+.slide-counter {
+  position: absolute;
+  top: 16px; right: 16px;
+  font-size: 11px; font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  z-index: 20;
+  background: rgba(0,0,0,0.3);
+  padding: 4px 10px; border-radius: 10px;
+  backdrop-filter: blur(4px);
+}
+
+/* ─ SLIDE SPECIFIC ─ */
+/* Slide 1: Capa */
+.slide-1-number {
+  font-family: var(--serif);
+  font-size: 160px; font-weight: 700;
+  color: rgba(59,130,246,0.04);
+  position: absolute;
+  bottom: -20px; right: -10px;
+  line-height: 1;
+  letter-spacing: -8px;
+}
+
+/* Slide 3: stats row */
+.stats-mini {
+  display: flex; gap: 12px;
+  margin-top: 28px;
+}
+.stat-mini {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px 10px;
+  text-align: center;
+}
+.stat-mini-val {
+  font-family: var(--serif);
+  font-size: 22px; font-weight: 700;
+  color: var(--blue-light);
+  margin-bottom: 3px;
+}
+.stat-mini-label {
+  font-size: 9px; color: rgba(255,255,255,0.4);
+  font-weight: 600; letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Slide 5: checklist */
+.checklist { list-style: none; margin-top: 24px; }
+.checklist li {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+  font-size: 14px; color: #374151;
+  font-weight: 500;
+}
+.check-icon {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--blue);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 11px; color: #fff;
+}
+.checklist li.muted { color: #9ca3af; }
+.checklist .check-icon.muted { background: rgba(156,163,175,0.3); color: #9ca3af; }
+
+/* Slide 7: CTA final */
+.cta-box {
+  margin-top: 28px;
+  background: linear-gradient(135deg, var(--blue-dark), var(--blue));
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+}
+.cta-box-text {
+  font-family: var(--serif);
+  font-size: 20px; font-weight: 700;
+  color: #fff; margin-bottom: 8px;
+}
+.cta-box-sub {
+  font-size: 13px; color: rgba(255,255,255,0.75);
+  margin-bottom: 16px; line-height: 1.4;
+}
+.cta-box-btn {
+  display: inline-block;
+  background: #fff;
+  color: var(--blue-dark);
+  font-size: 13px; font-weight: 800;
+  padding: 10px 24px; border-radius: 24px;
+  letter-spacing: 0.3px;
+}
+</style>
+</head>
+<body>
+
+<div class="carousel-wrap" id="carousel">
+
+  <!-- Slide 1: CAPA (Light) -->
+  <div class="slide slide-light active" data-index="0">
+    <div class="grid-bg"></div>
+    <div class="slide-1-number">1</div>
+    <div class="content">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="tag"><!--EP:s0_tag-->Posicionamento Digital<!--/EP:s0_tag--></div>
+      <div class="title"><!--EP:s0_title-->Imagem é <em>estratégia</em>,<br>não vaidade<!--/EP:s0_title--></div>
+      <div class="subtitle"><!--EP:s0_subtitle-->O que a sua foto de perfil está comunicando sobre você — e como isso afeta diretamente quanto você ganha.<!--/EP:s0_subtitle--></div>
+      <div class="cta">
+        Deslize para descobrir
+        <div class="cta-arrow">→</div>
+      </div>
+    </div>
+    <div class="bottom-bar"></div>
+  </div>
+
+  <!-- Slide 2: O PROBLEMA (Dark) -->
+  <div class="slide slide-dark" data-index="1">
+    <div class="glow-1"></div>
+    <div class="glow-2"></div>
+    <div class="number">2</div>
+    <div class="content">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="tag"><!--EP:s1_tag-->O Problema<!--/EP:s1_tag--></div>
+      <div class="title"><!--EP:s1_title-->Você é bom.<br>Mas não <em>parece</em>.<!--/EP:s1_title--></div>
+      <div class="subtitle"><!--EP:s1_subtitle-->Clientes, recrutadores e parceiros julgam sua credibilidade em menos de 3 segundos — antes de lerem uma palavra.<!--/EP:s1_subtitle--></div>
+    </div>
+    <div class="bottom-bar"></div>
+  </div>
+
+  <!-- Slide 3: OS DADOS (Light) -->
+  <div class="slide slide-light" data-index="2">
+    <div class="grid-bg"></div>
+    <div class="content">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="tag"><!--EP:s2_tag-->Os Números<!--/EP:s2_tag--></div>
+      <div class="title"><!--EP:s2_title-->A ciência da <em>primeira</em> impressão<!--/EP:s2_title--></div>
+      <div class="subtitle"><!--EP:s2_subtitle-->Pesquisas mostram o impacto real de uma imagem profissional estratégica:<!--/EP:s2_subtitle--></div>
+      <div class="stats-mini"><!--EP:s2_stats-->
+        <div class="stat-mini">
+          <div class="stat-mini-val" style="color:#1d4ed8;">93%</div>
+          <div class="stat-mini-label" style="color:#6b7280;">da percepção é não-verbal</div>
+        </div>
+        <div class="stat-mini">
+          <div class="stat-mini-val" style="color:#1d4ed8;">7×</div>
+          <div class="stat-mini-label" style="color:#6b7280;">mais autoridade percebida</div>
+        </div>
+        <div class="stat-mini">
+          <div class="stat-mini-val" style="color:#1d4ed8;">3s</div>
+          <div class="stat-mini-label" style="color:#6b7280;">para formar opinião</div>
+        </div><!--/EP:s2_stats-->
+      </div>
+    </div>
+    <div class="bottom-bar"></div>
+  </div>
+
+  <!-- Slide 4: O QUE ACONTECE (Dark) -->
+  <div class="slide slide-dark" data-index="3">
+    <div class="glow-1"></div>
+    <div class="number">4</div>
+    <div class="content">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="tag"><!--EP:s3_tag-->O Que Acontece<!--/EP:s3_tag--></div>
+      <div class="title"><!--EP:s3_title-->Quando sua foto <em>não</em> te representa:<!--/EP:s3_title--></div>
+      <ul class="list"><!--EP:s3_list-->
+        <li><div class="list-bullet"><span>✗</span></div>Perda de clientes no primeiro contato</li>
+        <li><div class="list-bullet"><span>✗</span></div>Desconfiança antes da conversa</li>
+        <li><div class="list-bullet"><span>✗</span></div>Dificuldade de cobrar o preço justo</li>
+        <li><div class="list-bullet"><span>✗</span></div>Invisibilidade frente a concorrentes</li><!--/EP:s3_list-->
+      </ul>
+    </div>
+    <div class="bottom-bar"></div>
+  </div>
+
+  <!-- Slide 5: A SOLUÇÃO (Light) -->
+  <div class="slide slide-light" data-index="4">
+    <div class="grid-bg"></div>
+    <div class="content">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="tag"><!--EP:s4_tag-->A Solução<!--/EP:s4_tag--></div>
+      <div class="title"><!--EP:s4_title-->O que uma <em>boa</em> foto faz por você:<!--/EP:s4_title--></div>
+      <ul class="checklist"><!--EP:s4_list-->
+        <li><div class="check-icon">✓</div>Gera confiança instantânea</li>
+        <li><div class="check-icon">✓</div>Justifica honorários mais altos</li>
+        <li><div class="check-icon">✓</div>Atrai o cliente certo sem esforço</li>
+        <li><div class="check-icon">✓</div>Posiciona você como especialista</li>
+        <li class="muted"><div class="check-icon muted">✓</div>Sem sessão fotográfica cara</li><!--/EP:s4_list-->
+      </ul>
+    </div>
+    <div class="bottom-bar"></div>
+  </div>
+
+  <!-- Slide 6: COMO FUNCIONA (Dark) -->
+  <div class="slide slide-dark" data-index="5">
+    <div class="glow-1"></div>
+    <div class="glow-2"></div>
+    <div class="number">6</div>
+    <div class="content">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="tag"><!--EP:s5_tag-->Como Funciona<!--/EP:s5_tag--></div>
+      <div class="title"><!--EP:s5_title-->IA que <em>gera</em> sua foto profissional<!--/EP:s5_title--></div>
+      <ul class="list"><!--EP:s5_list-->
+        <li><div class="list-bullet"><span>1</span></div>Você envia algumas fotos comuns do dia a dia</li>
+        <li><div class="list-bullet"><span>2</span></div>Nossa IA aprende seu rosto e estilo</li>
+        <li><div class="list-bullet"><span>3</span></div>Gera fotos profissionais em cenários premium</li>
+        <li><div class="list-bullet"><span>4</span></div>Você escolhe e usa onde quiser</li><!--/EP:s5_list-->
+      </ul>
+    </div>
+    <div class="bottom-bar"></div>
+  </div>
+
+  <!-- Slide 7: CTA FINAL (Light) -->
+  <div class="slide slide-light" data-index="6">
+    <div class="grid-bg"></div>
+    <div class="content">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div class="brand-name"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+      </div>
+      <div class="tag"><!--EP:s6_tag-->Próximo Passo<!--/EP:s6_tag--></div>
+      <div class="title"><!--EP:s6_title-->Sua imagem,<br><em>sua vantagem</em><!--/EP:s6_title--></div>
+      <div class="subtitle"><!--EP:s6_subtitle-->Você já perdeu oportunidades por causa de uma foto ruim. Não deixe que isso aconteça de novo.<!--/EP:s6_subtitle--></div>
+      <div class="cta-box">
+        <div class="cta-box-text"><!--EP:s6_cta_text-->Comece agora<!--/EP:s6_cta_text--></div>
+        <div class="cta-box-sub"><!--EP:s6_cta_sub-->Gere sua foto profissional hoje<br>e mude como o mercado te vê<!--/EP:s6_cta_sub--></div>
+        <div class="cta-box-btn"><!--EP:website_url-->→ elevepic.com<!--/EP:website_url--></div>
+      </div>
+    </div>
+    <div class="bottom-bar"></div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-bar"><div class="progress-fill" id="progress" style="width:14.28%"></div></div>
+
+  <!-- Slide counter -->
+  <div class="slide-counter" id="counter">1 / 7</div>
+
+  <!-- Nav dots -->
+  <div class="nav-dots" id="dots"></div>
+
+  <!-- Nav buttons -->
+  <button class="nav-btn nav-prev" id="prev">←</button>
+  <button class="nav-btn nav-next" id="next">→</button>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const progress = document.getElementById('progress');
+const counter = document.getElementById('counter');
+const dotsContainer = document.getElementById('dots');
+let current = 0;
+const total = slides.length;
+
+// Build dots
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  dotsContainer.appendChild(d);
+});
+
+function goTo(n) {
+  slides[current].classList.remove('active');
+  slides[current].classList.add('exit');
+  setTimeout(() => slides[current].classList.remove('exit'), 450);
+  current = (n + total) % total;
+  slides[current].classList.add('active');
+  // update ui
+  progress.style.width = ((current + 1) / total * 100) + '%';
+  counter.textContent = (current + 1) + ' / ' + total;
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+}
+
+document.getElementById('prev').onclick = () => goTo(current - 1);
+document.getElementById('next').onclick = () => goTo(current + 1);
+
+// Swipe
+let startX = 0;
+document.getElementById('carousel').addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive:true});
+document.getElementById('carousel').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - startX;
+  if (Math.abs(dx) > 50) dx < 0 ? goTo(current + 1) : goTo(current - 1);
+}, {passive:true});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElevePic — Cinematic Photo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold:   #c9a84c;
+  --gold-l: #e8c97a;
+  --blue:   #3b82f6;
+  --dark:   #060810;
+  --serif:  'Playfair Display', serif;
+  --sans:   'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 0; overflow: hidden;
+}
+
+/* ─── WRAPPER ─── */
+.carousel-wrap {
+  width: 420px; height: 100vh;
+  position: relative; overflow: hidden;
+}
+
+/* ─── SLIDE BASE ─── */
+.slide {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+  overflow: hidden;
+}
+.slide.active  { opacity: 1; pointer-events: all; }
+.slide.exit    { opacity: 0; pointer-events: none; }
+
+/* ─── BG PHOTO LAYER ─── */
+.bg-photo {
+  position: absolute; inset: 0;
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.05);
+  transition: transform 8s ease;
+}
+.slide.active .bg-photo { transform: scale(1); }
+
+/* ─── DARK OVERLAY ─── */
+.overlay-dark {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(6,8,16,0.55) 0%,
+    rgba(6,8,16,0.25) 30%,
+    rgba(6,8,16,0.4)  60%,
+    rgba(6,8,16,0.92) 100%
+  );
+  z-index: 1;
+}
+/* Grain texture overlay */
+.overlay-grain {
+  position: absolute; inset: 0;
+  z-index: 2;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='512' height='512' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px;
+}
+/* Vignette */
+.overlay-vignette {
+  position: absolute; inset: 0;
+  z-index: 2;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%);
+}
+
+/* ─── CONTENT ─── */
+.slide-content {
+  position: relative; z-index: 10;
+  flex: 1; display: flex; flex-direction: column;
+  padding: 0;
+}
+
+/* ── TOP BAR ── */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 0;
+}
+.brand-badge {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 6px 14px; border-radius: 20px;
+}
+.brand-star { font-size: 12px; color: var(--gold); }
+.brand-text {
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: rgba(255,255,255,0.85);
+}
+.slide-counter-pill {
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 5px 12px; border-radius: 20px;
+  font-size: 10px; font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 1px;
+}
+
+/* ── BOTTOM TEXT ZONE ── */
+.bottom-zone {
+  padding: 0 28px 36px;
+  margin-top: auto;
+}
+.eyebrow {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.eyebrow-line {
+  width: 20px; height: 1.5px;
+  background: var(--gold); border-radius: 1px;
+}
+.eyebrow-text {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: var(--gold);
+}
+.main-title {
+  font-family: var(--serif);
+  font-size: clamp(30px, 8vw, 40px);
+  font-weight: 700; color: #fff;
+  line-height: 1.1; letter-spacing: -0.5px;
+  margin-bottom: 12px;
+}
+.main-title em { font-style: italic; color: var(--gold-l); }
+.main-sub {
+  font-size: 14px; color: rgba(255,255,255,0.6);
+  line-height: 1.65; font-weight: 400;
+  max-width: 320px;
+}
+
+/* gold accent divider */
+.gold-divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 14px 0;
+}
+.gold-divider-line { flex: 1; height: 1px; background: rgba(201,168,76,0.2); }
+.gold-divider-dot  { width: 4px; height: 4px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+
+/* ─── PHOTO FRAME MOCKUPS ─── */
+/* -- PORTRAIT FRAME (premium) -- */
+.frame-portrait {
+  position: absolute;
+  right: 24px; top: 80px;
+  width: 130px;
+  z-index: 15;
+}
+.frame-portrait-inner {
+  width: 130px; height: 165px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 3px solid rgba(255,255,255,0.15);
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(255,255,255,0.05),
+    inset 0 0 0 1px rgba(255,255,255,0.08);
+  position: relative;
+}
+.frame-portrait-inner img {
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: top center;
+  display: block;
+}
+.frame-portrait-label {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+}
+.frame-badge-pro {
+  position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(90deg, var(--gold), #e8c97a);
+  color: #000; font-size: 7px; font-weight: 900;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 4px 4px 0 0;
+  white-space: nowrap;
+}
+
+/* -- BEFORE/AFTER FRAMES -- */
+.frames-before-after {
+  display: flex; gap: 12px;
+  margin-bottom: 20px;
+  position: relative; z-index: 15;
+}
+.frame-card {
+  flex: 1;
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+}
+.frame-card img {
+  width: 100%; height: 160px;
+  object-fit: cover; object-position: top center;
+  display: block;
+}
+.frame-card-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 8px 10px 10px;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+.frame-card.before .frame-card-label { color: rgba(255,255,255,0.5); }
+.frame-card.after  .frame-card-label { color: var(--gold); }
+.frame-card.before { border: 1.5px solid rgba(255,255,255,0.08); }
+.frame-card.after  { border: 1.5px solid rgba(201,168,76,0.4); box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 20px rgba(201,168,76,0.15); }
+.frame-card .frame-card-x { position:absolute;top:8px;left:8px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(255,255,255,0.6); }
+.frame-card .frame-card-check { position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:9px;color:#000;font-weight:700; }
+
+/* -- PHONE MOCKUP -- */
+.phone-mockup {
+  position: relative;
+  width: 180px;
+  margin: 0 auto 16px;
+  z-index: 15;
+}
+.phone-shell {
+  width: 180px; height: 320px;
+  border-radius: 36px;
+  border: 3px solid rgba(255,255,255,0.15);
+  background: #0a0a14;
+  position: relative; overflow: hidden;
+  box-shadow:
+    0 30px 80px rgba(0,0,0,0.8),
+    0 0 0 1px rgba(255,255,255,0.05),
+    inset 0 0 30px rgba(0,0,0,0.5);
+}
+.phone-notch {
+  position: absolute; top: 10px; left: 50%;
+  transform: translateX(-50%);
+  width: 60px; height: 6px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px; z-index: 2;
+}
+.phone-screen {
+  position: absolute; inset: 0;
+  overflow: hidden; border-radius: 33px;
+}
+.phone-screen img {
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: center top;
+}
+/* Screen overlay with profile info */
+.phone-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 50%);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 12px;
+}
+.phone-profile-pic {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.phone-profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+.phone-profile-name {
+  font-size: 9px; font-weight: 800;
+  color: #fff; letter-spacing: 0.5px;
+}
+.phone-profile-title {
+  font-size: 7px; color: var(--gold-l);
+  font-weight: 500;
+}
+.phone-stats {
+  display: flex; gap: 8px; margin-top: 6px;
+}
+.phone-stat-item { text-align: center; }
+.phone-stat-num { font-size: 8px; font-weight: 800; color: #fff; }
+.phone-stat-label { font-size: 6px; color: rgba(255,255,255,0.4); letter-spacing: 0.5px; text-transform: uppercase; }
+
+/* -- CIRCULAR PORTRAIT BADGE -- */
+.portrait-badge {
+  position: absolute;
+  right: 24px; top: 90px;
+  z-index: 15;
+}
+.portrait-circle {
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--gold);
+  box-shadow:
+    0 0 0 6px rgba(201,168,76,0.15),
+    0 20px 50px rgba(0,0,0,0.7);
+}
+.portrait-circle img {
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: top center;
+}
+.portrait-circle-ring {
+  position: absolute; inset: -8px;
+  border-radius: 50%;
+  border: 1px dashed rgba(201,168,76,0.3);
+  animation: spin 20s linear infinite;
+}
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* GLASS CARD */
+.glass-card {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  position: relative; z-index: 15;
+}
+.glass-card-title {
+  font-size: 12px; font-weight: 700; color: #fff;
+  margin-bottom: 6px;
+}
+.glass-card-val {
+  font-family: var(--serif);
+  font-size: 28px; font-weight: 700;
+  color: var(--gold-l);
+  line-height: 1;
+}
+.glass-card-label {
+  font-size: 10px; color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+}
+
+/* STATS GLASSMORPHIC ROW */
+.stats-glass {
+  display: flex; gap: 8px;
+  margin-bottom: 16px;
+  position: relative; z-index: 15;
+}
+.stat-glass {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
+}
+.stat-glass-val {
+  font-family: var(--serif);
+  font-size: 20px; font-weight: 700;
+  color: var(--gold-l);
+  line-height: 1;
+}
+.stat-glass-label {
+  font-size: 8px; color: rgba(255,255,255,0.4);
+  letter-spacing: 0.5px; text-transform: uppercase;
+  margin-top: 3px;
+}
+
+/* CTA BUTTON */
+.cta-btn {
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, var(--gold), #e8c97a);
+  color: #000;
+  font-size: 13px; font-weight: 900;
+  padding: 14px 24px; border-radius: 28px;
+  margin-top: 20px;
+  position: relative; z-index: 15;
+  box-shadow: 0 8px 30px rgba(201,168,76,0.35);
+  letter-spacing: 0.3px;
+  width: fit-content;
+}
+.cta-btn-arrow {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(0,0,0,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+}
+
+/* Floating tag pill */
+.floating-pill {
+  position: absolute;
+  left: 24px;
+  z-index: 15;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 10px; font-weight: 700;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 1px;
+}
+
+/* ─── PROGRESS / NAV ─── */
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px; background: rgba(255,255,255,0.06); z-index: 20;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--gold-l));
+  transition: width 0.5s ease;
+  border-radius: 0 1px 1px 0;
+}
+.nav-dots {
+  position: absolute; bottom: 14px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 5px; z-index: 20;
+}
+.dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(255,255,255,0.2); cursor: pointer; transition: all 0.3s;
+}
+.dot.active { width: 20px; border-radius: 2.5px; background: var(--gold); }
+.nav-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(201,168,76,0.1);
+  border: 1px solid rgba(201,168,76,0.25);
+  color: rgba(255,255,255,0.6); font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  z-index: 20; transition: all 0.2s;
+}
+.nav-btn:hover { background: rgba(201,168,76,0.25); border-color: var(--gold); color: #fff; }
+.nav-prev { left: 10px; }
+.nav-next { right: 10px; }
+</style>
+</head>
+<body>
+<div class="carousel-wrap" id="carousel">
+
+  <!-- ━━━ SLIDE 1: CAPA ━━━ -->
+  <div class="slide active" data-index="0">
+    <div class="bg-photo" style="background-image: url('bg_office.png');"></div>
+    <div class="overlay-dark"></div>
+    <div class="overlay-vignette"></div>
+    <div class="overlay-grain"></div>
+
+    <!-- Portrait frame floating top-right -->
+    <div class="portrait-badge" style="top:100px;">
+      <div style="position:relative;">
+        <div class="portrait-circle-ring"></div>
+        <div class="portrait-circle">
+          <img src="profile_pro.png" alt="Professional">
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-content">
+      <div class="top-bar">
+        <div class="brand-badge">
+          <div class="brand-star">✦</div>
+          <div class="brand-text"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+        </div>
+        <div class="slide-counter-pill" id="counter">01 / 07</div>
+      </div>
+
+      <!-- Floating pill -->
+      <div class="floating-pill" style="top:260px;">Transformação Visual</div>
+
+      <div class="bottom-zone">
+        <div class="eyebrow">
+          <div class="eyebrow-line"></div>
+          <div class="eyebrow-text"><!--EP:s0_eyebrow-->Imagem & Autoridade<!--/EP:s0_eyebrow--></div>
+        </div>
+        <div class="main-title"><!--EP:s0_headline-->A foto que<br>muda <em>tudo</em><!--/EP:s0_headline--></div>
+        <div class="gold-divider">
+          <div class="gold-divider-line"></div>
+          <div class="gold-divider-dot"></div>
+          <div class="gold-divider-line"></div>
+        </div>
+        <div class="main-sub"><!--EP:s0_subtext-->Uma imagem profissional é o ativo mais subestimado de qualquer carreira ou negócio.<!--/EP:s0_subtext--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━ SLIDE 2: O PROBLEMA ━━━ -->
+  <div class="slide" data-index="1">
+    <div class="bg-photo" style="background-image: url('bg_city.png');"></div>
+    <div class="overlay-dark" style="background: linear-gradient(180deg, rgba(6,8,16,0.7) 0%, rgba(6,8,16,0.3) 40%, rgba(6,8,16,0.95) 100%);"></div>
+    <div class="overlay-vignette"></div>
+    <div class="overlay-grain"></div>
+
+    <div class="slide-content">
+      <div class="top-bar">
+        <div class="brand-badge">
+          <div class="brand-star">✦</div>
+          <div class="brand-text"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+        </div>
+        <div class="slide-counter-pill">02 / 07</div>
+      </div>
+
+      <div style="padding: 0 24px; margin-top: 28px; position: relative; z-index: 15;">
+        <!-- Before/After frames -->
+        <div class="frames-before-after">
+          <div class="frame-card before">
+            <img src="profile_before.png" alt="Antes">
+            <div class="frame-card-label">Antes</div>
+            <div class="frame-card-x">✗</div>
+          </div>
+          <div class="frame-card after">
+            <img src="profile_pro.png" alt="Depois">
+            <div class="frame-card-label">Depois</div>
+            <div class="frame-card-check">✓</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-zone">
+        <div class="eyebrow">
+          <div class="eyebrow-line"></div>
+          <div class="eyebrow-text"><!--EP:s1_eyebrow-->O contraste que importa<!--/EP:s1_eyebrow--></div>
+        </div>
+        <div class="main-title"><!--EP:s1_headline-->Qual versão<br>de você o<br>mercado <em>vê</em>?<!--/EP:s1_headline--></div>
+        <div class="main-sub"><!--EP:s1_subtext-->A diferença entre ser ignorado e ser procurado pode estar numa única imagem.<!--/EP:s1_subtext--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━ SLIDE 3: OS DADOS ━━━ -->
+  <div class="slide" data-index="2">
+    <div class="bg-photo" style="background-image: url('bg_office.png'); background-position: right center;"></div>
+    <div class="overlay-dark" style="background: linear-gradient(180deg, rgba(6,8,16,0.8) 0%, rgba(6,8,16,0.5) 50%, rgba(6,8,16,0.97) 100%);"></div>
+    <div class="overlay-vignette"></div>
+    <div class="overlay-grain"></div>
+
+    <!-- Portrait card top right -->
+    <div class="frame-portrait" style="top:70px;">
+      <div class="frame-portrait-inner">
+        <img src="profile_pro.png" alt="Pro">
+        <div class="frame-badge-pro">✦ Pro</div>
+      </div>
+      <div class="frame-portrait-label">Resultado ElevePic</div>
+    </div>
+
+    <div class="slide-content">
+      <div class="top-bar">
+        <div class="brand-badge">
+          <div class="brand-star">✦</div>
+          <div class="brand-text"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+        </div>
+        <div class="slide-counter-pill">03 / 07</div>
+      </div>
+
+      <div class="bottom-zone">
+        <div class="eyebrow">
+          <div class="eyebrow-line"></div>
+          <div class="eyebrow-text"><!--EP:s2_eyebrow-->Dados Reais<!--/EP:s2_eyebrow--></div>
+        </div>
+        <div class="main-title"><!--EP:s2_headline-->O impacto em<br><em>números</em><!--/EP:s2_headline--></div>
+
+        <div class="stats-glass" style="margin-top:14px;">
+          <div class="stat-glass">
+            <div class="stat-glass-val">93%</div>
+            <div class="stat-glass-label">percepção não-verbal</div>
+          </div>
+          <div class="stat-glass">
+            <div class="stat-glass-val">7×</div>
+            <div class="stat-glass-label">mais autoridade</div>
+          </div>
+          <div class="stat-glass">
+            <div class="stat-glass-val">3s</div>
+            <div class="stat-glass-label">para julgar</div>
+          </div>
+        </div>
+        <div class="main-sub" style="margin-top:8px;"><!--EP:s2_subtext-->Sua imagem trabalha 24h por dia para você — mesmo quando você não está online.<!--/EP:s2_subtext--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━ SLIDE 4: LINKEDIN MOCKUP ━━━ -->
+  <div class="slide" data-index="3">
+    <div class="bg-photo" style="background-image: url('bg_linkedin.png');"></div>
+    <div class="overlay-dark" style="background: linear-gradient(180deg, rgba(6,8,16,0.65) 0%, rgba(6,8,16,0.4) 40%, rgba(6,8,16,0.97) 100%);"></div>
+    <div class="overlay-vignette"></div>
+    <div class="overlay-grain"></div>
+
+    <!-- Phone mockup -->
+    <div style="position:relative;z-index:15;display:flex;justify-content:center;margin-top:60px;">
+      <div class="phone-mockup">
+        <div class="phone-shell">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <img src="bg_linkedin.png" alt="LinkedIn">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-content" style="justify-content:flex-end;">
+      <div class="top-bar" style="position:absolute;top:0;left:0;right:0;">
+        <div class="brand-badge">
+          <div class="brand-star">✦</div>
+          <div class="brand-text"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+        </div>
+        <div class="slide-counter-pill">04 / 07</div>
+      </div>
+
+      <div class="bottom-zone">
+        <div class="eyebrow">
+          <div class="eyebrow-line"></div>
+          <div class="eyebrow-text"><!--EP:s3_eyebrow-->LinkedIn & Redes<!--/EP:s3_eyebrow--></div>
+        </div>
+        <div class="main-title"><!--EP:s3_headline-->Seu perfil é<br>sua <em>vitrine</em><br>profissional<!--/EP:s3_headline--></div>
+        <div class="main-sub"><!--EP:s3_subtext-->Perfis com fotos profissionais recebem 21x mais visualizações e 9x mais pedidos de conexão.<!--/EP:s3_subtext--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━ SLIDE 5: COMO FUNCIONA ━━━ -->
+  <div class="slide" data-index="4">
+    <div class="bg-photo" style="background-image: url('bg_city.png'); background-position: center 40%;"></div>
+    <div class="overlay-dark" style="background: rgba(6,8,16,0.88);"></div>
+    <div class="overlay-grain"></div>
+
+    <div class="slide-content">
+      <div class="top-bar">
+        <div class="brand-badge">
+          <div class="brand-star">✦</div>
+          <div class="brand-text"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+        </div>
+        <div class="slide-counter-pill">05 / 07</div>
+      </div>
+
+      <div style="padding: 20px 24px 0; position:relative; z-index:15; flex:1;">
+        <!-- Portrait top center -->
+        <div style="display:flex;justify-content:center;margin-bottom:24px;margin-top:8px;">
+          <div style="position:relative;">
+            <div style="width:100px;height:100px;border-radius:50%;overflow:hidden;border:3px solid rgba(201,168,76,0.5);box-shadow:0 0 0 6px rgba(201,168,76,0.08),0 16px 40px rgba(0,0,0,0.6);">
+              <img src="profile_pro.png" style="width:100%;height:100%;object-fit:cover;object-position:top center;" alt="">
+            </div>
+            <div style="position:absolute;bottom:-8px;right:-8px;width:28px;height:28px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 4px 12px rgba(201,168,76,0.4);">✦</div>
+          </div>
+        </div>
+
+        <!-- Steps -->
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="glass-card" style="margin-bottom:0;display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:14px;font-weight:700;color:var(--gold-l);flex-shrink:0;">1</div>
+            <div><div style="font-size:12px;font-weight:700;color:#fff;">Envie suas fotos</div><div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">Qualquer foto, do dia a dia</div></div>
+          </div>
+          <div class="glass-card" style="margin-bottom:0;display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:14px;font-weight:700;color:var(--gold-l);flex-shrink:0;">2</div>
+            <div><div style="font-size:12px;font-weight:700;color:#fff;">IA aprende seu rosto</div><div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">Tecnologia treinada em você</div></div>
+          </div>
+          <div class="glass-card" style="margin-bottom:0;display:flex;align-items:center;gap:12px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:14px;font-weight:700;color:var(--gold-l);flex-shrink:0;">3</div>
+            <div><div style="font-size:12px;font-weight:700;color:#fff;">Fotos premium geradas</div><div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">Estúdio virtual, sem sair de casa</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-zone" style="padding-top:16px;">
+        <div class="eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-text"><!--EP:s4_eyebrow-->O Processo<!--/EP:s4_eyebrow--></div></div>
+        <div class="main-title" style="font-size:28px;"><!--EP:s4_headline-->Simples assim.<br><em>Resultado</em> assim.<!--/EP:s4_headline--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━ SLIDE 6: PROVA SOCIAL ━━━ -->
+  <div class="slide" data-index="5">
+    <div class="bg-photo" style="background-image: url('bg_office.png'); background-position: left center;"></div>
+    <div class="overlay-dark" style="background: linear-gradient(180deg, rgba(6,8,16,0.85) 0%, rgba(6,8,16,0.6) 50%, rgba(6,8,16,0.98) 100%);"></div>
+    <div class="overlay-vignette"></div>
+    <div class="overlay-grain"></div>
+
+    <!-- Before/After stacked cards -->
+    <div style="position:relative;z-index:15;padding:0 24px;margin-top:60px;">
+      <!-- Card with portrait -->
+      <div class="glass-card" style="display:flex;gap:14px;align-items:center;">
+        <div style="width:56px;height:56px;border-radius:50%;overflow:hidden;border:2px solid var(--gold);flex-shrink:0;box-shadow:0 0 0 3px rgba(201,168,76,0.15);">
+          <img src="profile_pro.png" style="width:100%;height:100%;object-fit:cover;object-position:top;" alt="">
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px;">Ana Carolina Silva</div>
+          <div style="font-size:10px;color:var(--gold-l);font-weight:600;margin-bottom:6px;">Advogada · São Paulo</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.55);line-height:1.5;">"Após mudar minha foto, comecei a receber 3× mais pedidos de contato pelo LinkedIn."</div>
+        </div>
+      </div>
+
+      <div class="glass-card" style="display:flex;gap:14px;align-items:center;margin-bottom:0;">
+        <div style="width:56px;height:56px;border-radius:50%;overflow:hidden;border:2px solid var(--gold);flex-shrink:0;box-shadow:0 0 0 3px rgba(201,168,76,0.15);">
+          <img src="profile_pro.png" style="width:100%;height:100%;object-fit:cover;object-position:20% top;" alt="">
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px;">Rafael Mendes</div>
+          <div style="font-size:10px;color:var(--gold-l);font-weight:600;margin-bottom:6px;">Consultor · Rio de Janeiro</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.55);line-height:1.5;">"Meus clientes agora me levam a sério antes da primeira reunião."</div>
+        </div>
+      </div>
+
+      <!-- Stars -->
+      <div style="display:flex;gap:4px;margin-top:12px;position:relative;z-index:15;">
+        <span style="color:var(--gold);font-size:14px;">★★★★★</span>
+        <span style="font-size:10px;color:rgba(255,255,255,0.4);margin-left:4px;align-self:center;">+1.200 avaliações</span>
+      </div>
+    </div>
+
+    <div class="slide-content" style="justify-content:flex-end;">
+      <div class="top-bar" style="position:absolute;top:0;left:0;right:0;">
+        <div class="brand-badge"><div class="brand-star">✦</div><div class="brand-text"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div></div>
+        <div class="slide-counter-pill">06 / 07</div>
+      </div>
+      <div class="bottom-zone">
+        <div class="eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-text"><!--EP:s5_eyebrow-->Resultados reais<!--/EP:s5_eyebrow--></div></div>
+        <div class="main-title" style="font-size:30px;"><!--EP:s5_headline-->Quem <em>investiu</em><br>em imagem<br>não volta atrás<!--/EP:s5_headline--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━ SLIDE 7: CTA FINAL ━━━ -->
+  <div class="slide" data-index="6">
+    <div class="bg-photo" style="background-image: url('bg_city.png');"></div>
+    <div class="overlay-dark" style="background: rgba(6,8,16,0.82);"></div>
+    <div class="overlay-vignette"></div>
+    <div class="overlay-grain"></div>
+
+    <!-- Large portrait centered -->
+    <div style="position:absolute; top:62px; inset-x:0; z-index:15; display:flex; justify-content:center;">
+      <div style="position:relative;">
+        <div style="width:160px;height:200px;border-radius:24px;overflow:hidden;border:2px solid rgba(201,168,76,0.3);box-shadow:0 30px 80px rgba(0,0,0,0.8),0 0 0 8px rgba(201,168,76,0.05);">
+          <img src="profile_pro.png" style="width:100%;height:100%;object-fit:cover;object-position:top center;" alt="Professional">
+        </div>
+        <!-- Gold frame corners -->
+        <div style="position:absolute;top:-4px;left:-4px;width:16px;height:16px;border-top:2px solid var(--gold);border-left:2px solid var(--gold);border-radius:3px 0 0 0;"></div>
+        <div style="position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-top:2px solid var(--gold);border-right:2px solid var(--gold);border-radius:0 3px 0 0;"></div>
+        <div style="position:absolute;bottom:-4px;left:-4px;width:16px;height:16px;border-bottom:2px solid var(--gold);border-left:2px solid var(--gold);border-radius:0 0 0 3px;"></div>
+        <div style="position:absolute;bottom:-4px;right:-4px;width:16px;height:16px;border-bottom:2px solid var(--gold);border-right:2px solid var(--gold);border-radius:0 0 3px 0;"></div>
+        <!-- Badge -->
+        <div style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--gold),#e8c97a);color:#000;font-size:8px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:4px 14px;border-radius:10px;white-space:nowrap;">Gerado com IA ✦</div>
+      </div>
+    </div>
+
+    <div class="slide-content" style="justify-content:flex-end;">
+      <div class="top-bar" style="position:absolute;top:0;left:0;right:0;">
+        <div class="brand-badge"><div class="brand-star">✦</div><div class="brand-text"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div></div>
+        <div class="slide-counter-pill">07 / 07</div>
+      </div>
+      <div class="bottom-zone">
+        <div class="eyebrow"><div class="eyebrow-line"></div><div class="eyebrow-text"><!--EP:s6_eyebrow-->Seu próximo passo<!--/EP:s6_eyebrow--></div></div>
+        <div class="main-title"><!--EP:s6_headline-->Você também<br>merece uma foto<br>que te <em>representa</em><!--/EP:s6_headline--></div>
+        <div class="gold-divider"><div class="gold-divider-line"></div><div class="gold-divider-dot"></div><div class="gold-divider-line"></div></div>
+        <div class="main-sub"><!--EP:s6_subtext-->Sem sessão fotográfica. Sem deslocamento. Resultado profissional em 24 horas.<!--/EP:s6_subtext--></div>
+        <div class="cta-btn">
+          <span><!--EP:s6_cta-->Começar agora<!--/EP:s6_cta--></span>
+          <div class="cta-btn-arrow">→</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress & Nav -->
+  <div class="progress-bar"><div class="progress-fill" id="progress" style="width:14.28%"></div></div>
+  <div class="nav-dots" id="dots"></div>
+  <button class="nav-btn nav-prev" id="prev">←</button>
+  <button class="nav-btn nav-next" id="next">→</button>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const progress = document.getElementById('progress');
+const counter = document.getElementById('counter');
+const dotsContainer = document.getElementById('dots');
+let current = 0;
+const total = slides.length;
+
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  dotsContainer.appendChild(d);
+});
+
+function goTo(n) {
+  slides[current].classList.remove('active');
+  slides[current].classList.add('exit');
+  setTimeout(() => slides[current].classList.remove('exit'), 600);
+  current = (n + total) % total;
+  slides[current].classList.add('active');
+  progress.style.width = ((current + 1) / total * 100) + '%';
+  if (counter) counter.textContent = String(current + 1).padStart(2,'0') + ' / 07';
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+}
+
+document.getElementById('prev').onclick = () => goTo(current - 1);
+document.getElementById('next').onclick = () => goTo(current + 1);
+
+let startX = 0;
+document.getElementById('carousel').addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive:true});
+document.getElementById('carousel').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - startX;
+  if (Math.abs(dx) > 50) dx < 0 ? goTo(current + 1) : goTo(current - 1);
+}, {passive:true});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+});
+</script>
+</body>
+</html>

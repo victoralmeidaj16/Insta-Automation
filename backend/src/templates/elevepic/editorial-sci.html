@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElevePic — Scientific Editorial</title>
+<!-- Google Fonts: Bebas Neue for Headlines, Inter for Micro UI -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black: #000000;
+  --white: #FFFFFF;
+  --accent: #00E5FF; /* Default Neon Blue, overridden by brand */
+  --font-head: 'Bebas Neue', cursive;
+  --font-body: 'Inter', sans-serif;
+  --padding: 8%;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--black);
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; overflow: hidden;
+  color: var(--white);
+}
+
+/* ─── WRAPPER ─── 4:5 ratio at 420px */
+.carousel-wrap {
+  width: 420px; height: 525px;
+  position: relative; overflow: hidden;
+  background: var(--black);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+  cursor: pointer;
+}
+
+/* ─── SLIDE BASE ─── */
+.slide {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+}
+.slide.active {
+  opacity: 1;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/* ─── HERO IMAGE (Top 60%) ─── */
+.hero-image {
+  height: 60%;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+.hero-image img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: contrast(1.1) brightness(0.9);
+}
+
+/* ─── GRADIENT OVERLAY ─── */
+.gradient-overlay {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 45%;
+  background: linear-gradient(to top,
+    rgba(0,0,0,0.95) 0%,
+    rgba(0,0,0,0.75) 50%,
+    rgba(0,0,0,0) 100%);
+  z-index: 2;
+}
+
+/* ─── CONTENT AREA (Bottom 40%) ─── */
+.content-area {
+  height: 40%;
+  padding: 6% var(--padding) 8%;
+  display: flex; flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 3;
+}
+
+/* ─── MICRO UI DIVIDER ─── */
+.micro-ui {
+  width: 100%;
+  display: flex; align-items: center; gap: 10px;
+}
+.divider {
+  flex: 1; height: 1px;
+  background: rgba(255,255,255,0.15);
+}
+/* Logo circle — shows brand logo img or 2-letter initials */
+.logo-center {
+  width: 28px; height: 28px;
+  background: var(--white);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: var(--black);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.logo-center img {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ─── HEADLINE ─── */
+.headline {
+  font-family: var(--font-head);
+  font-size: 40px;
+  line-height: 0.95;
+  letter-spacing: -0.8px;
+  text-transform: uppercase;
+  text-align: center;
+  margin: auto 0;
+  color: var(--white);
+}
+.headline span.accent {
+  color: var(--slide-accent, var(--accent));
+}
+
+/* ─── FOOTER / SWIPE DOTS ─── */
+.footer-ui {
+  margin-top: 14px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 15px;
+}
+.swipe-dots {
+  display: flex; gap: 4px;
+}
+.dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  transition: all 0.3s ease;
+}
+.dot.active {
+  background: var(--slide-accent, var(--accent));
+  width: 14px; border-radius: 2px;
+}
+.swipe-text {
+  font-size: 8px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  opacity: 0.4;
+}
+
+</style>
+</head>
+<body>
+
+<!-- Slides are injected dynamically by carouselTemplateService.
+     The single slide below is the static preview for the "Ver exemplo" button. -->
+<div class="carousel-wrap" id="carousel">
+<!-- EP:CAROUSEL_SLIDES_START -->
+  <div class="slide active">
+    <div class="hero-image">
+      <img src="https://images.unsplash.com/photo-1551024601-bec78aea704b?q=80&w=1080&auto=format&fit=crop" alt="Hero">
+      <div class="gradient-overlay"></div>
+    </div>
+    <div class="content-area">
+      <div class="micro-ui">
+        <div class="divider"></div>
+        <div class="logo-center">EP</div>
+        <div class="divider"></div>
+      </div>
+      <h1 class="headline">
+        YOUR WALKING SPEED<br>
+        PREDICTS YOUR <span class="accent">LIFESPAN</span>.<br>
+        IF YOU CAN'T WALK <span class="accent">3 MPH</span>,<br>
+        YOUR RISK SKYROCKETS.
+      </h1>
+      <div class="footer-ui">
+        <div class="swipe-dots">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+        <div class="swipe-text">Swipe</div>
+      </div>
+    </div>
+  </div>
+<!-- EP:CAROUSEL_SLIDES_END -->
+</div>
+
+<script>
+// Navigation for preview/demo — click anywhere on the carousel to advance
+(function() {
+  const wrap = document.getElementById('carousel');
+  if (!wrap) return;
+  let current = 0;
+
+  wrap.addEventListener('click', function() {
+    const slides = wrap.querySelectorAll('.slide');
+    if (slides.length <= 1) return;
+    slides[current].classList.remove('active');
+    current = (current + 1) % slides.length;
+    slides[current].classList.add('active');
+  });
+})();
+</script>
+
+</body>
+</html>

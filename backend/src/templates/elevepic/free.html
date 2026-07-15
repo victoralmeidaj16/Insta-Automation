@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElevePic — Livre (IA)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --violet: #a855f7;
+  --blue: #3b82f6;
+  --bg: #0d001a;
+  --bg-2: #130326;
+  --text: #f5f3ff;
+  --muted: rgba(245,243,255,0.66);
+  --line: rgba(255,255,255,0.12);
+  --font: 'Manrope', sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(168,85,247,0.26), transparent 24%),
+    radial-gradient(circle at 82% 24%, rgba(59,130,246,0.22), transparent 24%),
+    linear-gradient(180deg, #090012 0%, #030008 100%);
+  font-family: var(--font);
+  color: var(--text);
+}
+
+.frame {
+  width: 420px;
+  height: 525px;
+  border-radius: 28px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(168,85,247,0.24);
+  background:
+    linear-gradient(145deg, rgba(168,85,247,0.12), rgba(59,130,246,0.1)),
+    linear-gradient(180deg, var(--bg-2), var(--bg));
+  box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+}
+
+.mesh {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 26%, rgba(168,85,247,0.28) 0, transparent 18%),
+    radial-gradient(circle at 78% 28%, rgba(59,130,246,0.24) 0, transparent 18%),
+    radial-gradient(circle at 50% 75%, rgba(168,85,247,0.14) 0, transparent 26%);
+  pointer-events: none;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(168,85,247,0.12);
+  border: 1px solid rgba(168,85,247,0.24);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: #e9d5ff;
+  margin-bottom: 26px;
+}
+
+.spark {
+  font-size: 13px;
+}
+
+.hero {
+  display: grid;
+  gap: 16px;
+}
+
+.title {
+  font-size: 40px;
+  line-height: 0.98;
+  font-weight: 800;
+  letter-spacing: -1.8px;
+}
+
+.title .accent {
+  color: #c4b5fd;
+}
+
+.body {
+  max-width: 310px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.canvas {
+  margin-top: auto;
+  position: relative;
+  height: 210px;
+  border-radius: 24px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(10px);
+}
+
+.blob.one {
+  width: 180px;
+  height: 180px;
+  left: -30px;
+  top: 10px;
+  background: rgba(168,85,247,0.32);
+}
+
+.blob.two {
+  width: 150px;
+  height: 150px;
+  right: -20px;
+  top: 28px;
+  background: rgba(59,130,246,0.24);
+}
+
+.wave {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  border-top: 2px solid rgba(255,255,255,0.2);
+  border-radius: 50%;
+}
+
+.wave.one { bottom: 58px; height: 54px; }
+.wave.two { bottom: 40px; height: 64px; border-top-color: rgba(168,85,247,0.32); }
+.wave.three { bottom: 24px; height: 74px; border-top-color: rgba(59,130,246,0.3); }
+
+.sticky {
+  position: absolute;
+  left: 24px;
+  top: 24px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(13,0,26,0.72);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+}
+
+.sticky-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.7px;
+  text-transform: uppercase;
+  color: #ddd6fe;
+  margin-bottom: 6px;
+}
+
+.sticky-title {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.footer {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.track {
+  display: flex;
+  gap: 6px;
+}
+
+.track span {
+  width: 24px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+}
+
+.track span:first-child {
+  background: linear-gradient(90deg, var(--violet), var(--blue));
+}
+
+.caption {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.52);
+}
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="mesh"></div>
+    <div class="content">
+      <div class="label"><span class="spark">✦</span> IA livre</div>
+
+      <div class="hero">
+        <div class="title">Estrutura <span class="accent">criada do zero</span> pela IA</div>
+        <div class="body">
+          Preview conceitual do template Livre (IA): a composição pode variar bastante, com blocos, formas e hierarquia definidos dinamicamente pelo prompt.
+        </div>
+      </div>
+
+      <div class="canvas">
+        <div class="blob one"></div>
+        <div class="blob two"></div>
+        <div class="sticky">
+          <div class="sticky-kicker">Composição</div>
+          <div class="sticky-title">Sem grade fixa<br>e sem layout fechado</div>
+        </div>
+        <div class="wave one"></div>
+        <div class="wave two"></div>
+        <div class="wave three"></div>
+      </div>
+
+      <div class="footer">
+        <div class="track"><span></span><span></span><span></span></div>
+        <div class="caption">Preview conceitual</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

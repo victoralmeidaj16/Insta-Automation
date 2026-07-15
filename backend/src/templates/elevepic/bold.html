@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElevePic — Bold Overlay</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue: #3b82f6;
+  --blue-light: #93c5fd;
+  --blue-dark: #1d4ed8;
+  --dark: #060810;
+  --serif: 'Playfair Display', serif;
+  --sans: 'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: #03040a;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 0; overflow: hidden;
+}
+
+.carousel-wrap {
+  width: 420px; height: 100vh;
+  position: relative; overflow: hidden;
+}
+
+/* ─ SLIDE BASE ─ */
+.slide {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  transform: scale(1.04);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  pointer-events: none;
+  background: var(--dark);
+  overflow: hidden;
+}
+.slide.active { opacity: 1; transform: scale(1); pointer-events: all; }
+.slide.exit { opacity: 0; transform: scale(0.96); pointer-events: none; }
+
+/* Grid pattern overlay */
+.grid-pattern {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(59,130,246,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.06) 1px, transparent 1px);
+  background-size: 36px 36px;
+  pointer-events: none;
+}
+
+/* Bottom gradient fade */
+.fade-bottom {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 60%;
+  background: linear-gradient(to top, var(--dark) 0%, transparent 100%);
+  pointer-events: none;
+}
+.fade-top {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 30%;
+  background: linear-gradient(to bottom, rgba(6,8,16,0.9) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Scanline effect */
+.scanlines {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent, transparent 2px,
+    rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+}
+
+/* ─ CONTENT LAYOUT ─ */
+.slide-content {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column;
+  padding: 48px 40px;
+}
+
+/* Header / branding */
+.brand-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: auto;
+}
+.brand-lines {
+  display: flex; flex-direction: column; gap: 4px; align-items: center;
+}
+.bline { width: 28px; height: 1px; background: rgba(255,255,255,0.18); }
+.brand-label {
+  font-size: 9px; font-weight: 800; letter-spacing: 3px;
+  text-transform: uppercase; color: rgba(255,255,255,0.35);
+  margin: 4px 0;
+}
+.slide-num {
+  font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.2);
+  letter-spacing: 1px;
+}
+
+/* Main headline */
+.headline-area {
+  margin-bottom: 40px;
+}
+.hl-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--blue-light);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.hl-eyebrow::before {
+  content: '';
+  display: block;
+  width: 20px; height: 2px;
+  background: var(--blue);
+  border-radius: 1px;
+}
+.hl-main {
+  font-family: var(--sans);
+  font-size: clamp(52px, 12vw, 72px);
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  line-height: 0.92;
+  letter-spacing: -2px;
+}
+.hl-blue { color: var(--blue); }
+.hl-serif {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 0.85em;
+  text-transform: none;
+  letter-spacing: -1px;
+}
+.hl-sub {
+  font-size: 15px; font-weight: 400;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.6; margin-top: 20px;
+  max-width: 320px;
+}
+
+/* Impact number */
+.impact-wrap {
+  display: flex; align-items: flex-start; gap: 16px;
+  margin-bottom: 24px;
+}
+.impact-num {
+  font-family: var(--sans);
+  font-size: 110px; font-weight: 900;
+  color: var(--blue);
+  line-height: 0.85;
+  letter-spacing: -4px;
+  text-shadow: 0 0 60px rgba(59,130,246,0.3);
+}
+.impact-text {
+  padding-top: 18px;
+}
+.impact-big {
+  font-size: 20px; font-weight: 800;
+  color: #fff; text-transform: uppercase;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+.impact-small {
+  font-size: 13px; color: rgba(255,255,255,0.45);
+  margin-top: 4px;
+}
+
+/* Divider */
+.h-divider {
+  width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59,130,246,0.4), transparent);
+  margin: 20px 0;
+}
+
+/* Statement lines (for multi-line slides) */
+.statement {
+  margin-bottom: 10px;
+}
+.statement-line {
+  font-family: var(--sans);
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  line-height: 1.0;
+}
+.statement-line.xl { font-size: 56px; letter-spacing: -2px; }
+.statement-line.lg { font-size: 44px; letter-spacing: -1.5px; }
+.statement-line.md { font-size: 32px; letter-spacing: -1px; }
+.statement-line.accent { color: var(--blue); }
+.statement-line.dim { color: rgba(255,255,255,0.25); font-size: 28px; letter-spacing: -0.5px; }
+
+/* Blue circle badge */
+.badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--blue);
+  font-size: 26px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 30px rgba(59,130,246,0.4);
+}
+
+/* ─ PROGRESS / NAV ─ */
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px; background: rgba(255,255,255,0.06); z-index: 20;
+}
+.progress-fill {
+  height: 100%; background: var(--blue);
+  transition: width 0.4s ease; border-radius: 0 2px 2px 0;
+}
+.nav-dots {
+  position: absolute; bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 6px; z-index: 20;
+}
+.dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.2); cursor: pointer; transition: all 0.3s;
+}
+.dot.active { width: 20px; border-radius: 3px; background: var(--blue); }
+.nav-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.6); font-size: 16px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  z-index: 20; transition: all 0.2s;
+}
+.nav-btn:hover { background: rgba(59,130,246,0.3); border-color: var(--blue); color: #fff; }
+.nav-prev { left: 12px; }
+.nav-next { right: 12px; }
+.slide-counter {
+  position: absolute; top: 16px; right: 16px;
+  font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.25);
+  z-index: 20; background: rgba(255,255,255,0.04);
+  padding: 4px 10px; border-radius: 10px;
+  letter-spacing: 1.5px;
+}
+
+/* Glow orbs */
+.orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(60px); pointer-events: none;
+}
+.orb-1 { width: 300px; height: 300px; top: -80px; right: -60px; background: rgba(29,78,216,0.15); }
+.orb-2 { width: 200px; height: 200px; bottom: 40px; left: -40px; background: rgba(59,130,246,0.1); }
+</style>
+</head>
+<body>
+<div class="carousel-wrap" id="carousel">
+
+  <!-- Slide 1: GANCHO -->
+  <div class="slide active" data-index="0">
+    <div class="grid-pattern"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="fade-top"></div>
+    <div class="fade-bottom"></div>
+    <div class="scanlines"></div>
+    <div class="slide-content">
+      <div class="brand-row">
+        <div class="brand-lines">
+          <div class="bline"></div>
+          <div class="brand-label"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+          <div class="bline"></div>
+        </div>
+        <div class="slide-num">01 / 07</div>
+      </div>
+      <div class="headline-area">
+        <div class="hl-eyebrow"><!--EP:s0_eyebrow-->Quebra de crença<!--/EP:s0_eyebrow--></div>
+        <div class="hl-main"><!--EP:s0_headline-->IMAGEM<br>É <span class="hl-blue">PODER</span><!--/EP:s0_headline-->
+        </div>
+        <div class="hl-sub"><!--EP:s0_subtext-->Não é vaidade. Não é superficialidade. É a sua maior vantagem competitiva no mercado atual.<!--/EP:s0_subtext--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 2: IMPACTO NUMÉRICO -->
+  <div class="slide" data-index="1">
+    <div class="grid-pattern"></div>
+    <div class="orb orb-1"></div>
+    <div class="fade-top"></div>
+    <div class="fade-bottom"></div>
+    <div class="scanlines"></div>
+    <div class="slide-content">
+      <div class="brand-row">
+        <div class="brand-lines">
+          <div class="bline"></div>
+          <div class="brand-label"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+          <div class="bline"></div>
+        </div>
+        <div class="slide-num">02 / 07</div>
+      </div>
+      <div>
+        <div class="hl-eyebrow"><!--EP:s1_eyebrow-->O dado que muda tudo<!--/EP:s1_eyebrow--></div>
+        <div class="impact-wrap">
+          <div class="impact-num"><!--EP:s1_impact_num-->3<!--/EP:s1_impact_num--></div>
+          <div class="impact-text">
+            <div class="impact-big"><!--EP:s1_impact_big-->Segundos.<br>É tudo<br>que você tem.<!--/EP:s1_impact_big--></div>
+            <div class="impact-small"><!--EP:s1_impact_small-->Para causar a primeira impressão certa.<!--/EP:s1_impact_small--></div>
+          </div>
+        </div>
+        <div class="h-divider"></div>
+        <div class="hl-sub" style="margin-top:0;"><!--EP:s1_subtext-->Depois desses 3 segundos, a decisão já foi tomada. A questão é: o que a sua imagem está dizendo?<!--/EP:s1_subtext--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: STATEMENT TRIPLO -->
+  <div class="slide" data-index="2">
+    <div class="grid-pattern"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="fade-top"></div>
+    <div class="fade-bottom"></div>
+    <div class="scanlines"></div>
+    <div class="slide-content">
+      <div class="brand-row">
+        <div class="brand-lines">
+          <div class="bline"></div>
+          <div class="brand-label"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+          <div class="bline"></div>
+        </div>
+        <div class="slide-num">03 / 07</div>
+      </div>
+      <div>
+        <div class="hl-eyebrow"><!--EP:s2_eyebrow-->A realidade<!--/EP:s2_eyebrow--></div>
+        <div class="statement"><!--EP:s2_statement-->
+          <div class="statement-line xl">FOTO</div>
+          <div class="statement-line xl">RUIM</div>
+          <div class="statement-line xl accent">=</div>
+          <div class="statement-line lg">CLIENTE</div>
+          <div class="statement-line lg accent">PERDIDO</div><!--/EP:s2_statement-->
+        </div>
+        <div class="h-divider"></div>
+        <div class="hl-sub" style="margin-top:0;"><!--EP:s2_subtext-->Antes de ouvir seu pitch, ver seu portfólio ou ler seu currículo — eles já decidiram.<!--/EP:s2_subtext--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: O ERRO -->
+  <div class="slide" data-index="3">
+    <div class="grid-pattern"></div>
+    <div class="orb orb-1"></div>
+    <div class="fade-top"></div>
+    <div class="fade-bottom"></div>
+    <div class="scanlines"></div>
+    <div class="slide-content">
+      <div class="brand-row">
+        <div class="brand-lines">
+          <div class="bline"></div>
+          <div class="brand-label"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+          <div class="bline"></div>
+        </div>
+        <div class="slide-num">04 / 07</div>
+      </div>
+      <div>
+        <div class="hl-eyebrow"><!--EP:s3_eyebrow-->O erro mais caro<!--/EP:s3_eyebrow--></div>
+        <div class="hl-main" style="font-size:54px;margin-bottom:16px;"><!--EP:s3_headline-->"MINHA<br>FOTO TÁ<br><span class="hl-blue">BOA."</span><!--/EP:s3_headline-->
+        </div>
+        <div class="h-divider"></div>
+        <div class="hl-sub" style="margin-top:0;"><!--EP:s3_subtext-->Você não é o melhor juiz da sua própria imagem. Seus clientes são. E eles estão julgando agora.<!--/EP:s3_subtext--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: VIRADA -->
+  <div class="slide" data-index="4">
+    <div class="grid-pattern"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="fade-top"></div>
+    <div class="fade-bottom"></div>
+    <div class="scanlines"></div>
+    <div class="slide-content">
+      <div class="brand-row">
+        <div class="brand-lines">
+          <div class="bline"></div>
+          <div class="brand-label"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+          <div class="bline"></div>
+        </div>
+        <div class="slide-num">05 / 07</div>
+      </div>
+      <div>
+        <div class="hl-eyebrow"><!--EP:s4_eyebrow-->A virada<!--/EP:s4_eyebrow--></div>
+        <div class="statement"><!--EP:s4_statement-->
+          <div class="statement-line md dim">DE</div>
+          <div class="statement-line xl">INVISÍVEL</div>
+          <div class="statement-line md dim">PARA</div>
+          <div class="statement-line xl accent">AUTORIDADE</div><!--/EP:s4_statement-->
+        </div>
+        <div class="h-divider"></div>
+        <div class="hl-sub" style="margin-top:0;"><!--EP:s4_subtext-->Com a IA certa, você passa a transmitir credibilidade em cada pixel — mesmo sem ter feito uma sessão de fotos na vida.<!--/EP:s4_subtext--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 6: COMO FUNCIONA -->
+  <div class="slide" data-index="5">
+    <div class="grid-pattern"></div>
+    <div class="orb orb-1"></div>
+    <div class="fade-top"></div>
+    <div class="fade-bottom"></div>
+    <div class="scanlines"></div>
+    <div class="slide-content">
+      <div class="brand-row">
+        <div class="brand-lines">
+          <div class="bline"></div>
+          <div class="brand-label"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+          <div class="bline"></div>
+        </div>
+        <div class="slide-num">06 / 07</div>
+      </div>
+      <div>
+        <div class="hl-eyebrow"><!--EP:s5_eyebrow-->O processo<!--/EP:s5_eyebrow--></div>
+        <div class="hl-main" style="font-size:60px;line-height:0.9;margin-bottom:24px;"><!--EP:s5_headline-->SIMPLES.<br><span class="hl-blue">RÁPIDO.</span><br>PODEROSO.<!--/EP:s5_headline-->
+        </div>
+        <div class="h-divider"></div>
+        <div class="hl-sub" style="margin-top:0;"><!--EP:s5_subtext-->Fotos suas → IA aprende → Resultado profissional. Sem fotógrafo, sem estúdio, sem desculpas.<!--/EP:s5_subtext--></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: CTA -->
+  <div class="slide" data-index="6">
+    <div class="grid-pattern"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="fade-top"></div>
+    <div class="fade-bottom"></div>
+    <div class="scanlines"></div>
+    <div class="slide-content">
+      <div class="brand-row">
+        <div class="brand-lines">
+          <div class="bline"></div>
+          <div class="brand-label"><!--EP:brand_name-->ElevePic<!--/EP:brand_name--></div>
+          <div class="bline"></div>
+        </div>
+        <div class="slide-num">07 / 07</div>
+      </div>
+      <div>
+        <div class="hl-eyebrow"><!--EP:s6_eyebrow-->Sua decisão<!--/EP:s6_eyebrow--></div>
+        <div class="hl-main" style="font-size:58px;line-height:0.9;margin-bottom:24px;"><!--EP:s6_headline-->MUDE<br>COMO O<br>MERCADO<br>TE <span class="hl-blue">VÊ.</span><!--/EP:s6_headline-->
+        </div>
+        <div class="h-divider"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0;">
+          <div class="hl-sub" style="margin-top:0;max-width:200px;"><!--EP:s6_subtext-->Acesse agora e gere sua foto profissional com IA.<!--/EP:s6_subtext--></div>
+          <div style="font-family:var(--sans);font-size:13px;font-weight:800;color:var(--blue);background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);padding:12px 18px;border-radius:12px;white-space:nowrap;">
+            <!--EP:s6_cta_text-->elevepic.com →<!--/EP:s6_cta_text-->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progress" style="width:14.28%"></div></div>
+  <div class="slide-counter" id="counter">01 / 07</div>
+  <div class="nav-dots" id="dots"></div>
+  <button class="nav-btn nav-prev" id="prev">←</button>
+  <button class="nav-btn nav-next" id="next">→</button>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const progress = document.getElementById('progress');
+const counter = document.getElementById('counter');
+const dotsContainer = document.getElementById('dots');
+let current = 0;
+const total = slides.length;
+
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  dotsContainer.appendChild(d);
+});
+
+function goTo(n) {
+  slides[current].classList.remove('active');
+  slides[current].classList.add('exit');
+  setTimeout(() => slides[current].classList.remove('exit'), 500);
+  current = (n + total) % total;
+  slides[current].classList.add('active');
+  progress.style.width = ((current + 1) / total * 100) + '%';
+  const num = String(current + 1).padStart(2, '0');
+  counter.textContent = num + ' / 07';
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+}
+
+document.getElementById('prev').onclick = () => goTo(current - 1);
+document.getElementById('next').onclick = () => goTo(current + 1);
+
+let startX = 0;
+document.getElementById('carousel').addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive:true});
+document.getElementById('carousel').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - startX;
+  if (Math.abs(dx) > 50) dx < 0 ? goTo(current + 1) : goTo(current - 1);
+}, {passive:true});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+});
+</script>
+</body>
+</html>

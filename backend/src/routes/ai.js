@@ -1,8 +1,17 @@
 import express from 'express';
-import { generateImages, generateCarousel, generateNextCarouselPrompt, generateCarouselPrompts, generateImageCaption, generatePostIdeas, extractStyleFromPrompt, generateVariations, generateImagePrompt, generateRelatedIdeas, generateHtmlCarousel } from '../services/aiService.js';
+import { readFileSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { generateImages, generateCarousel, generateCarouselPrompts, generateContentPlan, generateImageCaption, generateCaptionFromBrief, generatePostIdeas, extractStyleFromPrompt, generateVariations, generateImagePrompt, generateRelatedIdeas, generateHtmlCarousel, generateTemplateVariations } from '../services/aiService.js';
 import { createScientificComposition } from '../services/scientificCompositionService.js';
 import { getBusinessProfile } from '../services/businessProfileService.js';
 import { getBrandReferenceImages } from '../utils/brandProfiles.js';
+import { db } from '../config/firebase.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const TEMPLATES_DIR = join(__dirname, '../templates/elevepic');
+const VALID_TEMPLATE_IDS = new Set(['bold', 'editorial', 'split', 'editorial-sci', 'photo', 'moodboard', 'instagram', 'comparison', 'fitswap-swap', 'template1', 'free', 'tudy']);
 
 const router = express.Router();
 
@@ -81,65 +90,6 @@ router.post('/generate', async (req, res) => {
         console.error('❌ Erro na rota de geração:', error);
         res.status(500).json({
             error: 'Erro ao gerar imagens',
-            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
-        });
-    }
-});
-
-/**
- * POST /api/ai/generate-next-prompt - Gera o PRÓXIMO prompt do carrossel progressivamente
- */
-router.post('/generate-next-prompt', async (req, res) => {
-    try {
-        const {
-            carouselDescription,
-            totalCards,
-            currentCardIndex,
-            previousPrompts = [],
-            profileDescription,
-            guidelines,
-            savedPrompts
-        } = req.body;
-
-        console.log(`📝 Gerando próximo prompt: card ${currentCardIndex + 1}/${totalCards}`);
-
-        if (!carouselDescription) {
-            return res.status(400).json({
-                error: 'Descrição do carrossel é obrigatória',
-            });
-        }
-
-        if (!totalCards || totalCards < 1) {
-            return res.status(400).json({
-                error: 'Total de cards inválido',
-            });
-        }
-
-        if (currentCardIndex === undefined || currentCardIndex < 0) {
-            return res.status(400).json({
-                error: 'Índice do card inválido',
-            });
-        }
-
-        const nextPrompt = await generateNextCarouselPrompt(
-            carouselDescription,
-            totalCards,
-            currentCardIndex,
-            previousPrompts,
-            { profileDescription, guidelines, savedPrompts }
-        );
-
-        res.json({
-            success: true,
-            prompt: nextPrompt,
-            cardIndex: currentCardIndex,
-            totalCards
-        });
-
-    } catch (error) {
-        console.error('❌ Erro ao gerar próximo prompt:', error);
-        res.status(500).json({
-            error: 'Erro ao gerar próximo prompt',
             message: process.env.NODE_ENV === 'development' ? error.message : undefined,
         });
     }
@@ -283,6 +233,55 @@ router.post('/generate-carousel-prompts', async (req, res) => {
 });
 
 /**
+ * POST /api/ai/generate-content-plan - Gera slides, legenda, hashtags e CTA em um único plano
+ */
+router.post('/generate-content-plan', async (req, res) => {
+    try {
+        const { description, count, businessProfileId, context = {}, premium = true, qa = true } = req.body;
+
+        if (!description) {
+            return res.status(400).json({ error: 'Descrição do conteúdo é obrigatória.' });
+        }
+        if (!Number.isInteger(Number(count)) || Number(count) < 1 || Number(count) > 10) {
+            return res.status(400).json({ error: 'Quantidade de slides deve estar entre 1 e 10.' });
+        }
+
+        let resolvedContext = context && typeof context === 'object' ? context : {};
+        if (businessProfileId) {
+            const profile = await getBusinessProfile(businessProfileId);
+            if (!profile) {
+                return res.status(404).json({ error: 'Perfil de negócio não encontrado.' });
+            }
+
+            // Server-side profile data is authoritative, especially brandKit.
+            resolvedContext = {
+                ...resolvedContext,
+                ...profile,
+                branding: { ...(resolvedContext.branding || {}), ...(profile.branding || {}) },
+                aiPreferences: { ...(resolvedContext.aiPreferences || {}), ...(profile.aiPreferences || {}) },
+                brandKit: profile.brandKit || resolvedContext.brandKit || {}
+            };
+        }
+
+        const { plan, warnings } = await generateContentPlan({
+            description,
+            count: Number(count),
+            context: resolvedContext,
+            premium: premium !== false,
+            qa: qa !== false
+        });
+
+        res.json({ success: true, plan, warnings });
+    } catch (error) {
+        console.error('❌ Erro ao gerar plano de conteúdo:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar plano de conteúdo',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+/**
  * POST /api/ai/generate-variations - Gera variações editoriais a partir de uma ideia base
  */
 router.post('/generate-variations', async (req, res) => {
@@ -367,6 +366,34 @@ router.post('/generate-related', async (req, res) => {
 });
 
 /**
+ * POST /api/ai/generate-template-variations - Gera variações de um texto template com variáveis {}
+ */
+router.post('/generate-template-variations', async (req, res) => {
+    try {
+        const { templateText, count = 1, context = {} } = req.body;
+
+        if (!templateText) {
+            return res.status(400).json({
+                error: 'Texto de template é obrigatório',
+            });
+        }
+
+        const prompts = await generateTemplateVariations(templateText, count, context);
+
+        res.json({
+            success: true,
+            prompts
+        });
+    } catch (error) {
+        console.error('❌ Erro ao gerar variações de template:', error);
+        res.status(500).json({
+            error: 'Erro ao gerar variações de template',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        });
+    }
+});
+
+/**
  * POST /api/ai/generate-single-image - Gerar uma única imagem com IA
  */
 router.post('/generate-single-image', async (req, res) => {
@@ -416,16 +443,11 @@ router.post('/generate-single-image', async (req, res) => {
             }
         }
 
-        // FALLBACK: If no reference image provided, try to fetch logo from profile
+        // FALLBACK: If no reference image provided, use the profile logo
         let finalReferenceImage = referenceImage;
-        if (!finalReferenceImage && businessProfileId && !isPremiumCarousel && overlayMode !== 'premium') {
-            try {
-                const { getFallbackLogo } = await import('../services/postService.js');
-                finalReferenceImage = await getFallbackLogo(businessProfileId);
-                if (finalReferenceImage) console.log('✅ Logo fallback attached successfully');
-            } catch (err) {
-                console.warn('⚠️ Could not grab fallback logo:', err.message);
-            }
+        if (!finalReferenceImage && !isPremiumCarousel && overlayMode !== 'premium') {
+            finalReferenceImage = profile?.branding?.logoUrl || profile?.branding?.logo || null;
+            if (finalReferenceImage) console.log('✅ Logo fallback attached successfully');
         }
 
         const mergedReferenceImages = [
@@ -525,9 +547,9 @@ router.post('/composite-scientific', async (req, res) => {
  */
 router.post('/generate-caption', async (req, res) => {
     try {
-        const { prompt, tone = 'casual', includeHashtags = true, language = 'pt' } = req.body;
+        const { prompt, tone = 'casual', includeHashtags = true, language = 'pt', businessProfileId } = req.body;
 
-        console.log('✍️ Gerando caption:', { prompt, tone, includeHashtags });
+        console.log('✍️ Gerando caption:', { prompt, tone, includeHashtags, businessProfileId });
 
         if (!prompt) {
             return res.status(400).json({
@@ -535,42 +557,22 @@ router.post('/generate-caption', async (req, res) => {
             });
         }
 
-        // Import OpenAI dynamically
-        const { default: OpenAI } = await import('openai');
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
+        let context = {};
+        if (businessProfileId) {
+            const profile = await getBusinessProfile(businessProfileId);
+            if (!profile) {
+                return res.status(404).json({ error: 'Perfil de negócio não encontrado.' });
+            }
+            context = profile;
+        }
+
+        const caption = await generateCaptionFromBrief({
+            brief: prompt,
+            context,
+            tone,
+            includeHashtags,
+            language
         });
-
-        // Tone descriptions
-        const toneInstructions = {
-            casual: 'Tom casual e descontraído, como se estivesse conversando com um amigo',
-            formal: 'Tom profissional e formal, adequado para negócios',
-            motivacional: 'Tom inspirador e motivacional, que engaja e emociona',
-            educativo: 'Tom educativo e informativo, que ensina algo valioso',
-            divertido: 'Tom divertido e bem-humorado, com leveza e criatividade'
-        };
-
-        const toneInstruction = toneInstructions[tone] || toneInstructions.casual;
-
-        const systemMessage = `Você é um especialista em criar captions para Instagram. 
-Crie captions ${language === 'pt' ? 'em português brasileiro' : 'in English'} que:
-- Sejam envolventes e chamem atenção
-- Usem ${toneInstruction}
-- Tenham entre 2-4 linhas
-${includeHashtags ? '- Incluam 5-8 hashtags relevantes no final' : '- NÃO incluam hashtags'}
-- Incentivem engajamento (curtidas, comentários, compartilhamentos)`;
-
-        const completion = await openai.chat.completions.create({
-            model: 'gpt-4',
-            messages: [
-                { role: 'system', content: systemMessage },
-                { role: 'user', content: `Crie uma caption para esta imagem/post: ${prompt}` }
-            ],
-            max_tokens: 300,
-            temperature: 0.8,
-        });
-
-        const caption = completion.choices[0].message.content.trim();
 
         res.json({
             success: true,
@@ -594,7 +596,7 @@ ${includeHashtags ? '- Incluam 5-8 hashtags relevantes no final' : '- NÃO inclu
  */
 router.post('/generate-caption-from-image', async (req, res) => {
     try {
-        const { imageUrl, profileName, profileDescription, guidelines } = req.body;
+        const { imageUrl, profileName, profileDescription, guidelines, context } = req.body;
 
         console.log('✍️ Gerando caption com visão para:', { imageUrl: imageUrl?.substring(0, 50), profileName });
 
@@ -604,7 +606,7 @@ router.post('/generate-caption-from-image', async (req, res) => {
             });
         }
 
-        const caption = await generateImageCaption(imageUrl, profileName, profileDescription, guidelines);
+        const caption = await generateImageCaption(imageUrl, profileName, profileDescription, guidelines, context);
 
         res.json({
             success: true,
@@ -698,18 +700,68 @@ router.post('/extract-style', async (req, res) => {
  */
 router.post('/generate-html-carousel', async (req, res) => {
     try {
-        const { topic, context, htmlTemplate, libraryImages } = req.body;
-        
+        const { topic, context, htmlTemplate, libraryImages, businessProfileId, requestedSlideCount, customTemplateId, libraryImageTreatment = 'auto' } = req.body;
+
         if (!topic) {
             return res.status(400).json({ error: 'Tópico é obrigatório' });
         }
+        if (!['auto', 'heavy', 'light'].includes(libraryImageTreatment)) {
+            return res.status(400).json({ error: 'libraryImageTreatment deve ser auto, heavy ou light' });
+        }
+
+        let profileContext = context || {};
+        let resolvedLibraryImages = Array.isArray(libraryImages) ? libraryImages : [];
+        let customTemplateHtml = null;
+
+        // Auto-load business profile context and library images when businessProfileId is provided
+        if (businessProfileId) {
+            try {
+                const profile = await getBusinessProfile(businessProfileId);
+                if (profile) {
+                    profileContext = { ...profile, ...profileContext };
+                }
+                // Auto-load library images if not explicitly provided
+                if (resolvedLibraryImages.length === 0) {
+                    const libSnap = await db.collection('library_items')
+                        .where('businessProfileId', '==', businessProfileId)
+                        .orderBy('createdAt', 'desc')
+                        .limit(20)
+                        .get();
+                    resolvedLibraryImages = libSnap.docs
+                        .flatMap(d => {
+                            const item = d.data();
+                            if (Array.isArray(item.mediaUrls)) return item.mediaUrls;
+                            return item.url ? [item.url] : [];
+                        })
+                        .filter(Boolean);
+                }
+                // Load custom template HTML if customTemplateId is provided
+                if (customTemplateId) {
+                    const tplDoc = await db.collection('html_carousel_templates')
+                        .doc(customTemplateId)
+                        .get();
+                    if (tplDoc.exists && tplDoc.data().businessProfileId === businessProfileId) {
+                        customTemplateHtml = tplDoc.data().html;
+                    }
+                }
+            } catch (profileErr) {
+                console.warn(`⚠️ Could not load profile ${businessProfileId}:`, profileErr.message);
+            }
+        }
 
         const enrichedContext = {
-            ...(context || {}),
-            libraryImages: Array.isArray(libraryImages) ? libraryImages.slice(0, 10) : []
+            ...profileContext,
+            libraryImages: resolvedLibraryImages.slice(0, 20)
         };
 
-        const html = await generateHtmlCarousel(topic, enrichedContext, htmlTemplate);
+        const html = await generateHtmlCarousel(
+            topic,
+            enrichedContext,
+            htmlTemplate,
+            requestedSlideCount,
+            customTemplateHtml,
+            libraryImageTreatment
+        );
 
         res.json({
             success: true,
@@ -726,6 +778,89 @@ router.post('/generate-html-carousel', async (req, res) => {
 });
 
 
+
+/**
+ * GET /api/ai/html-templates?businessProfileId=... — lista templates customizados do perfil
+ */
+router.get('/html-templates', async (req, res) => {
+    try {
+        const { businessProfileId } = req.query;
+        if (!businessProfileId) return res.status(400).json({ error: 'businessProfileId obrigatório' });
+
+        const snap = await db.collection('html_carousel_templates')
+            .where('businessProfileId', '==', businessProfileId)
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const templates = snap.docs.map(d => ({ id: d.id, ...d.data(), html: undefined }));
+        res.json({ success: true, templates });
+    } catch (error) {
+        console.error('❌ Erro ao listar templates:', error);
+        res.status(500).json({ error: 'Erro ao listar templates' });
+    }
+});
+
+/**
+ * POST /api/ai/html-templates — salva um template customizado
+ */
+router.post('/html-templates', async (req, res) => {
+    try {
+        const { businessProfileId, name, html } = req.body;
+        if (!businessProfileId || !name || !html) {
+            return res.status(400).json({ error: 'businessProfileId, name e html são obrigatórios' });
+        }
+
+        const docRef = await db.collection('html_carousel_templates').add({
+            businessProfileId,
+            name,
+            html,
+            createdAt: new Date().toISOString(),
+        });
+
+        res.json({ success: true, id: docRef.id });
+    } catch (error) {
+        console.error('❌ Erro ao salvar template:', error);
+        res.status(500).json({ error: 'Erro ao salvar template' });
+    }
+});
+
+/**
+ * DELETE /api/ai/html-templates/:id — remove um template customizado
+ */
+router.delete('/html-templates/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { businessProfileId } = req.query;
+
+        const doc = await db.collection('html_carousel_templates').doc(id).get();
+        if (!doc.exists || doc.data().businessProfileId !== businessProfileId) {
+            return res.status(404).json({ error: 'Template não encontrado' });
+        }
+
+        await db.collection('html_carousel_templates').doc(id).delete();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Erro ao deletar template:', error);
+        res.status(500).json({ error: 'Erro ao deletar template' });
+    }
+});
+
+/**
+ * GET /api/ai/template-preview/:templateId - Serve o HTML bruto do template ElevePic como exemplo
+ */
+router.get('/template-preview/:templateId', (req, res) => {
+    const { templateId } = req.params;
+    if (!VALID_TEMPLATE_IDS.has(templateId)) {
+        return res.status(404).json({ error: 'Template não encontrado' });
+    }
+    const filePath = join(TEMPLATES_DIR, `${templateId}.html`);
+    if (!existsSync(filePath)) {
+        return res.status(404).json({ error: 'Arquivo de template não encontrado' });
+    }
+    const html = readFileSync(filePath, 'utf-8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+});
 
 /**
  * POST /api/ai/fix-html-carousel - Corrige / ajusta um carrossel HTML existente com base nas instruções do usuário
@@ -745,9 +880,10 @@ router.post('/fix-html-carousel', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Erro ao corrigir carrossel HTML:', error);
-        res.status(500).json({
-            error: 'Erro ao corrigir carrossel HTML',
-            message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        const status = error?.statusCode === 422 ? 422 : 500;
+        res.status(status).json({
+            error: status === 422 ? 'Não foi possível preservar a quantidade de slides' : 'Erro ao corrigir carrossel HTML',
+            message: status === 422 || process.env.NODE_ENV === 'development' ? error.message : undefined,
         });
     }
 });

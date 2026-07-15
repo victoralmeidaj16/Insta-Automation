@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElevePic — Bold Overlay (IA)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --pink: #ec4899;
+  --pink-soft: #f9a8d4;
+  --violet: #7c3aed;
+  --violet-soft: #c4b5fd;
+  --bg: #0d0014;
+  --panel: rgba(255,255,255,0.06);
+  --line: rgba(255,255,255,0.12);
+  --text: #fff;
+  --muted: rgba(255,255,255,0.62);
+  --font: 'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(236,72,153,0.28), transparent 28%),
+    radial-gradient(circle at 80% 78%, rgba(124,58,237,0.32), transparent 34%),
+    linear-gradient(180deg, #14011f 0%, #09000f 100%);
+  font-family: var(--font);
+  color: var(--text);
+}
+
+.frame {
+  width: 420px;
+  height: 525px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(236,72,153,0.24), transparent 22%),
+    radial-gradient(circle at 74% 70%, rgba(124,58,237,0.3), transparent 30%),
+    linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+    var(--bg);
+  border: 1px solid rgba(236,72,153,0.24);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+}
+
+.noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px;
+  pointer-events: none;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 28px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(236,72,153,0.14);
+  border: 1px solid rgba(236,72,153,0.28);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--pink-soft);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--pink), var(--violet));
+  box-shadow: 0 0 18px rgba(236,72,153,0.45);
+}
+
+.counter {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.38);
+  letter-spacing: 1px;
+}
+
+.headline {
+  font-size: 44px;
+  line-height: 0.94;
+  font-weight: 900;
+  letter-spacing: -2px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  max-width: 320px;
+}
+
+.headline .accent {
+  background: linear-gradient(135deg, var(--pink) 0%, var(--violet-soft) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtext {
+  max-width: 300px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.cards {
+  margin-top: auto;
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+}
+
+.card-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--pink-soft);
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+
+.card-body {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.footer {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+}
+
+.chip {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.65);
+}
+
+.cta {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--pink), var(--violet));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  box-shadow: 0 12px 28px rgba(124,58,237,0.35);
+}
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="noise"></div>
+    <div class="content">
+      <div class="topbar">
+        <div class="pill"><span class="dot"></span> IA Overlay</div>
+        <div class="counter">1 / 5</div>
+      </div>
+
+      <div class="headline">
+        A IA monta o <span class="accent">impacto visual</span> sem parecer template comum
+      </div>
+      <div class="subtext">
+        Exemplo de preview para o modo Bold Overlay (IA): fundo com glow, contraste alto, hierarquia forte e blocos visuais mais livres.
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-kicker">Gancho</div>
+          <div class="card-title">Headline dominante com foco em conversão</div>
+          <div class="card-body">Texto curto, área negativa e destaque em gradiente para o ponto principal.</div>
+        </div>
+        <div class="card">
+          <div class="card-kicker">Estrutura</div>
+          <div class="card-title">Cards com overlay e CTA flutuante</div>
+          <div class="card-body">O layout não depende de uma grade rígida; a composição pode variar mantendo esse estilo visual.</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="chips">
+          <div class="chip">Glow</div>
+          <div class="chip">Overlay</div>
+          <div class="chip">IA</div>
+        </div>
+        <div class="cta">Swipe</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carousel — Tudy Style</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary: #2257F5;
+        --bg-dark: #0F1113;
+        --surface: #191C20;
+        --text-light: #F4F7FA;
+        --text-muted: rgba(244, 247, 250, 0.6);
+        --accent-violet: #7C3AED;
+        --accent-mint: #10B981;
+        --border-light: rgba(244, 247, 250, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        background-color: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        font-family: 'IBM Plex Sans', sans-serif;
+        color: var(--text-light);
+    }
+
+    .carousel-wrapper {
+        width: 420px;
+        height: 525px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .carousel {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        height: 100%;
+        width: 100%;
+    }
+
+    .carousel::-webkit-scrollbar { display: none; }
+
+    .slide {
+        flex-shrink: 0;
+        width: 420px;
+        height: 525px;
+        scroll-snap-align: start;
+        position: relative;
+        box-sizing: border-box;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background-color: var(--bg-dark);
+    }
+
+    .bg-img {
+        position: absolute;
+        inset: -20px;
+        background-size: cover;
+        background-position: center;
+        filter: blur(15px) brightness(0.25);
+        z-index: 0;
+    }
+
+    .bg-gradient {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top right, rgba(34, 87, 245, 0.15), transparent 60%),
+                    radial-gradient(circle at bottom left, rgba(124, 58, 237, 0.1), transparent 60%);
+        z-index: 0;
+    }
+
+    .slide-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 48px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 32px 32px;
+        z-index: 2;
+    }
+
+    .slide-content.center {
+        align-items: center;
+        text-align: center;
+    }
+
+    h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; line-height: 1.1; letter-spacing: 0.02em; }
+    h1 { font-size: 38px; margin-bottom: 16px; }
+    h2 { font-size: 32px; margin-bottom: 16px; }
+
+    p { font-size: 16px; line-height: 1.5; color: var(--text-muted); }
+
+    .highlight-primary { color: var(--primary); }
+    .highlight-violet  { color: var(--accent-violet); }
+    .highlight-mint    { color: var(--accent-mint); }
+
+    .ig-header {
+        position: absolute;
+        top: 24px;
+        left: 28px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 10;
+    }
+
+    .ig-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--border-light);
+    }
+
+    .ig-handle { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-light);
+        color: var(--text-light);
+    }
+
+    .ui-card {
+        background: var(--surface);
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        padding: 24px;
+        width: 100%;
+        margin-top: 24px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        position: relative;
+    }
+
+    .ui-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--primary), var(--accent-violet));
+        border-radius: 16px 16px 0 0;
+    }
+
+    .slide-nav {
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        z-index: 10;
+        background: linear-gradient(to top, rgba(15, 17, 19, 0.9) 0%, transparent 100%);
+    }
+
+    .slide-dots { display: flex; gap: 5px; align-items: center; }
+
+    .slide-dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background-color: var(--text-light);
+        opacity: 0.2;
+        transition: all 0.3s ease;
+    }
+
+    .slide-dot.active {
+        width: 18px;
+        border-radius: 3px;
+        background-color: var(--primary);
+        opacity: 1;
+    }
+
+    .slide-arrow { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: var(--text-light); opacity: 0.6; }
+
+    .flow-diagram { display: flex; flex-direction: column; gap: 12px; width: 100%; margin-top: 24px; }
+
+    .flow-item {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--border-light);
+        padding: 16px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .flow-arrow { color: var(--primary); font-weight: bold; transform: rotate(90deg); align-self: center; margin: -4px 0; }
+
+    .chart-container {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        height: 120px;
+        margin-top: 32px;
+        width: 100%;
+        border-bottom: 1px solid var(--border-light);
+        padding-bottom: 8px;
+    }
+
+    .chart-bar {
+        flex: 1;
+        background: var(--surface);
+        border-radius: 4px 4px 0 0;
+        border: 1px solid var(--border-light);
+        border-bottom: none;
+        position: relative;
+    }
+
+    .chart-bar.active { background: var(--primary); border-color: var(--primary); }
+
+    .cta-button {
+        display: inline-block;
+        background: var(--primary);
+        color: #fff;
+        padding: 16px 32px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        margin-top: 32px;
+        text-decoration: none;
+        box-shadow: 0 8px 24px rgba(34, 87, 245, 0.4);
+    }
+</style>
+</head>
+<body>
+
+<div class="carousel-wrapper">
+    <div class="carousel">
+
+        <!-- Slide 1: Hook / Problem -->
+        <div class="slide">
+            <div class="bg-img" style="background-image: url('LIBRARY_IMAGE_1');"></div>
+            <div class="bg-gradient"></div>
+            <div class="ig-header">
+                <div class="ig-avatar" style="background: var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px;">BRD</div>
+                <span class="ig-handle">@sua_marca</span>
+            </div>
+            <div class="slide-content">
+                <div class="badge">Erro Comum</div>
+                <h1>Você está fazendo <span class="highlight-violet">errado?</span></h1>
+                <p style="color: var(--text-light); font-size: 18px;">A armadilha invisível que a maioria das pessoas comete e nem percebe.</p>
+            </div>
+            <div class="slide-nav">
+                <div class="slide-dots">
+                    <div class="slide-dot active"></div><div class="slide-dot"></div><div class="slide-dot"></div>
+                    <div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div>
+                </div>
+                <span class="slide-arrow">DESLIZE →</span>
+            </div>
+        </div>
+
+        <!-- Slide 2: Key Concept with UI Card -->
+        <div class="slide">
+            <div class="bg-gradient"></div>
+            <div class="ig-header">
+                <div class="ig-avatar" style="background: var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px;">BRD</div>
+                <span class="ig-handle">@sua_marca</span>
+            </div>
+            <div class="slide-content">
+                <h2>O poder de <span class="highlight-primary">CONCEITO</span></h2>
+                <p>O cérebro não aprende de forma passiva. Ele aprende quando é forçado a agir.</p>
+                <div class="ui-card" style="text-align: center; margin-top: 40px;">
+                    <p style="font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; color: var(--accent-violet);">Insight</p>
+                    <h3 style="font-size: 20px; font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; margin-bottom: 24px;">Qual a diferença entre saber e aplicar?</h3>
+                    <div style="width: 40px; height: 4px; background: var(--border-light); margin: 0 auto; border-radius: 2px;"></div>
+                </div>
+            </div>
+            <div class="slide-nav">
+                <div class="slide-dots">
+                    <div class="slide-dot"></div><div class="slide-dot active"></div><div class="slide-dot"></div>
+                    <div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div>
+                </div>
+                <span class="slide-arrow">DESLIZE →</span>
+            </div>
+        </div>
+
+        <!-- Slide 3: Wrong vs Right -->
+        <div class="slide">
+            <div class="bg-img" style="background-image: url('LIBRARY_IMAGE_2');"></div>
+            <div class="bg-gradient"></div>
+            <div class="ig-header">
+                <div class="ig-avatar" style="background: var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px;">BRD</div>
+                <span class="ig-handle">@sua_marca</span>
+            </div>
+            <div class="slide-content">
+                <h2>A abordagem <span class="highlight-mint">correta</span></h2>
+                <p>Pare de ser espectador. Resultados reais vêm de prática consistente e intencional.</p>
+                <div style="margin-top: 32px; display: flex; flex-direction: column; gap: 16px; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(244, 247, 250, 0.05); border: 1px solid var(--border-light); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--text-muted);">✗</div>
+                        <p style="margin: 0;">Abordagem passiva / sem resultado</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-mint); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--accent-mint);">✓</div>
+                        <p style="margin: 0; color: var(--text-light);">Abordagem ativa / com intenção</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-nav">
+                <div class="slide-dots">
+                    <div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot active"></div>
+                    <div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div>
+                </div>
+                <span class="slide-arrow">DESLIZE →</span>
+            </div>
+        </div>
+
+        <!-- Slide 4: Flow Diagram -->
+        <div class="slide">
+            <div class="bg-gradient"></div>
+            <div class="ig-header">
+                <div class="ig-avatar" style="background: var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px;">BRD</div>
+                <span class="ig-handle">@sua_marca</span>
+            </div>
+            <div class="slide-content">
+                <h2>Transforme <span class="highlight-violet">caos</span> em sistema</h2>
+                <p>A diferença entre quem avança e quem fica parado é ter um processo claro.</p>
+                <div class="flow-diagram">
+                    <div class="flow-item">
+                        <span style="font-weight: 600;">Problema / Dor</span>
+                        <span style="font-size: 12px; color: var(--text-muted);">Ponto A</span>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-item" style="border-color: var(--primary); background: rgba(34, 87, 245, 0.05);">
+                        <span style="font-weight: 600; color: var(--text-light);">Método / Solução</span>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-item" style="border-color: var(--accent-mint); background: rgba(16, 185, 129, 0.05);">
+                        <span style="font-weight: 600; color: var(--accent-mint);">Resultado Desejado</span>
+                        <span style="font-size: 12px; color: var(--accent-mint);">Ponto B</span>
+                    </div>
+                </div>
+            </div>
+            <div class="slide-nav">
+                <div class="slide-dots">
+                    <div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div>
+                    <div class="slide-dot active"></div><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div>
+                </div>
+                <span class="slide-arrow">DESLIZE →</span>
+            </div>
+        </div>
+
+        <!-- Slide 5: Data / Chart -->
+        <div class="slide">
+            <div class="bg-img" style="background-image: url('LIBRARY_IMAGE_3');"></div>
+            <div class="bg-gradient"></div>
+            <div class="ig-header">
+                <div class="ig-avatar" style="background: var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px;">BRD</div>
+                <span class="ig-handle">@sua_marca</span>
+            </div>
+            <div class="slide-content">
+                <h2>A ciência por trás da <span class="highlight-primary">mudança</span></h2>
+                <p>Dados não mentem. Veja o impacto comprovado da abordagem certa aplicada ao longo do tempo.</p>
+                <div class="chart-container">
+                    <div class="chart-bar" style="height: 100%;"></div>
+                    <div class="chart-bar" style="height: 60%;"></div>
+                    <div class="chart-bar" style="height: 30%;"></div>
+                    <div class="chart-bar active" style="height: 80%;"><div style="position:absolute; top:-24px; left:50%; transform:translateX(-50%); font-size:10px; font-weight:bold; color:var(--primary);">VIRADA</div></div>
+                    <div class="chart-bar" style="height: 50%;"></div>
+                    <div class="chart-bar" style="height: 40%;"></div>
+                </div>
+                <p style="font-size: 12px; margin-top: 8px; text-align: center; width: 100%;">Resultado médio com método aplicado</p>
+            </div>
+            <div class="slide-nav">
+                <div class="slide-dots">
+                    <div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div>
+                    <div class="slide-dot"></div><div class="slide-dot active"></div><div class="slide-dot"></div><div class="slide-dot"></div>
+                </div>
+                <span class="slide-arrow">DESLIZE →</span>
+            </div>
+        </div>
+
+        <!-- Slide 6: Solution / Features List -->
+        <div class="slide">
+            <div class="bg-img" style="background-image: url('LIBRARY_IMAGE_4');"></div>
+            <div class="bg-gradient"></div>
+            <div class="ig-header">
+                <div class="ig-avatar" style="background: var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px;">BRD</div>
+                <span class="ig-handle">@sua_marca</span>
+            </div>
+            <div class="slide-content">
+                <div class="badge" style="background: rgba(34, 87, 245, 0.1); border-color: var(--primary); color: var(--primary);">Solução</div>
+                <h2>Como a <span style="color: #fff;">MARCA</span> resolve isso</h2>
+                <p>Ferramentas e metodologias que transformam sua realidade de forma prática:</p>
+                <ul style="list-style: none; margin-top: 24px; display: flex; flex-direction: column; gap: 12px; width: 100%;">
+                    <li style="background: var(--surface); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-light); font-weight: 500;">🎯 Benefício Principal 1</li>
+                    <li style="background: var(--surface); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-light); font-weight: 500;">🧠 Benefício Principal 2</li>
+                    <li style="background: var(--surface); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-light); font-weight: 500;">📈 Benefício Principal 3</li>
+                </ul>
+            </div>
+            <div class="slide-nav">
+                <div class="slide-dots">
+                    <div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div>
+                    <div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot active"></div><div class="slide-dot"></div>
+                </div>
+                <span class="slide-arrow">DESLIZE →</span>
+            </div>
+        </div>
+
+        <!-- Slide 7: CTA -->
+        <div class="slide">
+            <div style="position: absolute; inset: 0; background: linear-gradient(135deg, var(--bg-dark) 0%, #111a3a 100%); z-index: 0;"></div>
+            <div class="ig-header">
+                <div class="ig-avatar" style="background: var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px;">BRD</div>
+                <span class="ig-handle">@sua_marca</span>
+            </div>
+            <div class="slide-content center">
+                <h1 style="font-size: 42px;">Chega de desculpas.<br><span class="highlight-primary">Comece hoje.</span></h1>
+                <p style="text-align: center; margin-top: 16px;">Dê o primeiro passo. Milhares de pessoas já transformaram seus resultados com esse método.</p>
+                <div class="cta-button">Quero Começar Agora</div>
+                <p style="font-size: 12px; margin-top: 16px; opacity: 0.5;">Link na bio</p>
+            </div>
+            <div class="slide-nav">
+                <div class="slide-dots">
+                    <div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div>
+                    <div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot"></div><div class="slide-dot active"></div>
+                </div>
+                <!-- No arrow on last slide -->
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

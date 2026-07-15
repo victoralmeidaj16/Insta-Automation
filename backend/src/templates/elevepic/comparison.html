@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElevePic — Before & After</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --brand-primary: #6366f1;
+  --brand-light:   #818cf8;
+  --brand-dark:    #4338ca;
+  --dark:          #06060e;
+  --surface:       #0e0e1a;
+  --muted:         rgba(255,255,255,0.45);
+  --serif:         'Playfair Display', serif;
+  --sans:          'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; overflow: hidden;
+}
+
+/* ─── WRAPPER ─── */
+.carousel-wrap {
+  width: 420px; height: 100vh;
+  position: relative; overflow: hidden;
+  background: var(--dark);
+}
+
+/* ─── SLIDE BASE ─── */
+.slide {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.55s ease;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--dark);
+}
+.slide.active  { opacity: 1; pointer-events: all; }
+.slide.exit    { opacity: 0; pointer-events: none; }
+
+/* ─── SUBTLE GRID OVERLAY ─── */
+.slide::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* ─── TOP BAR ─── */
+.top-bar {
+  position: relative; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 22px 0;
+  flex-shrink: 0;
+}
+.brand-badge {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 5px 13px; border-radius: 20px;
+}
+.brand-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--brand-primary);
+  box-shadow: 0 0 6px var(--brand-primary);
+}
+.brand-text {
+  font-size: 9.5px; font-weight: 800;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: rgba(255,255,255,0.8);
+}
+.slide-counter {
+  font-size: 10px; font-weight: 600;
+  color: var(--muted); letter-spacing: 1px;
+}
+
+/* ─── SLIDE CONTENT ZONE ─── */
+.slide-body {
+  position: relative; z-index: 10;
+  flex: 1; display: flex; flex-direction: column;
+  padding: 0 22px 28px;
+}
+
+/* ─── S0: HOOK + DUAL MOCKUP ─── */
+.s0-text {
+  padding-top: 18px;
+  flex-shrink: 0;
+}
+.eyebrow {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--brand-primary); margin-bottom: 8px;
+}
+.eyebrow::before {
+  content: '';
+  display: inline-block; width: 16px; height: 1.5px;
+  background: var(--brand-primary);
+  vertical-align: middle; margin-right: 6px;
+  position: relative; top: -1px;
+}
+.s0-headline {
+  font-size: clamp(26px, 7vw, 34px);
+  font-weight: 800; line-height: 1.1;
+  color: #fff; margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+.s0-headline em { font-style: italic; font-family: var(--serif); font-weight: 400; }
+.s0-subtext {
+  font-size: 12.5px; font-weight: 400;
+  color: var(--muted); line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+/* ─── DUAL MOCKUP AREA ─── */
+.mockup-row {
+  display: flex; gap: 10px;
+  flex: 1; min-height: 0;
+  padding-bottom: 0;
+}
+.mockup-frame {
+  flex: 1; border-radius: 14px;
+  overflow: hidden; position: relative;
+  display: flex; flex-direction: column;
+  min-height: 200px;
+}
+.mockup-img-wrap {
+  flex: 1; overflow: hidden; position: relative;
+}
+.mockup-img-wrap img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transition: transform 8s ease;
+}
+.slide.active .mockup-img-wrap img { transform: scale(1.04); }
+
+/* Before frame — subdued */
+.mockup-before {
+  border: 1.5px solid rgba(255,255,255,0.12);
+}
+.mockup-before .mockup-img-wrap img {
+  filter: saturate(0.65) brightness(0.9);
+}
+/* After frame — branded */
+.mockup-after {
+  border: 2px solid var(--brand-primary);
+  box-shadow: 0 0 22px rgba(99,102,241,0.25), inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+/* Label chips */
+.mockup-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: center;
+  gap: 5px;
+  padding: 7px 10px;
+  backdrop-filter: blur(14px);
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+.mockup-before .mockup-label {
+  background: rgba(0,0,0,0.55);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.55);
+}
+.mockup-before .mockup-label::before {
+  content: '▸';
+  font-size: 8px; opacity: 0.6;
+}
+.mockup-after .mockup-label {
+  background: rgba(99,102,241,0.2);
+  border-top: 1px solid rgba(99,102,241,0.3);
+  color: var(--brand-light);
+}
+.mockup-after .mockup-label::before {
+  content: '✦';
+  font-size: 8px;
+}
+
+/* ─── DOTS NAVIGATION ─── */
+.nav-dots {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 5px; z-index: 20;
+}
+.nav-dots .dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  transition: all 0.3s ease;
+}
+.nav-dots .dot.active {
+  background: var(--brand-primary);
+  width: 16px; border-radius: 3px;
+  box-shadow: 0 0 6px var(--brand-primary);
+}
+
+/* ─── S1: IMPACT NUMBER ─── */
+.s1-inner {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; align-items: flex-start;
+  padding-top: 16px;
+}
+.impact-num {
+  font-size: clamp(90px, 22vw, 120px);
+  font-weight: 900; line-height: 0.85;
+  color: var(--brand-primary);
+  text-shadow: 0 0 60px color-mix(in srgb, var(--brand-primary) 50%, transparent);
+  letter-spacing: -4px; margin-bottom: 18px;
+}
+.impact-text { display: flex; flex-direction: column; gap: 4px; }
+.impact-big {
+  font-size: 17px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: #fff; line-height: 1.3;
+}
+.impact-small {
+  font-size: 12px; font-weight: 400;
+  color: var(--muted); line-height: 1.5;
+}
+.impact-divider {
+  width: 36px; height: 2px;
+  background: var(--brand-primary);
+  margin: 20px 0;
+  box-shadow: 0 0 8px var(--brand-primary);
+}
+
+/* ─── S2: CHECKLIST ─── */
+.s2-inner {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; padding-top: 12px;
+}
+.s2-headline {
+  font-size: clamp(22px, 6vw, 30px);
+  font-weight: 800; line-height: 1.15;
+  color: #fff; margin-bottom: 24px;
+  letter-spacing: -0.3px;
+}
+.s2-headline em { font-style: italic; font-family: var(--serif); font-weight: 400; }
+.check-list { display: flex; flex-direction: column; gap: 14px; }
+.check-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  list-style: none;
+}
+.check-icon {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  background: color-mix(in srgb, var(--brand-primary) 15%, transparent);
+  border: 1.5px solid var(--brand-primary);
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px;
+}
+.check-icon::after {
+  content: '✓';
+  font-size: 10px; font-weight: 800;
+  color: var(--brand-primary);
+}
+.check-text {
+  font-size: 13.5px; font-weight: 500;
+  color: rgba(255,255,255,0.88); line-height: 1.45;
+}
+
+/* ─── S3: QUOTE / CREDIBILITY ─── */
+.s3-inner {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; align-items: flex-start;
+  padding-top: 16px;
+}
+.quote-mark {
+  font-size: 72px; font-family: var(--serif);
+  color: var(--brand-primary); line-height: 0.7;
+  margin-bottom: 16px; opacity: 0.7;
+}
+.quote-text {
+  font-size: clamp(18px, 5vw, 24px);
+  font-family: var(--serif); font-style: italic;
+  font-weight: 400; line-height: 1.4;
+  color: rgba(255,255,255,0.92);
+  margin-bottom: 20px;
+}
+.quote-divider {
+  width: 32px; height: 1.5px;
+  background: var(--brand-primary); margin-bottom: 12px;
+}
+.quote-attribution {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ─── S4: STEPS ─── */
+.s4-inner {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; padding-top: 12px;
+}
+.s4-headline {
+  font-size: clamp(20px, 5.5vw, 28px);
+  font-weight: 800; line-height: 1.15;
+  color: #fff; margin-bottom: 22px;
+  letter-spacing: -0.3px;
+}
+.steps-list { display: flex; flex-direction: column; gap: 12px; }
+.step-card {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px; padding: 13px 14px;
+}
+.step-num {
+  font-size: 11px; font-weight: 800;
+  color: var(--brand-primary);
+  letter-spacing: 1px; flex-shrink: 0;
+  margin-top: 1px; min-width: 16px;
+}
+.step-content { flex: 1; }
+.step-title {
+  font-size: 13px; font-weight: 700;
+  color: #fff; margin-bottom: 3px;
+}
+.step-body {
+  font-size: 12px; font-weight: 400;
+  color: var(--muted); line-height: 1.4;
+}
+
+/* ─── S5: CTA ─── */
+.s5-inner {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; align-items: flex-start;
+  padding-top: 16px;
+}
+.s5-headline {
+  font-size: clamp(28px, 8vw, 40px);
+  font-weight: 800; line-height: 1.1;
+  color: #fff; margin-bottom: 24px;
+  letter-spacing: -0.5px;
+}
+.s5-headline .accent { color: var(--brand-primary); }
+.cta-button {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--brand-primary);
+  color: #fff; border: none; border-radius: 10px;
+  padding: 13px 22px;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.3px; cursor: pointer;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--brand-primary) 40%, transparent);
+  margin-bottom: 16px;
+}
+.cta-button::after { content: '→'; font-size: 15px; }
+.cta-handle {
+  font-size: 11px; font-weight: 600;
+  color: var(--muted); letter-spacing: 1px;
+}
+
+/* ─── BOTTOM SWIPE HINT (S0 only) ─── */
+.swipe-hint {
+  position: absolute; bottom: 28px; right: 22px; z-index: 20;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--muted);
+}
+.swipe-arrow {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: var(--muted);
+}
+
+/* ─── BOTTOM BRAND LINE (slides 1-5) ─── */
+.bottom-brand {
+  position: absolute; bottom: 22px; left: 22px; right: 22px; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.brand-line {
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: rgba(255,255,255,0.2);
+}
+.brand-line-accent { color: var(--brand-primary); opacity: 0.6; }
+</style>
+</head>
+<body>
+<div class="carousel-wrap" id="carousel">
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 0 — Hook + Dual Mockup
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide active" id="s0">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Marca<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">1 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s0-text">
+        <div class="eyebrow"><!--EP:s0_eyebrow-->Comparação Real<!--/EP:s0_eyebrow--></div>
+        <h2 class="s0-headline"><!--EP:s0_headline-->A diferença que você ainda não viu.<!--/EP:s0_headline--></h2>
+        <p class="s0-subtext"><!--EP:s0_subtext-->Dois resultados. A mesma situação. A única variável é o que você usa.<!--/EP:s0_subtext--></p>
+      </div>
+
+      <div class="mockup-row">
+        <!-- BEFORE mockup -->
+        <div class="mockup-frame mockup-before">
+          <div class="mockup-img-wrap">
+            <!--EP:s0_before_img--><img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" data-ai-prompt="Candid photo of a person in a casual home environment, poor lighting, unflattering angle, amateur self-portrait quality, honest and relatable, not mocking, natural imperfections" style="width:100%;height:100%;object-fit:cover;"><!--/EP:s0_before_img-->
+          </div>
+          <div class="mockup-label"><!--EP:s0_before_label-->Sem<!--/EP:s0_before_label--></div>
+        </div>
+
+        <!-- AFTER mockup -->
+        <div class="mockup-frame mockup-after">
+          <div class="mockup-img-wrap">
+            <!--EP:s0_after_img--><img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" data-ai-prompt="Same person with professional studio lighting, confident posture, clean background, polished and natural, high quality portrait photography" style="width:100%;height:100%;object-fit:cover;"><!--/EP:s0_after_img-->
+          </div>
+          <div class="mockup-label"><!--EP:s0_after_label-->Com<!--/EP:s0_after_label--></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="swipe-hint">
+      <span>Swipe</span>
+      <div class="swipe-arrow">›</div>
+    </div>
+
+    <div class="nav-dots">
+      <div class="dot active"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 1 — Impact Number (O Custo)
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide" id="s1">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Marca<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">2 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s1-inner">
+        <div class="eyebrow"><!--EP:s1_eyebrow-->O custo invisível<!--/EP:s1_eyebrow--></div>
+        <div class="impact-num"><!--EP:s1_impact_num-->47%<!--/EP:s1_impact_num--></div>
+        <div class="impact-divider"></div>
+        <div class="impact-text">
+          <div class="impact-big"><!--EP:s1_impact_big-->De quem tenta sozinho não chega lá.<!--/EP:s1_impact_big--></div>
+          <div class="impact-small"><!--EP:s1_impact_small-->Não é falta de esforço. É falta da ferramenta certa.<!--/EP:s1_impact_small--></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-brand">
+      <span class="brand-line"><!--EP:brand_name-->Marca<!--/EP:brand_name--></span>
+      <span class="brand-line-accent">2 / 6</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 2 — Por que funciona (checklist)
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide" id="s2">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Marca<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">3 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s2-inner">
+        <div class="eyebrow"><!--EP:s2_eyebrow-->Por que funciona<!--/EP:s2_eyebrow--></div>
+        <h2 class="s2-headline"><!--EP:s2_headline-->A diferença não é <em>sorte</em>. É método.<!--/EP:s2_headline--></h2>
+        <ul class="check-list">
+          <!--EP:s2_checks-->
+          <li class="check-item"><div class="check-icon"></div><span class="check-text">Resultado específico e mensurável desde a primeira semana</span></li>
+          <li class="check-item"><div class="check-icon"></div><span class="check-text">Adaptado ao seu contexto, não a um template genérico</span></li>
+          <li class="check-item"><div class="check-icon"></div><span class="check-text">Sem jargão. Direto ao que importa para o seu objetivo</span></li>
+          <!--/EP:s2_checks-->
+        </ul>
+      </div>
+    </div>
+
+    <div class="bottom-brand">
+      <span class="brand-line"><!--EP:brand_name-->Marca<!--/EP:brand_name--></span>
+      <span class="brand-line-accent">3 / 6</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 3 — Credibilidade / Citação
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide" id="s3">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Marca<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">4 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s3-inner">
+        <div class="eyebrow"><!--EP:s3_eyebrow-->Na prática<!--/EP:s3_eyebrow--></div>
+        <div class="quote-mark">"</div>
+        <p class="quote-text"><!--EP:s3_quote-->Parecia simples demais para funcionar. Mas foi exatamente isso que mudou tudo.<!--/EP:s3_quote--></p>
+        <div class="quote-divider"></div>
+        <div class="quote-attribution"><!--EP:s3_attribution-->Usuário real · resultado em 3 semanas<!--/EP:s3_attribution--></div>
+      </div>
+    </div>
+
+    <div class="bottom-brand">
+      <span class="brand-line"><!--EP:brand_name-->Marca<!--/EP:brand_name--></span>
+      <span class="brand-line-accent">4 / 6</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 4 — Processo / Como funciona
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide" id="s4">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Marca<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">5 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s4-inner">
+        <div class="eyebrow"><!--EP:s4_eyebrow-->Como acontece<!--/EP:s4_eyebrow--></div>
+        <h2 class="s4-headline"><!--EP:s4_headline-->Três etapas. Sem enrolação.<!--/EP:s4_headline--></h2>
+        <div class="steps-list">
+          <!--EP:s4_steps-->
+          <div class="step-card">
+            <div class="step-num">01</div>
+            <div class="step-content">
+              <div class="step-title">Contexto</div>
+              <div class="step-body">Você compartilha o que precisa. Sem formulários longos.</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">02</div>
+            <div class="step-content">
+              <div class="step-title">Análise</div>
+              <div class="step-body">O sistema identifica o melhor caminho para o seu caso.</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">03</div>
+            <div class="step-content">
+              <div class="step-title">Resultado</div>
+              <div class="step-body">Você recebe o entregável pronto. Direto ao ponto.</div>
+            </div>
+          </div>
+          <!--/EP:s4_steps-->
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-brand">
+      <span class="brand-line"><!--EP:brand_name-->Marca<!--/EP:brand_name--></span>
+      <span class="brand-line-accent">5 / 6</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 5 — CTA
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide" id="s5">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Marca<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">6 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s5-inner">
+        <div class="eyebrow"><!--EP:s5_eyebrow-->Próximo passo<!--/EP:s5_eyebrow--></div>
+        <h2 class="s5-headline"><!--EP:s5_headline-->Veja se faz <span class="accent">sentido</span> pra você.<!--/EP:s5_headline--></h2>
+        <div class="cta-button"><!--EP:s5_cta_text-->Conhecer agora<!--/EP:s5_cta_text--></div>
+        <div class="cta-handle"><!--EP:s5_handle-->@marca<!--/EP:s5_handle--></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const dots   = document.querySelectorAll('.nav-dots .dot');
+  let current  = 0;
+  let timer;
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current < slides.length ? current : 0].classList.remove('exit'), 600);
+    current = (n + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    dots.forEach((d, i) => d.classList.toggle('active', i === current));
+  }
+
+  function next() { goTo(current + 1); }
+  function startAuto() { timer = setInterval(next, 4000); }
+  function stopAuto()  { clearInterval(timer); }
+
+  // Touch/click navigation
+  let startX = 0;
+  const wrap = document.getElementById('carousel');
+  wrap.addEventListener('touchstart', e => { startX = e.touches[0].clientX; stopAuto(); }, { passive: true });
+  wrap.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 40) goTo(dx < 0 ? current + 1 : current - 1);
+    startAuto();
+  }, { passive: true });
+  wrap.addEventListener('click', e => {
+    goTo(e.clientX > wrap.offsetWidth / 2 ? current + 1 : current - 1);
+  });
+
+  startAuto();
+})();
+</script>
+</body>
+</html>

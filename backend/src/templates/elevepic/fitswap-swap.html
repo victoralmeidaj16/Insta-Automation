@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fitswap — Food Swap</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:    #A6F000;
+  --dark:      #111827;
+  --surface:   #f8faf5;
+  --card:      #ffffff;
+  --muted:     rgba(17,24,39,0.42);
+  --muted-lt:  rgba(17,24,39,0.18);
+  --sans:      'Inter', sans-serif;
+  --serif:     'Playfair Display', serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: #e8ede4;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; overflow: hidden;
+}
+
+/* ─── WRAPPER ─── */
+.carousel-wrap {
+  width: 420px; height: 100vh;
+  position: relative; overflow: hidden;
+  background: var(--surface);
+}
+
+/* ─── SLIDE BASE ─── */
+.slide {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  overflow: hidden;
+  background: var(--surface);
+}
+.slide.active  { opacity: 1; pointer-events: all; }
+.slide.exit    { opacity: 0; pointer-events: none; }
+
+/* ─── TOP BAR ─── */
+.top-bar {
+  position: relative; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 22px 0;
+  flex-shrink: 0;
+}
+.brand-badge {
+  display: flex; align-items: center; gap: 6px;
+}
+.brand-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
+}
+.brand-text {
+  font-size: 9.5px; font-weight: 800;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--dark);
+}
+.slide-counter {
+  font-size: 10px; font-weight: 600;
+  color: var(--muted); letter-spacing: 1px;
+}
+
+/* ─── SHARED EYEBROW ─── */
+.eyebrow {
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 7px;
+}
+.eyebrow::before {
+  content: '';
+  display: inline-block; width: 14px; height: 2px;
+  background: var(--accent); flex-shrink: 0;
+}
+
+/* ─── SLIDE BODY ─── */
+.slide-body {
+  position: relative; z-index: 2;
+  flex: 1; display: flex; flex-direction: column;
+  padding: 0 22px 28px;
+}
+
+/* ─── BOTTOM BRAND LINE ─── */
+.bottom-brand {
+  position: absolute; bottom: 22px; left: 22px; right: 22px; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.brand-line {
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--muted-lt);
+}
+.brand-line-accent { color: var(--accent); opacity: 0.8; font-size: 9px; font-weight: 700; letter-spacing: 1px; }
+
+/* ─── NAV DOTS ─── */
+.nav-dots {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 5px; z-index: 20;
+}
+.nav-dots .dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(17,24,39,0.15);
+  transition: all 0.3s ease;
+}
+.nav-dots .dot.active {
+  background: var(--accent);
+  width: 16px; border-radius: 3px;
+}
+
+/* ─── SWIPE HINT ─── */
+.swipe-hint {
+  position: absolute; bottom: 28px; right: 22px; z-index: 20;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--muted);
+}
+.swipe-arrow {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1px solid var(--muted-lt);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: var(--muted);
+}
+
+/* ════════════════════════════════════════════
+   S0 — Hook + Editorial Split Image
+   ════════════════════════════════════════════ */
+.s0-text { padding-top: 14px; flex-shrink: 0; }
+.s0-headline {
+  font-size: clamp(22px, 6vw, 28px);
+  font-weight: 800; line-height: 1.1;
+  color: var(--dark); margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+.s0-headline em { font-style: italic; font-family: var(--serif); font-weight: 600; }
+.s0-subtext {
+  font-size: 11.5px; font-weight: 400;
+  color: var(--muted); line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+/* Single editorial split food image */
+.s0-food-wrap {
+  flex: 1; min-height: 0;
+  border-radius: 18px;
+  overflow: hidden; position: relative;
+  box-shadow: 0 4px 24px rgba(17,24,39,0.1);
+}
+.s0-food-wrap img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transition: transform 9s ease;
+}
+.slide.active .s0-food-wrap img { transform: scale(1.03); }
+
+/* ════════════════════════════════════════════
+   S1 — Mito / Reframe
+   ════════════════════════════════════════════ */
+.s1-inner {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; padding-top: 16px;
+}
+.s1-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 28px 24px;
+  border: 1px solid rgba(17,24,39,0.07);
+  box-shadow: 0 2px 20px rgba(17,24,39,0.06);
+  margin-bottom: 16px;
+}
+.myth-label {
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+.myth-label::before {
+  content: '✕';
+  width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(17,24,39,0.08);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 8px; color: var(--muted); flex-shrink: 0;
+}
+.s1-myth {
+  font-size: clamp(18px, 5vw, 22px);
+  font-weight: 700; line-height: 1.25;
+  color: rgba(17,24,39,0.4);
+  text-decoration: line-through;
+  text-decoration-color: rgba(17,24,39,0.2);
+  margin-bottom: 20px;
+  font-style: italic;
+  font-family: var(--serif);
+}
+.truth-label {
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: #3d5900; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.truth-label::before {
+  content: '✓';
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; color: #1a2800; flex-shrink: 0;
+}
+.s1-truth {
+  font-size: clamp(20px, 5.5vw, 26px);
+  font-weight: 800; line-height: 1.2;
+  color: var(--dark);
+  letter-spacing: -0.3px;
+}
+.s1-subtext {
+  font-size: 12.5px; font-weight: 400;
+  color: var(--muted); line-height: 1.55;
+}
+
+/* ════════════════════════════════════════════
+   S2 — Substituições (X → Y)
+   ════════════════════════════════════════════ */
+.s2-inner {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; padding-top: 16px;
+}
+.s2-headline {
+  font-size: clamp(20px, 5.5vw, 26px);
+  font-weight: 800; line-height: 1.15;
+  color: var(--dark); margin-bottom: 20px;
+  letter-spacing: -0.3px;
+}
+.s2-headline em { font-style: italic; font-family: var(--serif); font-weight: 600; }
+.swap-list { display: flex; flex-direction: column; gap: 10px; }
+.swap-row {
+  display: flex; align-items: center; gap: 0;
+  background: var(--card);
+  border-radius: 12px;
+  padding: 12px 16px;
+  border: 1px solid rgba(17,24,39,0.07);
+  box-shadow: 0 1px 6px rgba(17,24,39,0.04);
+}
+.swap-from {
+  font-size: 13px; font-weight: 500;
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(17,24,39,0.2);
+  flex: 1;
+}
+.swap-arrow {
+  font-size: 14px; font-weight: 700;
+  color: var(--accent);
+  padding: 0 10px; flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(166,240,0,0.5));
+}
+.swap-to {
+  font-size: 13px; font-weight: 700;
+  color: var(--dark); flex: 1;
+}
+.swap-note {
+  font-size: 10px; font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.2px;
+  margin-left: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════
+   S3 — Impacto Numérico
+   ════════════════════════════════════════════ */
+.s3-inner {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; padding-top: 16px;
+}
+.stats-grid {
+  display: flex; flex-direction: column; gap: 4px;
+  margin-bottom: 28px;
+}
+.stat-block {
+  display: flex; align-items: baseline; gap: 6px;
+  padding: 20px 22px;
+  background: var(--card);
+  border-radius: 16px;
+  border: 1px solid rgba(17,24,39,0.07);
+  box-shadow: 0 2px 12px rgba(17,24,39,0.05);
+}
+.stat-block.accent-stat {
+  background: var(--accent);
+  border-color: transparent;
+  box-shadow: 0 4px 20px rgba(166,240,0,0.3);
+}
+.stat-num {
+  font-size: clamp(52px, 14vw, 68px);
+  font-weight: 900; line-height: 0.9;
+  color: var(--dark);
+  letter-spacing: -3px;
+}
+.stat-block.accent-stat .stat-num { color: #1a2800; }
+.stat-unit {
+  font-size: clamp(18px, 5vw, 22px);
+  font-weight: 700; color: var(--muted);
+  letter-spacing: -0.5px;
+}
+.stat-block.accent-stat .stat-unit { color: rgba(26,40,0,0.65); }
+.stat-label {
+  font-size: 12px; font-weight: 600;
+  color: var(--muted); margin-left: auto;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.stat-block.accent-stat .stat-label { color: rgba(26,40,0,0.6); }
+.stat-disclaimer {
+  font-size: 10px; font-weight: 400;
+  color: var(--muted); text-align: center;
+  letter-spacing: 0.5px;
+}
+
+/* ════════════════════════════════════════════
+   S4 — Aperitivo do App (como funciona)
+   ════════════════════════════════════════════ */
+.s4-inner {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; padding-top: 16px;
+}
+.s4-headline {
+  font-size: clamp(20px, 5.5vw, 26px);
+  font-weight: 800; line-height: 1.15;
+  color: var(--dark); margin-bottom: 20px;
+  letter-spacing: -0.3px;
+}
+.s4-headline em { font-style: italic; font-family: var(--serif); font-weight: 600; }
+.steps-list { display: flex; flex-direction: column; gap: 10px; }
+.step-card {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: var(--card);
+  border: 1px solid rgba(17,24,39,0.07);
+  border-radius: 12px; padding: 14px 16px;
+  box-shadow: 0 1px 6px rgba(17,24,39,0.04);
+}
+.step-num {
+  font-size: 10px; font-weight: 900;
+  background: var(--accent); color: #1a2800;
+  border-radius: 6px; padding: 3px 7px;
+  letter-spacing: 0.5px; flex-shrink: 0;
+  margin-top: 1px;
+}
+.step-content { flex: 1; }
+.step-title {
+  font-size: 13px; font-weight: 700;
+  color: var(--dark); margin-bottom: 2px;
+}
+.step-body {
+  font-size: 11.5px; font-weight: 400;
+  color: var(--muted); line-height: 1.4;
+}
+
+/* ════════════════════════════════════════════
+   S5 — CTA
+   ════════════════════════════════════════════ */
+.s5-inner {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; align-items: flex-start;
+  padding-top: 16px;
+}
+.s5-headline {
+  font-size: clamp(28px, 8vw, 38px);
+  font-weight: 800; line-height: 1.1;
+  color: var(--dark); margin-bottom: 26px;
+  letter-spacing: -0.5px;
+}
+.s5-headline .accent { color: #3d5900; }
+.s5-save-hint {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11.5px; font-weight: 600;
+  color: var(--muted); margin-bottom: 20px;
+}
+.s5-save-hint::before {
+  content: '🔖';
+  font-size: 14px;
+}
+.cta-button {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--dark); color: #fff;
+  border: none; border-radius: 12px;
+  padding: 14px 24px;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.3px; cursor: pointer;
+  margin-bottom: 14px;
+}
+.cta-button::after { content: '→'; font-size: 15px; }
+.cta-handle {
+  font-size: 11px; font-weight: 600;
+  color: var(--muted); letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+<div class="carousel-wrap" id="carousel">
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 0 — Hook + Editorial Split Food Image
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide active" id="s0">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Fitswap<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">1 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s0-text">
+        <div class="eyebrow"><!--EP:s0_eyebrow-->Mesma refeição<!--/EP:s0_eyebrow--></div>
+        <h2 class="s0-headline"><!--EP:s0_headline-->Você não precisa <em>cortar isso.</em><!--/EP:s0_headline--></h2>
+        <p class="s0-subtext"><!--EP:s0_subtext-->Pequenas trocas. Mesmo sabor. Resultado diferente.<!--/EP:s0_subtext--></p>
+      </div>
+
+      <div class="s0-food-wrap">
+        <!--EP:s0_food_img--><img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" data-ai-prompt="Create a hyper-realistic, premium editorial food image in a vertical split composition (4:5). The image shows the SAME dish transformed into a healthier version. DISH: macarrão ao molho vermelho. LEFT SIDE — ORIGINAL (CALORIC): A real, everyday version of macarrão ao molho vermelho on a plate. Looks indulgent and heavier: richer sauce, more oil, butter, or cheese, less structure, more processed or dense ingredients. Warm indoor lighting, slightly dim. Natural imperfections, home-cooked feel. RIGHT SIDE — SMART HEALTHY VERSION: The SAME macarrão ao molho vermelho, clearly recognizable, but intelligently adapted for health: cleaner structure, lighter sauce, fresher ingredients, better balance, reduced heaviness, still appetizing. Bright natural daylight, clean tones. It must feel like the SAME dish upgraded. Never diet food. CAMERA & STYLE: Editorial food photography, same camera angle on both sides, shallow depth of field, soft shadows, slight grain. TEXT OVERLAY: Left: Original, Right: Smart Version." style="width:100%;height:100%;object-fit:cover;"><!--/EP:s0_food_img-->
+      </div>
+    </div>
+
+    <div class="swipe-hint">
+      <span>Swipe</span>
+      <div class="swipe-arrow">›</div>
+    </div>
+
+    <div class="nav-dots">
+      <div class="dot active"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 1 — Mito / Reframe
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide" id="s1">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Fitswap<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">2 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s1-inner">
+        <div class="eyebrow"><!--EP:s1_eyebrow-->O que você acredita<!--/EP:s1_eyebrow--></div>
+        <div class="s1-card">
+          <div class="myth-label">Mito</div>
+          <p class="s1-myth"><!--EP:s1_myth-->Comer saudável significa abrir mão do que você gosta.<!--/EP:s1_myth--></p>
+          <div class="truth-label">Realidade</div>
+          <p class="s1-truth"><!--EP:s1_truth-->É só montar diferente. O prato continua sendo seu.<!--/EP:s1_truth--></p>
+        </div>
+        <p class="s1-subtext"><!--EP:s1_subtext-->3 trocas simples mudam o resultado sem mudar o prazer.<!--/EP:s1_subtext--></p>
+      </div>
+    </div>
+
+    <div class="bottom-brand">
+      <span class="brand-line"><!--EP:brand_name-->Fitswap<!--/EP:brand_name--></span>
+      <span class="brand-line-accent">2 / 6</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 2 — Substituições (X → Y)
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide" id="s2">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Fitswap<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">3 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s2-inner">
+        <div class="eyebrow"><!--EP:s2_eyebrow-->Trocas que funcionam<!--/EP:s2_eyebrow--></div>
+        <h2 class="s2-headline"><!--EP:s2_headline-->Só <em>ajustar</em> o que já está no prato.<!--/EP:s2_headline--></h2>
+        <div class="swap-list">
+          <!--EP:s2_swaps-->
+          <div class="swap-row">
+            <span class="swap-from">arroz branco</span>
+            <span class="swap-arrow">→</span>
+            <span class="swap-to">arroz integral</span>
+            <span class="swap-note">+3g fibra</span>
+          </div>
+          <div class="swap-row">
+            <span class="swap-from">carne gordurosa</span>
+            <span class="swap-arrow">→</span>
+            <span class="swap-to">frango grelhado</span>
+            <span class="swap-note">-8g gordura</span>
+          </div>
+          <div class="swap-row">
+            <span class="swap-from">molho industrializado</span>
+            <span class="swap-arrow">→</span>
+            <span class="swap-to">azeite + limão</span>
+            <span class="swap-note">sem sódio</span>
+          </div>
+          <div class="swap-row">
+            <span class="swap-from">pão branco</span>
+            <span class="swap-arrow">→</span>
+            <span class="swap-to">pão integral</span>
+            <span class="swap-note">mesmo sabor</span>
+          </div>
+          <!--/EP:s2_swaps-->
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-brand">
+      <span class="brand-line"><!--EP:brand_name-->Fitswap<!--/EP:brand_name--></span>
+      <span class="brand-line-accent">3 / 6</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 3 — Impacto Numérico
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide" id="s3">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Fitswap<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">4 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s3-inner">
+        <div class="eyebrow"><!--EP:s3_eyebrow-->No mesmo prato<!--/EP:s3_eyebrow--></div>
+        <div class="stats-grid">
+          <!--EP:s3_stats-->
+          <div class="stat-block">
+            <span class="stat-num">-180</span>
+            <span class="stat-unit">kcal</span>
+            <span class="stat-label">a menos</span>
+          </div>
+          <div class="stat-block accent-stat">
+            <span class="stat-num">+14g</span>
+            <span class="stat-unit">prot.</span>
+            <span class="stat-label">a mais</span>
+          </div>
+          <!--/EP:s3_stats-->
+        </div>
+        <p class="stat-disclaimer"><!--EP:s3_disclaimer-->* valores médios baseados nas trocas acima<!--/EP:s3_disclaimer--></p>
+      </div>
+    </div>
+
+    <div class="bottom-brand">
+      <span class="brand-line"><!--EP:brand_name-->Fitswap<!--/EP:brand_name--></span>
+      <span class="brand-line-accent">4 / 6</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 4 — Aperitivo do App
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide" id="s4">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Fitswap<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">5 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s4-inner">
+        <div class="eyebrow"><!--EP:s4_eyebrow-->Como funciona<!--/EP:s4_eyebrow--></div>
+        <h2 class="s4-headline"><!--EP:s4_headline-->Não é receita.<br><em>É decisão.</em><!--/EP:s4_headline--></h2>
+        <div class="steps-list">
+          <!--EP:s4_steps-->
+          <div class="step-card">
+            <div class="step-num">01</div>
+            <div class="step-content">
+              <div class="step-title">Escolhe o que você quer</div>
+              <div class="step-body">O app entende seu objetivo e o que você tem.</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">02</div>
+            <div class="step-content">
+              <div class="step-title">Ajusta sem complicar</div>
+              <div class="step-body">A IA faz as trocas certas. Você não pensa nisso.</div>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">03</div>
+            <div class="step-content">
+              <div class="step-title">Continua comendo bem</div>
+              <div class="step-body">Sem dieta. Sem culpa. Sem esforço toda hora.</div>
+            </div>
+          </div>
+          <!--/EP:s4_steps-->
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-brand">
+      <span class="brand-line"><!--EP:brand_name-->Fitswap<!--/EP:brand_name--></span>
+      <span class="brand-line-accent">5 / 6</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 5 — CTA
+       ══════════════════════════════════════════════════════════ -->
+  <div class="slide" id="s5">
+    <div class="top-bar">
+      <div class="brand-badge">
+        <div class="brand-dot"></div>
+        <span class="brand-text"><!--EP:brand_name-->Fitswap<!--/EP:brand_name--></span>
+      </div>
+      <span class="slide-counter">6 / 6</span>
+    </div>
+
+    <div class="slide-body">
+      <div class="s5-inner">
+        <div class="eyebrow"><!--EP:s5_eyebrow-->Próximo passo<!--/EP:s5_eyebrow--></div>
+        <h2 class="s5-headline"><!--EP:s5_headline-->É isso que o<br>Fitswap <span class="accent">resolve.</span><!--/EP:s5_headline--></h2>
+        <p class="s5-save-hint"><!--EP:s5_save_hint-->Salva esse post antes de sair.<!--/EP:s5_save_hint--></p>
+        <div class="cta-button"><!--EP:s5_cta_text-->Baixar o app<!--/EP:s5_cta_text--></div>
+        <div class="cta-handle"><!--EP:s5_handle-->@fitswap<!--/EP:s5_handle--></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const dots   = document.querySelectorAll('.nav-dots .dot');
+  let current  = 0;
+  let timer;
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current < slides.length ? current : 0].classList.remove('exit'), 600);
+    current = (n + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    dots.forEach((d, i) => d.classList.toggle('active', i === current));
+  }
+
+  function next() { goTo(current + 1); }
+  function startAuto() { timer = setInterval(next, 4000); }
+  function stopAuto()  { clearInterval(timer); }
+
+  let startX = 0;
+  const wrap = document.getElementById('carousel');
+  wrap.addEventListener('touchstart', e => { startX = e.touches[0].clientX; stopAuto(); }, { passive: true });
+  wrap.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 40) goTo(dx < 0 ? current + 1 : current - 1);
+    startAuto();
+  }, { passive: true });
+  wrap.addEventListener('click', e => {
+    goTo(e.clientX > wrap.offsetWidth / 2 ? current + 1 : current - 1);
+  });
+
+  startAuto();
+})();
+</script>
+</body>
+</html>
