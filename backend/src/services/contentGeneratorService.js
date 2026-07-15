@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { db } from '../config/firebase.js';
 import { getBusinessProfile, getAccountsByProfile } from './businessProfileService.js';
-import { generateImages, generateCarousel, generateImageCaption, generateImagePrompt, generateHtmlCarousel, generateSingleImage } from './aiService.js';
+import { generateImages, generateCarousel, generateImageCaption, generateImagePrompt, generateHtmlCarousel, generateSingleImage, generateContentPlan, serializeSlideToTagPrompt } from './aiService.js';
 import { renderElevepicTemplate } from './carouselTemplateService.js';
 import { createPost } from './postService.js';
 import {
@@ -890,11 +890,30 @@ export async function generateDraftPost(businessProfileId, pillarId, format, sch
         return { id: ref.id, ...postDoc };
 
     } else if (resolvedFormat === 'carousel-premium') {
-        // Carrossel com overlay premium — usa generateCarousel com isPremiumCarousel
+        // Carrossel com overlay premium — plano de conteúdo unificado (slides + legenda + CTA coerentes)
         const description = generationSeed;
         const premiumContext = { ...context, isPremiumCarousel: true, overlayMode: 'premium' };
+
+        // 1 chamada gera narrativa, copy dos slides e legenda alinhadas; em falha, cai no fluxo legado
+        let planTagPrompts = null;
+        try {
+            const { plan, warnings } = await generateContentPlan({
+                description,
+                count: requestedSlideCount,
+                context: premiumContext,
+                premium: true
+            });
+            planTagPrompts = plan.slides.map(slide => serializeSlideToTagPrompt(slide, { premium: true }));
+            caption = [plan.caption, (plan.hashtags || []).join(' ')].filter(Boolean).join('\n\n');
+            if (warnings?.length) {
+                console.warn(`⚠️ [Autopilot] QA do plano retornou ${warnings.length} warning(s):`, warnings.map(w => w.rule || w.detail).join(' | '));
+            }
+        } catch (planErr) {
+            console.warn('⚠️ [Autopilot] Content plan falhou; usando geração legada de prompts:', planErr.message);
+        }
+
         const result = await generateCarousel(
-            description,
+            planTagPrompts || description,
             aspectRatio,
             requestedSlideCount,
             brandingStyle,
@@ -929,7 +948,7 @@ export async function generateDraftPost(businessProfileId, pillarId, format, sch
         generationPrompt = prompt;
     }
 
-    if (mediaUrls.length > 0 && !isStoryFormat(resolvedFormat)) {
+    if (!caption && mediaUrls.length > 0 && !isStoryFormat(resolvedFormat)) {
         caption = await generateImageCaption(
             mediaUrls[0],
             resolvedProfile.name,

@@ -829,6 +829,20 @@ function distributeImages(html, templateId, libraryImages) {
 
 // ─── editorial-sci special renderer ──────────────────────────────────────────
 
+// Fallback local em SVG (data URI) — source.unsplash.com foi desativado e retornava imagem quebrada
+function makeEditorialSciFallbackImage(accentColor, index) {
+  const accent = String(accentColor || '#00E5FF').replace(/[^#a-zA-Z0-9(),.%\s-]/g, '') || '#00E5FF';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="525" viewBox="0 0 420 525">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#0b0e14"/><stop offset="0.55" stop-color="${accent}" stop-opacity="0.35"/><stop offset="1" stop-color="#05070b"/>
+</linearGradient></defs>
+<rect width="420" height="525" fill="url(#g)"/>
+<circle cx="${index % 2 ? 330 : 90}" cy="130" r="90" fill="${accent}" opacity="0.14"/>
+<rect x="28" y="40" width="364" height="445" rx="18" fill="none" stroke="${accent}" stroke-opacity="0.35" stroke-width="2"/>
+</svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 function renderEditorialSci(html, contentJson, brandContext, libraryImages) {
   const primary     = brandContext.primaryColor || brandContext.branding?.primaryColor || '#00E5FF';
   const logoUrl     = brandContext.logoUrl || brandContext.branding?.logoUrl || null;
@@ -860,7 +874,7 @@ function renderEditorialSci(html, contentJson, brandContext, libraryImages) {
     // Image: library first, then slide-specific fallback, then global fallback
     const imgUrl = (libraryImages && libraryImages.length > 0)
       ? libraryImages[i % libraryImages.length]
-      : `https://source.unsplash.com/random/420x525/?${encodeURIComponent(s.imageFallbackQuery || contentJson.imageFallbackQuery || 'professional,editorial')}`;
+      : makeEditorialSciFallbackImage(primary, i);
 
     const headline = s.headline || '';
     const slideAccent = s.accentColor || primary;
