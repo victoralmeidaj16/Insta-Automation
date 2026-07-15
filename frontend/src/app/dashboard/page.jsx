@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import PageHeader from '@/components/PageHeader';
 import ProfileSwitcher from '@/components/ProfileSwitcher';
 import PostsStatusWidget from '@/components/PostsStatusWidget';
+import FailedPostsAlert from '@/components/FailedPostsAlert';
 
 export default function DashboardPage() {
     const [stats, setStats] = useState({ accounts: 0, posts: 0, pending: 0 });
@@ -78,6 +79,8 @@ export default function DashboardPage() {
                     <ProfileSwitcher style={{ width: '100%', maxWidth: '300px' }} />
                 </div>
 
+                <FailedPostsAlert />
+
                 {/* Stats Cards */}
                 <div className={selectedProfile ? "grid grid-3 mb-lg" : "grid grid-4 mb-lg"}>
                     {!selectedProfile && (
@@ -115,11 +118,6 @@ export default function DashboardPage() {
                         <Link href="/dashboard/library" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
                             <h3>📚 Library</h3>
                             <p>Revisar, editar e reaproveitar conteúdos salvos</p>
-                        </Link>
-
-                        <Link href="/dashboard/posts" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-                            <h3>📋 Ver Posts</h3>
-                            <p>Histórico completo de posts e status</p>
                         </Link>
 
                         <Link href="/dashboard/business-profiles" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>

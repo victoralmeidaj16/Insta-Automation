@@ -5,6 +5,8 @@ import { storage, db } from '../config/firebase.js';
 import { createPost } from '../services/postService.js';
 import { uploadImage } from '../services/historyService.js';
 import { generateImages } from '../services/aiService.js';
+import { createLibraryItemRecord } from '../domain/contentModels.js';
+import { inferLibraryType, isHtmlFormat, isStoryFormat, normalizeFormat } from '../domain/formatRules.js';
 
 const router = express.Router();
 const upload = multer({
@@ -13,6 +15,27 @@ const upload = multer({
         fileSize: 100 * 1024 * 1024, // 100MB limit
     }
 });
+
+function normalizeLibraryTag(tag) {
+    const normalized = String(tag || '').trim().toLowerCase();
+
+    if (!normalized) return 'editar';
+    if (normalized === 'editar' || normalized === 'a editar' || normalized === 'a_editar' || normalized === 'auto') return 'editar';
+    if (normalized === 'pronto') return 'pronto';
+    if (normalized === 'postado' || normalized === 'publicado' || normalized === 'posted') return 'postado';
+
+    return normalized;
+}
+
+function isCarouselLibraryItem(item) {
+    const format = item.format || item.type || '';
+    return format === 'carousel'
+        || format === 'carousel-html'
+        || format === 'carousel-premium'
+        || item.type === 'carousel'
+        || item.baseType === 'carousel'
+        || item.contentFamily === 'html-carousel';
+}
 
 /**
  * POST /api/library/upload - Upload files directly to library
@@ -93,15 +116,17 @@ router.post('/upload', upload.array('files', 50), async (req, res) => {
                 const libraryItem = {
                     userId: req.userId,
                     businessProfileId: businessProfileId,
-                    type: 'static',
-                    mediaUrls: [url],
-                    fileHash: hash,
-                    originalName: files[i].originalname, // Store original filename
-                    caption: caption || '',
-                    tag: tag || 'editar',
-                    createdAt: new Date(),
-                    isScheduled: false,
-                    scheduledPostId: null,
+                    ...createLibraryItemRecord({
+                        userId: req.userId,
+                        businessProfileId,
+                        type: 'static',
+                        mediaUrls: [url],
+                        fileHash: hash,
+                        originalName: file.originalname,
+                        fileSize: file.size,
+                        caption: caption || '',
+                        tag: tag || 'editar'
+                    })
                 };
 
                 const itemRef = await db.collection('library_items').add(libraryItem);
@@ -119,24 +144,19 @@ router.post('/upload', upload.array('files', 50), async (req, res) => {
 
         } else {
             // Default behavior (Carousel, Single Static, etc)
-            let contentType = type || 'static';
-            if (mediaUrls.length > 1 && !type) {
-                contentType = 'carousel';
-            }
-
-            const libraryItem = {
+            const contentType = inferLibraryType({ type: normalizeFormat(type || '', ''), mediaUrls });
+            const sanitizedCaption = isStoryFormat(contentType) ? '' : (caption || '');
+            const libraryItem = createLibraryItemRecord({
                 userId: req.userId,
-                businessProfileId: businessProfileId,
+                businessProfileId,
                 type: contentType,
                 mediaUrls,
-                fileHash: fileHashes[0], 
-                originalName: files[0].originalname, // Store first file's original name
-                caption: caption || '',
-                tag: tag || 'editar',
-                createdAt: new Date(),
-                isScheduled: false,
-                scheduledPostId: null,
-            };
+                fileHash: fileHashes[0],
+                originalName: files[0].originalname,
+                fileSize: files[0].size,
+                caption: sanitizedCaption,
+                tag: tag || 'editar'
+            });
 
             const itemRef = await db.collection('library_items').add(libraryItem);
             console.log(`✅ Library item created with ID: ${itemRef.id}`);
@@ -227,7 +247,9 @@ router.post('/', async (req, res) => {
             });
         }
         
-        if (type !== 'html' && (!mediaUrls || !Array.isArray(mediaUrls))) {
+        const resolvedType = inferLibraryType({ type: normalizeFormat(type || '', ''), mediaUrls, htmlCode });
+
+        if (!isHtmlFormat(resolvedType) && (!mediaUrls || !Array.isArray(mediaUrls))) {
             return res.status(400).json({
                 error: 'mediaUrls (array) são obrigatórios, exceto no modo HTML'
             });
@@ -239,18 +261,16 @@ router.post('/', async (req, res) => {
         // using the shared helper from historyService
         const processedUrls = mediaUrls ? await Promise.all(mediaUrls.map(url => uploadImage(url))) : [];
 
-        const libraryItem = {
+        const sanitizedCaption = isStoryFormat(resolvedType) ? '' : (caption || '');
+        const libraryItem = createLibraryItemRecord({
             userId: req.userId,
             businessProfileId,
-            type: type || (processedUrls.length > 1 ? 'carousel' : 'static'),
+            type: resolvedType,
             mediaUrls: processedUrls,
             htmlCode: htmlCode || null,
-            caption: caption || '',
-            tag: tag || 'editar',
-            createdAt: new Date(),
-            isScheduled: false,
-            scheduledPostId: null,
-        };
+            caption: sanitizedCaption,
+            tag: tag || 'editar'
+        });
 
         const docRef = await db.collection('library_items').add(libraryItem);
 
@@ -273,7 +293,7 @@ router.post('/', async (req, res) => {
  */
 router.get('/', async (req, res) => {
     try {
-        const { businessProfileId, limit: limitParam, lastId } = req.query;
+        const { businessProfileId, limit: limitParam, lastId, type, tag, isScheduled, isPosted: isPostedQuery } = req.query;
 
         if (!businessProfileId) {
             return res.status(400).json({
@@ -281,7 +301,13 @@ router.get('/', async (req, res) => {
             });
         }
 
-        const PAGE_SIZE = Math.min(parseInt(limitParam) || 24, 50);
+        const hasTypeFilter = Boolean(type && type !== 'all');
+        const normalizedTypeFilter = type === 'stories' ? 'story' : normalizeFormat(type, type);
+
+        // When filtering by tag or type, fetch a larger batch and filter in memory.
+        // This avoids requiring an extra Firestore composite index for type + orderBy.
+        const defaultSize = (tag && tag !== 'all') || hasTypeFilter ? 200 : 24;
+        const PAGE_SIZE = Math.min(parseInt(limitParam) || defaultSize, 200);
 
         // Tenta sincronizar os posts agendados em background (fire and forget)
         import('../services/postService.js')
@@ -290,7 +316,27 @@ router.get('/', async (req, res) => {
 
         let query = db.collection('library_items')
             .where('userId', '==', req.userId)
-            .where('businessProfileId', '==', businessProfileId)
+            .where('businessProfileId', '==', businessProfileId);
+
+        // Filtros dinâmicos
+        // Use 'in' to handle tag variants stored in Firestore (e.g. "a editar", "a_editar" → normalized to "editar")
+        if (tag && tag !== 'all') {
+            if (tag === 'editar') {
+                query = query.where('tag', 'in', ['editar', 'a editar', 'a_editar', 'auto']);
+            } else if (tag === 'postado') {
+                query = query.where('tag', 'in', ['postado', 'publicado', 'posted']);
+            } else {
+                query = query.where('tag', '==', tag);
+            }
+        }
+        if (isScheduled === 'true') {
+            query = query.where('isScheduled', '==', true);
+        }
+        if (isPostedQuery === 'true') {
+            query = query.where('isPosted', '==', true);
+        }
+
+        query = query.orderBy('isPosted', 'asc')
             .orderBy('createdAt', 'desc')
             .limit(PAGE_SIZE + 1); // fetch one extra to detect hasMore
 
@@ -304,10 +350,32 @@ router.get('/', async (req, res) => {
         const snapshot = await query.get();
         const docs = snapshot.docs;
         const hasMore = docs.length > PAGE_SIZE;
-        const items = docs.slice(0, PAGE_SIZE).map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        const items = docs.map(doc => {
+            const data = doc.data();
+            const isStory = isStoryFormat(data.format || data.type);
+            const mediaUrls = Array.isArray(data.mediaUrls)
+                ? data.mediaUrls.filter(Boolean)
+                : (typeof data.url === 'string' && data.url ? [data.url] : []);
+
+            return {
+                id: doc.id,
+                ...data,
+                mediaUrls,
+                tag: normalizeLibraryTag(data.tag),
+                caption: isStory ? '' : (data.caption || '')
+            };
+        })
+            .filter(item => {
+                if (!hasTypeFilter) return true;
+                if (normalizedTypeFilter === 'carousel') {
+                    return isCarouselLibraryItem(item);
+                }
+                if (normalizedTypeFilter === 'story') {
+                    return isStoryFormat(item.format || item.type) || item.contentFamily === 'story';
+                }
+                return item.type === normalizedTypeFilter || item.format === normalizedTypeFilter;
+            })
+            .slice(0, PAGE_SIZE);
 
         console.log(`📚 Found ${items.length} library items (hasMore: ${hasMore}) for businessProfile ${businessProfileId}`);
 
@@ -315,6 +383,54 @@ router.get('/', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Erro ao buscar library items:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * POST /api/library/check-duplicates - Check if files already exist in library
+ */
+router.post('/check-duplicates', async (req, res) => {
+    try {
+        const { businessProfileId, files } = req.body; // files: [{ name, size, hash }]
+
+        if (!businessProfileId || !files || !Array.isArray(files)) {
+            return res.status(400).json({ error: 'businessProfileId e files (array) são obrigatórios' });
+        }
+
+        const duplicates = [];
+
+        for (const fileItem of files) {
+            let query = db.collection('library_items')
+                .where('businessProfileId', '==', businessProfileId);
+            
+            // Priority 1: Check by hash if provided
+            if (fileItem.hash) {
+                const hashSnapshot = await query.where('fileHash', '==', fileItem.hash).get();
+                if (!hashSnapshot.empty) {
+                    duplicates.push({ name: fileItem.name, reason: 'hash' });
+                    continue;
+                }
+            }
+
+            // Priority 2: Check by name AND size (very high probability of being the same file)
+            if (fileItem.name && fileItem.size) {
+                const nameSizeSnapshot = await query
+                    .where('originalName', '==', fileItem.name)
+                    .where('fileSize', '==', fileItem.size)
+                    .get();
+                
+                if (!nameSizeSnapshot.empty) {
+                    duplicates.push({ name: fileItem.name, reason: 'name_size' });
+                    continue;
+                }
+            }
+        }
+
+        res.json({ duplicates });
+
+    } catch (error) {
+        console.error('❌ Erro ao verificar duplicidade:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -340,7 +456,7 @@ router.post('/:id/format', async (req, res) => {
         }
 
         // Determine target aspect ratio based on content type
-        const isStory = item.type === 'story' || item.type === 'stories';
+        const isStory = isStoryFormat(item.format || item.type);
         const targetRatio = isStory ? '9:16' : '4:5';
         const targetDimensions = isStory ? '1080 x 1920 pixels (9:16)' : '1080 x 1350 pixels (4:5)';
 
@@ -406,12 +522,40 @@ Simply adapt the image to fill ${targetRatio} while keeping 100% of the original
 });
 
 /**
+ * POST /api/library/:id/export - Render HTML carousel to images
+ */
+router.post('/:id/export', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { exportLibraryHtmlToImages } = await import('../services/htmlExportService.js');
+        
+        console.log(`📤 Triggering server-side export for library item: ${id}`);
+        const mediaUrls = await exportLibraryHtmlToImages(id);
+        
+        res.json({
+            success: true,
+            mediaUrls
+        });
+    } catch (error) {
+        console.error('❌ Erro ao exportar carrossel HTML:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
  * PUT /api/library/:id - Update library item
  */
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const updates = req.body;
+        const existingDoc = await db.collection('library_items').doc(id).get();
+        if (!existingDoc.exists) {
+            return res.status(404).json({ error: 'Item não encontrado' });
+        }
+        const existingItem = existingDoc.data() || {};
+        const nextFormat = normalizeFormat(updates.format || updates.type || existingItem.format || existingItem.type, existingItem.format || existingItem.type || 'static');
+        const shouldBlankCaption = isStoryFormat(nextFormat);
 
         // Verify if there are base64 images to upload to Firebase Storage
         if (updates.mediaUrls && Array.isArray(updates.mediaUrls)) {
@@ -442,6 +586,10 @@ router.put('/:id', async (req, res) => {
                     console.log(`✅ Base64 image uploaded to: ${publicUrl}`);
                 }
             }
+        }
+
+        if (shouldBlankCaption) {
+            updates.caption = '';
         }
 
         await db.collection('library_items').doc(id).update({

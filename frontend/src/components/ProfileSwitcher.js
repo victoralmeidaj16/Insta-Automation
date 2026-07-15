@@ -1,185 +1,96 @@
-import { useState, useRef, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 
 export default function ProfileSwitcher({ style = {}, className = '' }) {
     const { profiles, selectedProfile, setSelectedProfile } = useBusinessProfile();
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef(null);
 
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setIsOpen(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    const selectedValue = selectedProfile?.id || '__all__';
+
+    const selectedLabel = useMemo(() => {
+        if (!selectedProfile) return 'Todos os Perfis';
+        return selectedProfile.name || 'Perfil sem nome';
+    }, [selectedProfile]);
 
     if (profiles.length === 0) return null;
 
     return (
-        <div ref={dropdownRef} className={className} style={{ position: 'relative', flexShrink: 0, ...style }}>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
+        <div
+            className={className}
+            style={{
+                position: 'relative',
+                flexShrink: 0,
+                minWidth: '220px',
+                ...style
+            }}
+        >
+            <span
                 style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.75rem',
-                    background: selectedProfile ? 'rgba(124, 58, 237, 0.2)' : 'rgba(39, 39, 42, 0.8)',
-                    border: selectedProfile ? '1px solid rgba(124, 58, 237, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#fff',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.2s',
-                    minWidth: '180px',
-                    justifyContent: 'space-between'
+                    position: 'absolute',
+                    left: '1rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                    fontSize: '0.95rem'
                 }}
             >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {selectedProfile ? (
-                        selectedProfile.name?.toLowerCase().includes('inner boost') ? (
-                            <img
-                                src="/logos/inner-boost-logo.png"
-                                alt="Inner Boost"
-                                style={{
-                                    width: '20px',
-                                    height: '20px',
-                                    borderRadius: '50%',
-                                    objectFit: 'cover',
-                                    flexShrink: 0
-                                }}
-                            />
-                        ) : (
-                            <span style={{
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '50%',
-                                background: '#7c3aed',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.625rem',
-                                fontWeight: 700
-                            }}>
-                                {selectedProfile.name.charAt(0).toUpperCase()}
-                            </span>
-                        )
-                    ) : (
-                        <span>🌐</span>
-                    )}
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {selectedProfile ? selectedProfile.name : 'Todos os Perfis'}
-                    </span>
-                </div>
-                <span style={{ fontSize: '0.75rem' }}>{isOpen ? '▲' : '▼'}</span>
-            </button>
+                🌐
+            </span>
 
-            {isOpen && (
-                <div style={{
+            <select
+                value={selectedValue}
+                onChange={(event) => {
+                    const nextValue = event.target.value;
+                    if (nextValue === '__all__') {
+                        setSelectedProfile(null);
+                        return;
+                    }
+
+                    const profile = profiles.find((item) => item.id === nextValue) || null;
+                    setSelectedProfile(profile);
+                }}
+                aria-label="Selecionar perfil de negócio"
+                style={{
+                    width: '100%',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    padding: '0.8rem 2.8rem 0.8rem 2.5rem',
+                    borderRadius: '0.9rem',
+                    background: selectedProfile ? 'rgba(124, 58, 237, 0.2)' : 'rgba(39, 39, 42, 0.85)',
+                    border: selectedProfile ? '1px solid rgba(124, 58, 237, 0.45)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    outline: 'none',
+                    boxShadow: selectedProfile ? '0 0 0 1px rgba(124, 58, 237, 0.12)' : 'none',
+                    backdropFilter: 'blur(10px)',
+                    textOverflow: 'ellipsis'
+                }}
+                title={selectedLabel}
+            >
+                <option value="__all__">Todos os Perfis</option>
+                {profiles.map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                        {profile.name || 'Perfil sem nome'}
+                    </option>
+                ))}
+            </select>
+
+            <span
+                style={{
                     position: 'absolute',
-                    top: 'calc(100% + 0.5rem)',
-                    right: 0,
-                    minWidth: '100%',
-                    background: 'rgba(18, 18, 18, 0.98)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '0.75rem',
-                    maxHeight: '400px',
-                    overflowY: 'auto',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-                    backdropFilter: 'blur(12px)',
-                    zIndex: 1000
-                }}>
-                    <div
-                        onClick={() => {
-                            setSelectedProfile(null);
-                            setIsOpen(false);
-                        }}
-                        style={{
-                            padding: '0.75rem 1rem',
-                            cursor: 'pointer',
-                            fontSize: '0.875rem',
-                            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                            background: !selectedProfile ? 'rgba(124, 58, 237, 0.2)' : 'transparent',
-                            transition: 'background 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                            if (!selectedProfile) return;
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                        }}
-                        onMouseLeave={(e) => {
-                            if (!selectedProfile) return;
-                            e.currentTarget.style.background = 'transparent';
-                        }}
-                    >
-                        🌐 Todos os Perfis
-                    </div>
-
-                    {profiles.map(profile => (
-                        <div
-                            key={profile.id}
-                            onClick={() => {
-                                setSelectedProfile(profile);
-                                setIsOpen(false);
-                            }}
-                            style={{
-                                padding: '0.75rem 1rem',
-                                cursor: 'pointer',
-                                fontSize: '0.875rem',
-                                borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                                background: selectedProfile?.id === profile.id ? 'rgba(124, 58, 237, 0.2)' : 'transparent',
-                                transition: 'background 0.2s',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                            }}
-                            onMouseEnter={(e) => {
-                                if (selectedProfile?.id === profile.id) return;
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                            }}
-                            onMouseLeave={(e) => {
-                                if (selectedProfile?.id === profile.id) return;
-                                e.currentTarget.style.background = 'transparent';
-                            }}
-                        >
-                            {profile.name?.toLowerCase().includes('inner boost') ? (
-                                <img
-                                    src="/logos/inner-boost-logo.png"
-                                    alt="Inner Boost"
-                                    style={{
-                                        width: '20px',
-                                        height: '20px',
-                                        borderRadius: '50%',
-                                        objectFit: 'cover',
-                                        flexShrink: 0
-                                    }}
-                                />
-                            ) : (
-                                <span style={{
-                                    width: '20px',
-                                    height: '20px',
-                                    borderRadius: '50%',
-                                    background: '#7c3aed',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '0.625rem',
-                                    fontWeight: 700,
-                                    flexShrink: 0
-                                }}>
-                                    {profile.name.charAt(0).toUpperCase()}
-                                </span>
-                            )}
-                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {profile.name}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            )}
+                    right: '1rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    pointerEvents: 'none',
+                    color: 'rgba(255,255,255,0.8)',
+                    fontSize: '0.8rem'
+                }}
+            >
+                ▼
+            </span>
         </div>
     );
 }

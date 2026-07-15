@@ -15,13 +15,15 @@ if (!API_KEY) {
     console.warn('⚠️ UPLOAD_POST_API_KEY is missing in environment variables.');
 }
 
-const apiClient = axios.create({
-    baseURL: BASE_URL,
-    headers: {
-        'Authorization': `Apikey ${API_KEY}`,
-    },
-    timeout: 60000, // 60 segundos de timeout para evitar travamentos
-});
+const getApiClient = (customApiKey) => {
+    return axios.create({
+        baseURL: BASE_URL,
+        headers: {
+            'Authorization': `Apikey ${customApiKey || API_KEY}`,
+        },
+        timeout: 60000,
+    });
+};
 
 /**
  * Uploads a video to generic platforms (Instagram Reels, TikTok, YouTube, etc.)
@@ -78,7 +80,8 @@ export async function uploadVideo(username, platform, videoUrl, title, caption, 
             });
         }
 
-        const response = await apiClient.post('/upload', formData, {
+        const client = getApiClient(options.apiKey);
+        const response = await client.post('/upload', formData, {
             headers: formData.getHeaders(),
         });
 
@@ -97,7 +100,8 @@ export async function uploadVideo(username, platform, videoUrl, title, caption, 
  * @param {string[]} photoUrls - Array of direct URLs to photo files
  * @param {string} title - Title of the post
  * @param {string} caption - Description/Caption (Note: for Instagram, title is used as caption usually, but we send both)
- * @param {Object} options - Optional extra params (scheduledDate, timezone, etc.)
+ * @param {Object} options - Optional extra params (scheduledDate, timezone, mediaType, etc.)
+ *   - options.mediaType: 'STORIES' to publish as Instagram Story instead of feed post
  * @returns {Promise<Object>} - API Response
  */
 export async function uploadPhotos(username, platform, photoUrls, title, caption, options = {}) {
@@ -121,18 +125,36 @@ export async function uploadPhotos(username, platform, photoUrls, title, caption
             const isOriginallyPng = originalContentType.includes('png');
 
             // Format for upload-post.com with maximum quality preservation
+            const isStory = options.mediaType === 'STORIES';
             try {
                 const metadata = await sharp(photoBuffer).metadata();
                 let sharpInstance = sharp(photoBuffer);
 
-                // Instagram max usable width is 1350px (for 4:5 feed posts).
-                // Resize only if wider, preserving aspect ratio.
-                const MAX_WIDTH = 1350;
-                if (metadata.width > MAX_WIDTH) {
-                    console.log(`📐 Resizing from ${metadata.width}px to max ${MAX_WIDTH}px width...`);
-                    sharpInstance = sharpInstance.resize({ width: MAX_WIDTH, withoutEnlargement: true });
+                if (isStory) {
+                    // Instagram Stories: 1080×1920 (9:16). Resize to fit within these bounds.
+                    const STORY_W = 1080;
+                    const STORY_H = 1920;
+                    if (metadata.width !== STORY_W || metadata.height !== STORY_H) {
+                        console.log(`📐 Resizing for Story: ${metadata.width}×${metadata.height} → ${STORY_W}×${STORY_H}...`);
+                        sharpInstance = sharpInstance.resize({ width: STORY_W, height: STORY_H, fit: 'cover', position: 'centre' });
+                    } else {
+                        console.log(`✅ Story image already at ${STORY_W}×${STORY_H}. No resize needed.`);
+                    }
                 } else {
-                    console.log(`✅ Image width (${metadata.width}px) is within limit. No resize needed.`);
+                    // Instagram feed posts: min 1080px, max 1350px wide.
+                    // Gemini/Imagen 3 can generate at ~1024px (3:4 internal mapping), which causes
+                    // visible quality loss on Instagram if not upscaled before upload.
+                    const MIN_WIDTH = 1080;
+                    const MAX_WIDTH = 1350;
+                    if (metadata.width > MAX_WIDTH) {
+                        console.log(`📐 Downscaling from ${metadata.width}px to max ${MAX_WIDTH}px width...`);
+                        sharpInstance = sharpInstance.resize({ width: MAX_WIDTH });
+                    } else if (metadata.width < MIN_WIDTH) {
+                        console.log(`📐 Upscaling from ${metadata.width}px to min ${MIN_WIDTH}px width (Instagram minimum)...`);
+                        sharpInstance = sharpInstance.resize({ width: MIN_WIDTH });
+                    } else {
+                        console.log(`✅ Image width (${metadata.width}px) is within Instagram range. No resize needed.`);
+                    }
                 }
 
                 if (isOriginallyPng) {
@@ -161,6 +183,12 @@ export async function uploadPhotos(username, platform, photoUrls, title, caption
         formData.append('title', title || 'New Post');
         formData.append('description', caption || '');
 
+        // Set media_type for Instagram-specific post kinds
+        if (options.mediaType) {
+            formData.append('media_type', options.mediaType);
+            console.log(`📌 media_type set to: ${options.mediaType}`);
+        }
+
         if (options.scheduledDate) {
             formData.append('scheduled_date', options.scheduledDate);
         }
@@ -173,7 +201,8 @@ export async function uploadPhotos(username, platform, photoUrls, title, caption
             });
         }
 
-        const response = await apiClient.post('/upload_photos', formData, {
+        const client = getApiClient(options.apiKey);
+        const response = await client.post('/upload_photos', formData, {
             headers: formData.getHeaders(),
         });
 
@@ -189,10 +218,11 @@ export async function uploadPhotos(username, platform, photoUrls, title, caption
  * @param {string} jobId - The job ID or request ID to cancel
  * @returns {Promise<Object>} - API Response
  */
-export async function cancelScheduledPost(jobId) {
+export async function cancelScheduledPost(jobId, apiKey = null) {
     try {
         console.log(`🗑️ Cancelling scheduled job ${jobId} in Upload-Post...`);
-        const response = await apiClient.delete(`/uploadposts/schedule/${jobId}`);
+        const client = getApiClient(apiKey);
+        const response = await client.delete(`/uploadposts/schedule/${jobId}`);
         console.log('✅ Job cancellation successful:', response.data);
         return response.data;
     } catch (error) {
@@ -207,10 +237,11 @@ export async function cancelScheduledPost(jobId) {
  * @param {string} jobId - The job ID to check
  * @returns {Promise<Object>} - API Response containing status
  */
-export async function checkJobStatus(jobId) {
+export async function checkJobStatus(jobId, apiKey = null) {
     try {
         console.log(`🔍 Checking status for job ${jobId} in Upload-Post...`);
-        const response = await apiClient.get(`/uploadposts/status?job_id=${jobId}`);
+        const client = getApiClient(apiKey);
+        const response = await client.get(`/uploadposts/status?job_id=${jobId}`);
         return response.data;
     } catch (error) {
         console.error(`❌ Failed to check job ${jobId} status:`, error.response?.data || error.message);

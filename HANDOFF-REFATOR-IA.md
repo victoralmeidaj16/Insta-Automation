@@ -1,7 +1,7 @@
 # HANDOFF — Refator dos fluxos de geração de conteúdo IA (branding + copy coerente)
 
 > Documento de continuidade. Escrito para uma LLM (ou dev) retomar a implementação sem contexto prévio.
-> Plano original aprovado pelo usuário. Progresso: **Commits 0, 1, 2, 3, 4, 5, 6 e 7 CONCLUÍDOS**, Commit 8 pendente.
+> Plano original aprovado pelo usuário. Progresso: **Commits 0 a 8 CONCLUÍDOS**.
 
 > Implementação C1: foram adicionados os campos de IA ao `brandKit`, os presets de Fitswap, Tudy, ElevePic e Inner Boost receberam direção de voz/copy/visual como dados, o merge passou a respeitar substituição de listas curadas, e foi criado `buildBrandPromptSections()` com testes unitários.
 
@@ -16,6 +16,8 @@
 > Última implementação: **Commit 6 concluído em 15/07/2026**. Criado `contentQaService` com scan local case/acento-insensitive de `forbiddenWords` e meta-copy, bypass da LLM quando não há regras nem suspeitas e revisão estruturada por `gpt-4o-mini` nos demais casos. `generateContentPlan({ qa: true })` faz no máximo uma regeneração direcionada dos slides/caption ofensores, preserva backgrounds já refinados e executa apenas recheck local; qualquer falha de QA degrada para `warnings: []`. A rota aceita `qa` (default `true`) e retorna warnings. Validação: **25 testes específicos aprovados**; a única falha da suíte completa permanece a preexistente em `post-flow.test.js`.
 
 > Última implementação: **Commit 7 concluído em 15/07/2026**. O gerador HTML deixou de instruir ou exemplificar URLs externas de imagem: todas as marcas agora usam `data-ai-prompt` para imagens geradas por IA ou composição CSS pura. `libraryImageTreatment` foi encadeado da rota ao serviço com modos `auto`/`heavy`/`light` (`auto` mantém o tratamento pesado; `light` usa scrim `rgba(0,0,0,0.35)` sem blur). O reparador conta tokens exatos de `class="slide"`, faz um único retry se a IA alterar a quantidade e produz erro 422 claro se ainda houver divergência. Validação: sintaxe, ausência de referências ao Unsplash e **30 testes específicos aprovados**; a falha preexistente da suíte total permanece documentada no Commit 3.
+
+> Última implementação: **Commit 8 concluído em 15/07/2026**. O `PUT /api/business-profiles/:id` agora usa o documento bruto do Firestore e monta o patch com `buildBusinessProfileUpdates`, evitando persistir defaults herdados dos presets. A página de perfis recebeu a seção colapsável **Identidade de marca (IA)** com essência, voz, listas de regras, arco narrativo, editor repetível de papéis dos slides, direção visual, CTA, legenda, palavras/visuais proibidos e estratégia de hashtags. A hidratação normaliza todos os campos aninhados sem apagar propriedades antigas. Validação: **32 testes específicos aprovados**, lint isolado da página sem erros e compilação Next concluída; o build global segue bloqueado apenas por erros preexistentes de lint em outras páginas.
 
 ---
 
@@ -252,7 +254,7 @@ Em `htmlCarouselService.js`:
 
 ---
 
-## 12. COMMIT 8 — UI de edição do perfil + fix do PUT
+## 12. ✅ COMMIT 8 — UI de edição do perfil + fix do PUT (CONCLUÍDO)
 
 - **Fix do PUT primeiro** (ver seção 3, bug do merge contra doc merged).
 - `frontend/src/app/dashboard/business-profiles/page.js`: nova seção colapsável "Identidade de marca (IA)" seguindo padrões existentes da página:

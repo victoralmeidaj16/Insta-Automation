@@ -2,6 +2,8 @@ import { db, storage } from '../config/firebase.js';
 import { getAccount } from './accountService.js';
 import { getAccountsByProfile, getBusinessProfile } from './businessProfileService.js';
 import { uploadPhotos, uploadVideo, cancelScheduledPost } from './uploadPostService.js';
+import { createScheduledPostRecord, normalizeStoredPostRecord } from '../domain/contentModels.js';
+import { getCreatablePostTypes, isReelFormat, isStoryFormat, normalizeFormat } from '../domain/formatRules.js';
 
 
 /**
@@ -10,20 +12,31 @@ import { uploadPhotos, uploadVideo, cancelScheduledPost } from './uploadPostServ
 export async function createPost(userId, accountId, postData) {
     try {
         const {
-            type, // 'static', 'carousel', 'video', 'story', 'reel'
+            type,
+            format: rawFormat,
             mediaUrls,
             caption,
             scheduledFor, // timestamp ou null para imediato
         } = postData;
+        const format = normalizeFormat(rawFormat || type, type || 'static');
 
-        if (!mediaUrls || mediaUrls.length === 0) {
+        const hasHtmlContent = Boolean(postData.htmlContent || postData.htmlCode);
+        if ((!mediaUrls || mediaUrls.length === 0) && !hasHtmlContent) {
             throw new Error('Nenhuma mídia fornecida para o post.');
+        }
+
+        const sanitizedCaption = isStoryFormat(format) ? '' : (caption || '');
+
+        // Só valida o tipo quando não for HTML (carousel-html e html são tipos especiais)
+        if (!hasHtmlContent && !getCreatablePostTypes().includes(type)) {
+            throw new Error(`Tipo inválido. Use: ${getCreatablePostTypes().join(', ')}`);
         }
 
         // Get account to extract business profile
         // Logic update: Ensure accountId is valid. If it's a Business Profile ID, resolve to the actual Account ID.
         let resolvedAccountId = accountId;
         let account;
+        let businessProfileFallback = null;
         try {
             account = await getAccount(resolvedAccountId);
         } catch (error) {
@@ -35,7 +48,25 @@ export async function createPost(userId, accountId, postData) {
                 account = await getAccount(resolvedAccountId);
                 console.log(`✅ Resolved Profile ID ${accountId} to Account ID ${resolvedAccountId}`);
             } else {
-                throw error; // Re-throw if no linked account found either
+                // Fallback: try using the Business Profile's instagram settings directly
+                try {
+                    const bp = await getBusinessProfile(resolvedAccountId);
+                    if (bp && bp.instagram?.username) {
+                        console.log(`📤 No linked accounts found. Using Business Profile "${bp.name}" username as virtual account.`);
+                        businessProfileFallback = bp;
+                        // Synthesize a minimal account object from the Business Profile
+                        account = {
+                            id: resolvedAccountId,
+                            username: bp.instagram.username,
+                            businessProfileId: resolvedAccountId,
+                            status: 'active'
+                        };
+                    } else {
+                        throw error;
+                    }
+                } catch (bpError) {
+                    throw error; // Re-throw the original account not found error
+                }
             }
         }
 
@@ -44,8 +75,8 @@ export async function createPost(userId, accountId, postData) {
             throw new Error('Data de agendamento inválida');
         }
 
-        let businessProfile = null;
-        if (account.businessProfileId) {
+        let businessProfile = businessProfileFallback || null;
+        if (!businessProfile && account.businessProfileId) {
             try {
                 businessProfile = await getBusinessProfile(account.businessProfileId);
             } catch (err) {
@@ -59,17 +90,21 @@ export async function createPost(userId, accountId, postData) {
             businessProfile?.description,
             businessProfile?.branding?.style,
         ];
-        const shouldUseUploadPostScheduler = Boolean(scheduledDate);
+        // Drafts are never scheduled externally — they wait for approval first
+        const isWaitingForHtmlExport = hasHtmlContent && (!mediaUrls || mediaUrls.length === 0);
+        const shouldUseUploadPostScheduler = Boolean(scheduledDate) && !postData.isDraft;
 
         let externalScheduleInfo = null;
-        if (shouldUseUploadPostScheduler) {
+        if (shouldUseUploadPostScheduler && !isWaitingForHtmlExport) {
             try {
                 externalScheduleInfo = await scheduleWithUploadPost({
                     account,
-                    type,
+                    type: format,
                     mediaUrls,
-                    caption,
+                    caption: sanitizedCaption,
                     scheduledDate,
+                    apiKey: businessProfile?.instagram?.uploadPostApiKey,
+                    uploadUsername: businessProfile?.instagram?.username || account.username
                 });
             } catch (apiError) {
                 console.warn(`⚠️ Falha ao agendar via API externa (fallback para local): ${apiError.message}`);
@@ -77,43 +112,87 @@ export async function createPost(userId, accountId, postData) {
             }
         }
 
-        const post = {
+        const isDraft = postData.isDraft === true;
+        const hasValidExternalSchedule = Boolean(externalScheduleInfo?.jobId);
+
+        const post = createScheduledPostRecord({
             userId,
             accountId: resolvedAccountId,
             businessProfileId: account.businessProfileId || null,
-            libraryItemId: postData.libraryItemId || null, // Link to library item
-            type,
+            format,
             mediaUrls,
-            caption: caption || '',
+            caption: sanitizedCaption,
             scheduledFor: scheduledDate,
-            status: scheduledDate
-                ? (externalScheduleInfo ? 'scheduled' : 'pending')
-                : 'processing',
-            errorMessage: null,
-            postedAt: null,
-            createdAt: new Date(),
-            externalScheduler: externalScheduleInfo ? 'upload-post' : null,
+            status: isDraft
+                ? 'draft'
+                : scheduledDate
+                    ? (hasValidExternalSchedule ? 'scheduled' : 'pending')
+                    : 'processing',
+            libraryItemId: postData.libraryItemId || null,
+            htmlContent: postData.htmlContent || postData.htmlCode || null,
+            pillarId: postData.pillarId || null,
+            pillarName: postData.pillarName || null,
+            generatedBy: postData.generatedBy || null,
+            generationPrompt: postData.generationPrompt || '',
+            externalScheduler: hasValidExternalSchedule ? 'upload-post' : null,
             externalJobId: externalScheduleInfo?.jobId || null,
             externalPayload: externalScheduleInfo?.payload || null,
-        };
+            extra: {
+                isDraft,
+                isWaitingForHtmlExport,
+                ...(postData.extra || {})
+            }
+        });
 
         const postRef = await db.collection('posts').add(post);
 
         // If linked to a library item, update its status
         if (postData.libraryItemId) {
             await db.collection('library_items').doc(postData.libraryItemId).update({
-                isScheduled: true,
-                status: 'scheduled',
+                isScheduled: Boolean(post.scheduledFor),
+                status: post.scheduledFor ? 'scheduled' : 'processing',
                 scheduledPostId: postRef.id,
-                scheduledFor: post.scheduledFor
+                scheduledFor: post.scheduledFor || null,
+                updatedAt: new Date()
             });
             console.log(`🔗 Linked Library Item ${postData.libraryItemId} to Post ${postRef.id}`);
         }
 
         console.log(`✅ Post criado com ID: ${postRef.id}`);
 
+        if (isWaitingForHtmlExport) {
+            console.log(`⏳ Post ${postRef.id} requer exportação de HTML para imagens (em background)...`);
+            (async () => {
+                try {
+                    const { exportHtmlCarouselToImages } = await import('./htmlExportService.js');
+                    await exportHtmlCarouselToImages(postRef.id);
+
+                    if (shouldUseUploadPostScheduler) {
+                        try {
+                            const { scheduleApprovedPost } = await import('./postService.js');
+                            await scheduleApprovedPost(postRef.id, resolvedAccountId);
+                            console.log(`✅ Post HTML ${postRef.id} exportado e agendado com sucesso.`);
+                        } catch (e) {
+                            console.error(`❌ Falha ao agendar post ${postRef.id} após exportar HTML:`, e);
+                            await postRef.update({ status: 'failed', errorMessage: `Falha ao agendar após exportação: ${e.message}`, updatedAt: new Date() });
+                        }
+                    } else if (!scheduledDate) {
+                        await executePost(postRef.id);
+                    }
+                } catch (e) {
+                    console.error(`❌ Falha na exportação em background do post ${postRef.id}:`, e);
+                    await postRef.update({ status: 'failed', errorMessage: `Falha na exportação HTML: ${e.message}`, updatedAt: new Date() }).catch(() => {});
+                    // Unmark library item so it can be re-scheduled
+                    if (postData.libraryItemId) {
+                        await db.collection('library_items').doc(postData.libraryItemId).update({ isScheduled: false, status: 'pronto', scheduledPostId: null, updatedAt: new Date() }).catch(() => {});
+                    }
+                }
+            })();
+        }
+
         return {
             id: postRef.id,
+            isWaitingForHtmlExport,
             ...post,
         };
     } catch (error) {
@@ -127,6 +206,8 @@ export async function createPost(userId, accountId, postData) {
  */
 export async function getPosts(userId, filters = {}) {
     try {
+        const resultLimit = Math.min(Math.max(parseInt(filters.limit, 10) || 300, 1), 1000);
+
         // Start with userId filter only to avoid composite index requirements
         let query = db.collection('posts').where('userId', '==', userId);
 
@@ -135,14 +216,15 @@ export async function getPosts(userId, filters = {}) {
             query = query.where('accountId', '==', filters.accountId);
         }
 
-        // Fetch the last 100 posts to process in memory
-        const snapshot = await query.orderBy('createdAt', 'desc').limit(100).get();
+        // Fetch a larger window before in-memory filtering so calendar views do not
+        // hide scheduled HTML/premium carousels created earlier than recent drafts.
+        const snapshot = await query.orderBy('createdAt', 'desc').limit(resultLimit).get();
 
         let posts = [];
         snapshot.forEach(doc => {
             posts.push({
                 id: doc.id,
-                ...doc.data(),
+                ...normalizeStoredPostRecord(doc.data()),
             });
         });
 
@@ -154,11 +236,10 @@ export async function getPosts(userId, filters = {}) {
             posts = posts.filter(post => post.status === filters.status);
         }
         if (filters.type) {
-            posts = posts.filter(post => post.type === filters.type);
+            posts = posts.filter(post => post.type === filters.type || post.format === filters.type);
         }
 
-        // Limit to 50 results
-        return posts.slice(0, 50);
+        return posts.slice(0, resultLimit);
     } catch (error) {
         console.error('❌ Erro ao listar posts:', error);
         throw error;
@@ -178,7 +259,7 @@ export async function getPost(postId) {
 
         return {
             id: doc.id,
-            ...doc.data(),
+            ...normalizeStoredPostRecord(doc.data()),
         };
     } catch (error) {
         console.error('❌ Erro ao buscar post:', error);
@@ -186,11 +267,80 @@ export async function getPost(postId) {
     }
 }
 
+async function resolveLibraryItemIdForPost(postId, postData = null) {
+    if (postData?.libraryItemId) {
+        return postData.libraryItemId;
+    }
+
+    const libSnapshot = await db.collection('library_items')
+        .where('scheduledPostId', '==', postId)
+        .limit(1)
+        .get();
+
+    if (!libSnapshot.empty) {
+        const libraryItemId = libSnapshot.docs[0].id;
+        console.log(`🔗 Link de library recuperado: Post ${postId} -> Library Item ${libraryItemId}`);
+        return libraryItemId;
+    }
+
+    return null;
+}
+
+async function syncLibraryItemFromPostStatus(postId, status, postData = null, postedAt = null) {
+    const libraryItemId = await resolveLibraryItemIdForPost(postId, postData);
+    if (!libraryItemId) {
+        return false;
+    }
+
+    const updateData = {
+        updatedAt: postedAt || new Date()
+    };
+
+    if (status === 'processing') {
+        updateData.isScheduled = false;
+        updateData.status = 'processing';
+    }
+
+    if (status === 'scheduled') {
+        updateData.isScheduled = true;
+        updateData.isPosted = false;
+        updateData.status = 'scheduled';
+        updateData.scheduledPostId = postId;
+        updateData.scheduledFor = postData?.scheduledFor || null;
+    }
+
+    if (status === 'error' || status === 'failed' || status === 'rejected') {
+        updateData.isScheduled = false;
+        updateData.isPosted = false;
+        updateData.status = 'pronto';
+        updateData.scheduledPostId = null;
+        updateData.scheduledFor = null;
+    }
+
+    if (status === 'success' || status === 'posted') {
+        updateData.isPosted = true;
+        updateData.isScheduled = false;
+        updateData.status = 'posted';
+        updateData.tag = 'postado';
+        updateData.scheduledFor = null;
+    }
+
+    if (Object.keys(updateData).length === 1) {
+        return false;
+    }
+
+    await db.collection('library_items').doc(libraryItemId).update(updateData);
+    console.log(`✅ Library Item ${libraryItemId} sincronizado com status ${status}.`);
+    return true;
+}
+
 /**
  * Atualiza status de um post
  */
 export async function updatePostStatus(postId, status, errorMessage = null, postedAt = null) {
     try {
+        const postSnapshot = await db.collection('posts').doc(postId).get();
+        const postData = postSnapshot.exists ? postSnapshot.data() : null;
         const updateData = { status };
 
         if (errorMessage) {
@@ -201,6 +351,9 @@ export async function updatePostStatus(postId, status, errorMessage = null, post
         }
 
         await db.collection('posts').doc(postId).update(updateData);
+
+        // Always sync the library item, including on errors so it gets unlocked
+        await syncLibraryItemFromPostStatus(postId, status, postData, postedAt);
 
         console.log(`✅ Post ${postId} atualizado: ${status}`);
         return true;
@@ -220,7 +373,16 @@ export async function deletePost(postId) {
         // Se estiver agendado no Upload-Post, cancelar lá também
         if (post.externalScheduler === 'upload-post' && post.externalJobId) {
             console.log(`⏳ Cancelando job externo ${post.externalJobId} antes de deletar...`);
-            await cancelScheduledPost(post.externalJobId);
+            let apiKey = null;
+            if (post.businessProfileId) {
+                try {
+                    const businessProfile = await getBusinessProfile(post.businessProfileId);
+                    apiKey = businessProfile?.instagram?.uploadPostApiKey;
+                } catch (e) {
+                    console.warn('⚠️ Falha ao buscar apiKey do perfil de negócios ao deletar post', e.message);
+                }
+            }
+            await cancelScheduledPost(post.externalJobId, apiKey);
         }
 
         // Deletar mídias do Storage
@@ -270,7 +432,26 @@ export async function executePost(postId) {
 
     try {
         const post = await getPost(postId);
-        const account = await getAccount(post.accountId);
+
+        // Resolve account — fall back to Business Profile if no direct account linked
+        let account;
+        try {
+            account = await getAccount(post.accountId);
+        } catch (_) {
+            // Try resolving via Business Profile username
+            const bid = post.businessProfileId || post.accountId;
+            try {
+                const bp = await getBusinessProfile(bid);
+                if (bp?.instagram?.username) {
+                    console.log(`📤 executePost: sem conta real, usando BP "${bp.name}" como conta virtual.`);
+                    account = { id: bid, username: bp.instagram.username, businessProfileId: bid, status: 'active' };
+                } else {
+                    throw new Error(`Post ${postId}: sem conta nem perfil com username definido.`);
+                }
+            } catch (bpErr) {
+                throw new Error(`Conta não encontrada para o post ${postId}: ${bpErr.message}`);
+            }
+        }
 
         if (post.externalScheduler === 'upload-post' && post.externalJobId) {
             console.log(`⏭️ Post ${postId} já está programado no Upload-Post (job ${post.externalJobId}). Ignorando execução local.`);
@@ -288,26 +469,37 @@ export async function executePost(postId) {
         let result;
         const platform = 'instagram'; // Default target platform
 
-        // Executar automação baseado no tipo
-        if (post.type === 'video' || post.type === 'reel') {
-            // Upload Video/Reel
-            const videoUrl = post.mediaUrls[0];
-            result = await uploadVideo(account.username, platform, videoUrl, post.caption, post.caption);
-        } else {
-            // Static, Carousel, Story
-            // Upload Photos serves for single image and carousel
-            // Note: Story logic might be different in Upload-Post (media_type param?), checking docs...
-            // Docs say for Instagram: media_type: "IMAGE" (feed) or "STORIES".
-            // However upload_photos endpoint has common params. 
-            // We'll stick to feed posts for 'static' and 'carousel'.
-            // For 'story', Upload-Post has specific handling? 
-            // upload-photo.md: "Instagram... media_type: 'IMAGE' or 'STORIES'"
-            // BUT implementation in uploadPostService currently sends default payload.
-            // Let's assume standard feed post for now for simplification, or we handle 'story' specifically if critical.
-            // Given 'static' and 'carousel' are 99% of use cases here.
+        let businessProfile = null;
+        if (post.businessProfileId) {
+            try {
+                businessProfile = await getBusinessProfile(post.businessProfileId);
+            } catch (err) {
+                console.warn(`⚠️ Não foi possível carregar perfil do post ao executar: ${err.message}`);
+            }
+        }
+        const apiKey = businessProfile?.instagram?.uploadPostApiKey;
+        const uploadUsername = businessProfile?.instagram?.username || account.username;
 
-            // For now, treat everything as feed upload
-            result = await uploadPhotos(account.username, platform, post.mediaUrls, post.caption, post.caption);
+        // Executar automação baseado no tipo
+        const postFormat = post.format || post.type;
+        const isStory = isStoryFormat(postFormat);
+        const isVideoCarousel = postFormat === 'carousel-html-video' ||
+            (post.exportMode === 'video') ||
+            (post.mediaUrls?.length > 1 && post.mediaUrls[0]?.endsWith('.mp4'));
+
+        if (isReelFormat(postFormat) || postFormat === 'video') {
+            const videoUrl = post.mediaUrls[0];
+            result = await uploadVideo(uploadUsername, platform, videoUrl, post.caption, post.caption, { apiKey });
+        } else if (isVideoCarousel) {
+            // Each slide is an MP4 — send as carousel via upload_photos (Upload-Post handles mixed media)
+            console.log(`🎦 Uploading video carousel (${post.mediaUrls.length} clips)...`);
+            result = await uploadPhotos(uploadUsername, platform, post.mediaUrls, post.caption || '', post.caption || '', { apiKey });
+        } else if (isStory) {
+            console.log(`📱 Uploading as Instagram Story...`);
+            // Stories have no caption and must be flagged with media_type STORIES
+            result = await uploadPhotos(uploadUsername, platform, post.mediaUrls, '', '', { apiKey, mediaType: 'STORIES' });
+        } else {
+            result = await uploadPhotos(uploadUsername, platform, post.mediaUrls, post.caption || '', post.caption || '', { apiKey });
         }
 
         // Verificar sucesso na resposta do Upload-Post
@@ -351,14 +543,16 @@ export async function executePost(postId) {
                 }
             }
 
-            // Mark the associated Library Item accordingly
-            if (post.libraryItemId) {
+            // Keep the library card marked as in-flight while the worker finishes.
+            if (isAsync && post.libraryItemId) {
                 try {
                     await db.collection('library_items').doc(post.libraryItemId).update({
-                        isPosted: !isAsync, // Se for síncrono, já foi postado
-                        status: isAsync ? 'processing' : 'posted'
+                        isScheduled: false,
+                        isPosted: false,
+                        status: 'processing',
+                        updatedAt: new Date()
                     });
-                    console.log(`✅ Library Item ${post.libraryItemId} atualizado (${isAsync ? 'processing' : 'posted'}).`);
+                    console.log(`✅ Library Item ${post.libraryItemId} atualizado (processing).`);
                 } catch (libraryErr) {
                     console.error(`⚠️ Falha ao atualizar Library Item ${post.libraryItemId}:`, libraryErr);
                 }
@@ -379,6 +573,98 @@ export async function executePost(postId) {
         await updatePostStatus(postId, 'error', error.message);
         return { success: false, message: error.message };
     }
+}
+
+export async function scheduleApprovedPost(postId, accountId = null) {
+    const post = await getPost(postId);
+    const resolvedAccountId = accountId || post.accountId || post.businessProfileId || null;
+
+    if (!resolvedAccountId) {
+        throw new Error('Conta Instagram é obrigatória para enviar ao Upload-Post.');
+    }
+
+    // Resolve account with the same fallback as createPost (supports businessProfileId as virtual account)
+    let account;
+    try {
+        account = await getAccount(resolvedAccountId);
+    } catch {
+        const linkedAccounts = await getAccountsByProfile(resolvedAccountId);
+        if (linkedAccounts && linkedAccounts.length > 0) {
+            account = await getAccount(linkedAccounts[0].id);
+        } else {
+            const bp = await getBusinessProfile(resolvedAccountId);
+            if (bp?.instagram?.username) {
+                account = { id: resolvedAccountId, username: bp.instagram.username, businessProfileId: resolvedAccountId, status: 'active' };
+            } else {
+                throw new Error('Conta Instagram não encontrada para este perfil.');
+            }
+        }
+    }
+
+    const scheduledDate = post.scheduledFor ? new Date(post.scheduledFor) : null;
+    const now = new Date();
+    const shouldScheduleForFuture = scheduledDate && !isNaN(scheduledDate.getTime()) && scheduledDate > now;
+
+    await db.collection('posts').doc(postId).update({
+        accountId: resolvedAccountId,
+        needsAccount: false,
+        updatedAt: now
+    });
+
+    let businessProfile = null;
+    if (post.businessProfileId) {
+        try {
+            businessProfile = await getBusinessProfile(post.businessProfileId);
+        } catch (err) {
+            console.warn(`⚠️ Não foi possível carregar perfil ao agendar post aprovado: ${err.message}`);
+        }
+    }
+
+    if (shouldScheduleForFuture) {
+        // Mesmo fallback do createPost: se a API externa falhar, o post fica
+        // 'pending' e o scheduler local publica no horário. Propagar o erro
+        // aqui deixaria o post preso em 'scheduled' sem job externo (o sync
+        // ignora posts sem externalJobId).
+        let externalScheduleInfo = null;
+        try {
+            externalScheduleInfo = await scheduleWithUploadPost({
+                account,
+                type: post.format || post.type,
+                mediaUrls: post.mediaUrls,
+                caption: post.caption,
+                scheduledDate,
+                apiKey: businessProfile?.instagram?.uploadPostApiKey,
+                uploadUsername: businessProfile?.instagram?.username || account.username
+            });
+        } catch (apiError) {
+            console.warn(`⚠️ Falha ao agendar via Upload-Post (fallback para agendamento local): ${apiError.message}`);
+        }
+
+        const hasValidJobId = Boolean(externalScheduleInfo?.jobId);
+
+        await db.collection('posts').doc(postId).update({
+            status: hasValidJobId ? 'scheduled' : 'pending',
+            externalScheduler: hasValidJobId ? 'upload-post' : null,
+            externalJobId: externalScheduleInfo?.jobId || null,
+            externalPayload: externalScheduleInfo?.payload || null,
+            updatedAt: new Date()
+        });
+
+        return {
+            status: hasValidJobId ? 'scheduled' : 'pending',
+            scheduledFor: scheduledDate,
+            accountId: resolvedAccountId,
+            externalJobId: externalScheduleInfo?.jobId || null
+        };
+    }
+
+    const result = await executePost(postId);
+    return {
+        status: result?.success ? (result.async ? 'processing' : 'success') : 'error',
+        scheduledFor: scheduledDate,
+        accountId: resolvedAccountId,
+        result
+    };
 }
 
 /**
@@ -408,41 +694,60 @@ export async function getReadyPosts() {
     }
 }
 
-async function scheduleWithUploadPost({ account, type, mediaUrls, caption, scheduledDate }) {
+// Fuso usado nos agendamentos do Upload-Post. A API interpreta o horário de
+// scheduled_date como hora local do timezone enviado (o timezone sobrepõe o
+// sufixo Z), então o horário precisa ser convertido para o relógio desse fuso.
+const UPLOAD_POST_TIMEZONE = process.env.UPLOAD_POST_TIMEZONE || 'America/Sao_Paulo';
+
+function formatDateForUploadPost(date, timeZone) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hourCycle: 'h23'
+    }).formatToParts(date).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+
+    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+}
+
+async function scheduleWithUploadPost({ account, type, mediaUrls, caption, scheduledDate, apiKey, uploadUsername }) {
     if (!scheduledDate) {
         throw new Error('Data de agendamento é obrigatória para o Upload-Post.');
     }
 
-    console.log(`📆 Programando post no Upload-Post para ${scheduledDate.toISOString()}...`);
+    const localScheduledDate = formatDateForUploadPost(scheduledDate, UPLOAD_POST_TIMEZONE);
+    console.log(`📆 Programando post no Upload-Post para ${localScheduledDate} (${UPLOAD_POST_TIMEZONE}) via conta ${uploadUsername}...`);
 
     const platform = 'instagram';
     const options = {
-        scheduledDate: scheduledDate.toISOString(),
+        scheduledDate: localScheduledDate,
+        timezone: UPLOAD_POST_TIMEZONE,
+        apiKey
     };
 
     let response;
-    if (type === 'video' || type === 'reel') {
+    const isStory = isStoryFormat(type);
+    const isVideoCarousel = type === 'carousel-html-video' ||
+        (mediaUrls?.length > 1 && mediaUrls[0]?.endsWith('.mp4'));
+
+    if (isReelFormat(type) || type === 'video') {
         const videoUrl = mediaUrls[0];
-        if (!videoUrl) {
-            throw new Error('Vídeo não encontrado para agendamento.');
-        }
-        response = await uploadVideo(
-            account.username,
-            platform,
-            videoUrl,
-            caption || 'Scheduled Video',
-            caption,
-            options
-        );
+        if (!videoUrl) throw new Error('Vídeo não encontrado para agendamento.');
+        response = await uploadVideo(uploadUsername, platform, videoUrl, caption || 'Scheduled Video', caption, options);
+    } else if (isVideoCarousel) {
+        console.log(`🎬 Agendando video carousel (${mediaUrls.length} clips)...`);
+        const sanitizedCaption = caption || '';
+        response = await uploadPhotos(uploadUsername, platform, mediaUrls, sanitizedCaption, sanitizedCaption, options);
+    } else if (isStory) {
+        console.log(`📱 Agendando como Instagram Story...`);
+        // Stories have no caption and must be flagged with media_type STORIES
+        response = await uploadPhotos(uploadUsername, platform, mediaUrls, '', '', { ...options, mediaType: 'STORIES' });
     } else {
-        response = await uploadPhotos(
-            account.username,
-            platform,
-            mediaUrls,
-            caption || 'Scheduled Post',
-            caption,
-            options
-        );
+        const sanitizedCaption = caption || '';
+        response = await uploadPhotos(uploadUsername, platform, mediaUrls, sanitizedCaption, sanitizedCaption, options);
     }
 
     const jobId = extractUploadPostJobId(response, platform);
@@ -470,29 +775,34 @@ async function scheduleWithUploadPost({ account, type, mediaUrls, caption, sched
 export async function syncScheduledPosts() {
     try {
         console.log('🔄 Sincronizando posts agendados externamente...');
-        const now = new Date();
-        // Check posts that are 'scheduled' and filter the rest in memory to avoid Firebase Composite Index requirement
-        // Using limit(10) to avoid memory overload if there are too many scheduled posts pending sync
-        const snapshot = await db.collection('posts')
-            .where('status', '==', 'scheduled')
-            .limit(20)
-            .get();
+        const [scheduledSnapshot, processingSnapshot] = await Promise.all([
+            db.collection('posts')
+                .where('status', '==', 'scheduled')
+                .limit(20)
+                .get(),
+            db.collection('posts')
+                .where('status', '==', 'processing')
+                .limit(20)
+                .get()
+        ]);
 
-        if (snapshot.empty) {
+        if (scheduledSnapshot.empty && processingSnapshot.empty) {
             return;
         }
 
-        let postsToCheck = [];
-
-        snapshot.forEach(doc => {
-            const post = { id: doc.id, ...doc.data() };
-            if (post.externalScheduler === 'upload-post' && post.externalJobId) {
-                // Removemos o bloqueio de "scheduledTime <= now" porque se a API
-                // externa já tiver processado o post (ou houver bugs de fuso horário),
-                // nós ainda queremos atualizar a UI para "Postado".
-                postsToCheck.push(post);
-            }
+        const postsById = new Map();
+        [scheduledSnapshot, processingSnapshot].forEach((snapshot) => {
+            snapshot.forEach(doc => {
+                const post = { id: doc.id, ...doc.data() };
+                if (post.externalScheduler === 'upload-post' && post.externalJobId) {
+                    // Removemos o bloqueio de horário porque o provider externo pode
+                    // já ter finalizado o job e nós ainda queremos refletir "Postado".
+                    postsById.set(post.id, post);
+                }
+            });
         });
+
+        const postsToCheck = Array.from(postsById.values());
 
         if (postsToCheck.length === 0) {
             return;
@@ -504,7 +814,17 @@ export async function syncScheduledPosts() {
 
         for (const post of postsToCheck) {
             if (post.externalJobId) {
-                const jobStatus = await checkJobStatus(post.externalJobId);
+                let apiKey = null;
+                if (post.businessProfileId) {
+                    try {
+                        const businessProfile = await getBusinessProfile(post.businessProfileId);
+                        apiKey = businessProfile?.instagram?.uploadPostApiKey;
+                    } catch (e) {
+                        console.warn('⚠️ Falha ao buscar apiKey do perfil de negócios', e);
+                    }
+                }
+
+                const jobStatus = await checkJobStatus(post.externalJobId, apiKey);
 
                 if (jobStatus && (jobStatus.status === 'completed' || (jobStatus.scheduler_status === 'completed' && (jobStatus.status === 'processing' || jobStatus.status === 'queued')))) {
                     console.log(`✅ Post ${post.id} foi publicado externamente com sucesso!`);
@@ -530,39 +850,39 @@ export async function syncScheduledPosts() {
                         }
                     }
 
-                    // Update library item if it exists
-                    // Fallback: If libraryItemId is missing in the post, try to find it in library_items via scheduledPostId
-                    let libraryItemId = post.libraryItemId;
-                    if (!libraryItemId) {
-                        const libSnapshot = await db.collection('library_items')
-                            .where('scheduledPostId', '==', post.id)
-                            .limit(1)
-                            .get();
-                        if (!libSnapshot.empty) {
-                            libraryItemId = libSnapshot.docs[0].id;
-                            console.log(`🔗 Refeito o link perdido: Post ${post.id} -> Library Item ${libraryItemId}`);
-                        }
-                    }
-
-                    if (libraryItemId) {
-                        try {
-                            await db.collection('library_items').doc(libraryItemId).update({
-                                isPosted: true,
-                                status: 'posted' // Também atualizamos o status string para consistência
-                            });
-                        } catch (libraryErr) {
-                            console.error(`⚠️ Falha ao atualizar Library Item no Sync:`, libraryErr);
-                        }
-                    }
                 } else if (jobStatus && jobStatus.status === 'failed') {
                     console.log(`❌ Post ${post.id} falhou no upload externo.`);
                     await updatePostStatus(post.id, 'error', 'External upload failed.');
+                } else if (post.status === 'processing' && isExternalJobScheduled(jobStatus) && isFutureScheduledPost(post)) {
+                    console.log(`📆 Post ${post.id} está agendado no Upload-Post. Atualizando status local para scheduled.`);
+                    await updatePostStatus(post.id, 'scheduled');
                 }
             }
         }
     } catch (error) {
         console.error('❌ Erro na sincronização de posts agendados:', error);
     }
+}
+
+function isExternalJobScheduled(jobStatus) {
+    if (!jobStatus || jobStatus.success === false) {
+        return false;
+    }
+
+    const status = String(jobStatus.status || '').toLowerCase();
+    const schedulerStatus = String(jobStatus.scheduler_status || '').toLowerCase();
+    const scheduledStates = new Set(['scheduled', 'queued', 'pending', 'processing']);
+
+    return scheduledStates.has(status) || scheduledStates.has(schedulerStatus);
+}
+
+function isFutureScheduledPost(post) {
+    if (!post?.scheduledFor) {
+        return false;
+    }
+
+    const scheduledFor = post.scheduledFor.toDate ? post.scheduledFor.toDate() : new Date(post.scheduledFor);
+    return !Number.isNaN(scheduledFor.getTime()) && scheduledFor > new Date();
 }
 
 function extractUploadPostJobId(response, platform) {

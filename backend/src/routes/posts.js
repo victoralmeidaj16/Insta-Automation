@@ -6,6 +6,7 @@ import {
     deletePost,
     executePost,
 } from '../services/postService.js';
+import { getCreatablePostTypes, isStoryFormat, normalizeFormat } from '../domain/formatRules.js';
 // import { addToQueue, removeFromQueue } from '../queues/postQueue.js';
 
 const router = express.Router();
@@ -15,32 +16,54 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
     try {
-        const { accountId, type, mediaUrls, caption, scheduledFor, libraryItemId } = req.body;
-        console.log('📝 Criando post:', { accountId, type, mediaUrlsCount: mediaUrls?.length, caption });
+        const { accountId, type, format, mediaUrls, caption, scheduledFor, libraryItemId, htmlCode } = req.body;
+        const isHtmlType = type === 'carousel-html' || type === 'html';
+        const hasHtmlContent = Boolean(htmlCode);
 
-        if (!accountId || !type || !mediaUrls || !Array.isArray(mediaUrls)) {
+        // Se o tipo é HTML mas não tem htmlCode, retorna erro claro
+        if (isHtmlType && !hasHtmlContent) {
             return res.status(400).json({
-                error: 'accountId, type e mediaUrls (array) são obrigatórios',
+                error: 'Posts do tipo carousel-html requerem o campo htmlCode com o conteúdo HTML.',
             });
         }
 
-        const validTypes = ['static', 'carousel', 'video', 'story', 'reel'];
-        if (!validTypes.includes(type)) {
+        // Se tem HTML, força o tipo carousel-html; senão normaliza normalmente
+        const resolvedType = hasHtmlContent
+            ? 'carousel-html'
+            : normalizeFormat(type, 'static');
+        const resolvedFormat = hasHtmlContent ? 'carousel-html' : normalizeFormat(format || type, resolvedType);
+        const sanitizedCaption = isStoryFormat(resolvedFormat) ? '' : caption;
+
+        console.log('📝 Criando post:', { accountId, type: resolvedType, format: resolvedFormat, mediaUrlsCount: mediaUrls?.length, caption, hasHtmlContent });
+
+        if (!accountId || !resolvedType || ((!mediaUrls || !Array.isArray(mediaUrls)) && !hasHtmlContent)) {
             return res.status(400).json({
-                error: `Tipo inválido. Use: ${validTypes.join(', ')}`,
+                error: 'accountId, type e mediaUrls são obrigatórios, exceto para posts HTML',
             });
+        }
+
+        // Só valida o tipo quando não for HTML
+        if (!hasHtmlContent) {
+            const validTypes = getCreatablePostTypes();
+            if (!validTypes.includes(resolvedType)) {
+                return res.status(400).json({
+                    error: `Tipo inválido. Use: ${validTypes.join(', ')}`,
+                });
+            }
         }
 
         const post = await createPost(req.userId, accountId, {
-            type,
-            mediaUrls,
-            caption,
+            type: resolvedType,
+            format: resolvedFormat,
+            mediaUrls: hasHtmlContent ? [] : mediaUrls,
+            caption: sanitizedCaption,
             scheduledFor,
             libraryItemId,
+            htmlContent: htmlCode,
         });
 
-        // Se for imediato, executar agora (sem fila Redis para simplificar)
-        if (!scheduledFor) {
+        // Executar imediatamente se for now() e não tiver HTML export
+        if (!scheduledFor && !post.isWaitingForHtmlExport) {
             // Executar em background para não travar a resposta
             executePost(post.id).catch(err => console.error(`❌ Erro ao executar post ${post.id}:`, err));
         }
@@ -60,13 +83,14 @@ router.post('/', async (req, res) => {
  */
 router.get('/', async (req, res) => {
     try {
-        const { accountId, businessProfileId, status, type } = req.query;
+        const { accountId, businessProfileId, status, type, limit } = req.query;
 
         const filters = {};
         if (accountId) filters.accountId = accountId;
         if (businessProfileId) filters.businessProfileId = businessProfileId;
         if (status) filters.status = status;
         if (type) filters.type = type;
+        if (limit) filters.limit = limit;
 
         const posts = await getPosts(req.userId, filters);
 
@@ -134,9 +158,18 @@ router.put('/:id', async (req, res) => {
             updatedAt: new Date()
         };
 
+        const nextFormat = normalizeFormat(type || post.format || post.type, post.format || post.type || 'static');
         if (type) updateData.type = type;
-        if (caption !== undefined) updateData.caption = caption;
-        if (scheduledFor) updateData.scheduledFor = scheduledFor;
+        if (caption !== undefined || isStoryFormat(nextFormat)) updateData.caption = isStoryFormat(nextFormat) ? '' : caption;
+        if (scheduledFor) {
+            // Firestore não compara string com Timestamp — gravar como string
+            // faria getReadyPosts() nunca encontrar este post.
+            const parsedDate = new Date(scheduledFor);
+            if (isNaN(parsedDate.getTime())) {
+                return res.status(400).json({ error: 'Data de agendamento inválida' });
+            }
+            updateData.scheduledFor = parsedDate;
+        }
 
         await db.collection('posts').doc(id).update(updateData);
 

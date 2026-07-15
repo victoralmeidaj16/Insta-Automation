@@ -1,120 +1,170 @@
-# 📸 InstaBot - Plataforma de Automação Instagram
+# Insta-Automation — Plataforma de Automação de Conteúdo para Instagram
 
-Plataforma web completa para automação de postagens no Instagram com comportamento humanizado, suporte a múltiplas contas, agendamento e sistema de filas.
+Plataforma web completa para criação, geração com IA, agendamento e publicação automatizada de conteúdo no Instagram. Suporta múltiplas contas, perfis de negócio, geração semanal de conteúdo com aprovação e criação de Reels com IA.
 
-> ⚠️ **AVISO IMPORTANTE**: Este projeto **viola os Termos de Serviço do Instagram** e é apenas para fins educacionais. O uso pode resultar em bloqueio permanente de contas. Use por sua conta e risco.
+---
 
-## ✨ Funcionalidades
+## Funcionalidades
 
-- 🤖 **Automação Inteligente** - Puppeteer com comportamento humanizado
-- 🎭 **Anti-Detecção** - Scrolling, curtidas, delays aleatórios
-- 📱 **Múltiplos Formatos** - Post estático, carrossel, vídeo, Reel, Story
-- ⏰ **Agendamento** - Posts imediatos ou agendados
-- 🔐 **Multi-Conta** - Gerenciamento de várias contas Instagram
-- 🔒 **Segurança** - Credenciais criptografadas, cookies persistentes
-- ☁️ **Firebase** - Firestore + Storage + Auth
-- 📊 **Dashboard Moderno** - Interface intuitiva e responsiva
+### Geração de Conteúdo com IA
+- Geração de imagens via OpenAI (GPT-4o), Google Gemini e Replicate
+- Carrossel com sequenciamento inteligente de slides
+- Carrossel em HTML com templates editáveis
+- Carrossel premium com composição científica e overlay de titular
+- Geração de ideias e legendas com tom personalizado
+- Extração de estilo visual a partir de prompts
+- Geração de variações editoriais por pilar de conteúdo
+- Planejamento semanal de conteúdo com workflow de aprovação
 
-## 🏗️ Arquitetura
+### Gestão de Contas e Perfis
+- Múltiplas contas Instagram com credenciais criptografadas (AES)
+- Perfis de negócio com kit de marca, paleta, logo e pilares editoriais
+- Vinculação de contas a perfis específicos
+- Preferências de IA por perfil
+
+### Posts e Agendamento
+- Formatos suportados: estático, carrossel, vídeo, Story, Reel
+- Agendamento por data e hora
+- Edição de posts pendentes
+- Calendário visual de posts agendados
+- Rastreamento de status em tempo real (pending → processing → success/error)
+
+### Video Reels
+- Pipeline completo: roteiro → âncora visual → cenas → animação → merge final
+- Aprovação de cada cena antes da animação
+- Geração de vídeo com Kling AI
+- Player com suporte a range requests (streaming)
+
+### Biblioteca e Upload
+- Biblioteca de mídia com detecção de duplicatas por hash
+- Reformatação automática para proporção Instagram via Gemini
+- Salvamento automático de imagens geradas na biblioteca
+- Suporte a upload multipart (até 100MB)
+
+### Automação
+- Comportamento humanizado: scroll randômico, curtidas, delays variáveis
+- Fila de publicação com retry automático e backoff exponencial
+- Geração em background com rastreamento de status por `jobId`
+- Cookies persistentes para sessões Instagram
+
+---
+
+## Arquitetura
 
 ```
-instagram-automation/
-├── backend/           # Node.js + Express + Puppeteer
-│   ├── src/
-│   │   ├── automation/        # Motor de automação Instagram
-│   │   ├── config/            # Configuração Firebase
-│   │   ├── services/          # Lógica de negócio
-│   │   ├── routes/            # API REST
-│   │   ├── queues/            # Sistema de filas (Bull)
-│   │   └── middleware/        # Autenticação
-│   └── package.json
+Insta-Automation/
+├── backend/                   # Node.js + Express (ES Modules)
+│   └── src/
+│       ├── routes/            # API REST (accounts, posts, ai, library, auto-generate, video-reels, ...)
+│       ├── services/          # Lógica de negócio
+│       │   ├── aiService.js             # Geração de imagens e texto (OpenAI, Gemini, Replicate)
+│       │   ├── postService.js           # CRUD de posts + publicação
+│       │   ├── schedulerService.js      # Agendamento com node-cron
+│       │   ├── businessProfileService.js
+│       │   ├── contentGeneratorService.js  # Geração semanal por pilar
+│       │   ├── htmlExportService.js     # Carrossel HTML
+│       │   └── videoReelsService.js     # Pipeline de Reels
+│       ├── automation/        # Puppeteer / Playwright (publicação Instagram)
+│       ├── domain/            # Modelos e regras de formatação
+│       ├── utils/             # brandProfiles, klingClient, helpers
+│       ├── middleware/        # Auth Firebase, rate limiting
+│       ├── config/            # Firebase Admin
+│       └── queues/            # Sistema de filas (Bull)
 │
-└── frontend/          # Next.js + React
-    ├── src/
-    │   ├── app/               # Pages (App Router)
-    │   ├── lib/               # Firebase + API client
-    │   ├── contexts/          # Auth context
-    │   └── components/        # (Future)
-    └── package.json
+└── frontend/                  # Next.js 14 + React 18
+    └── src/
+        ├── app/dashboard/     # Páginas (App Router)
+        │   ├── accounts/
+        │   ├── business-profiles/
+        │   ├── calendar/
+        │   ├── create-post/
+        │   ├── generate/
+        │   ├── history/
+        │   ├── library/
+        │   ├── posts/
+        │   ├── review/
+        │   ├── upload-manager/
+        │   └── video-reels/
+        ├── components/        # Header, PostsStatusWidget, ProfileSwitcher, ...
+        ├── contexts/          # AuthContext, BusinessProfileContext
+        └── lib/               # Firebase client, Axios API client
 ```
 
-## 🚀 Instalação e Configuração
+---
+
+## Tech Stack
+
+| Camada | Tecnologias |
+|--------|-------------|
+| Backend | Node.js, Express 4, ES Modules |
+| IA / Imagens | OpenAI GPT-4o, Google Gemini, Replicate |
+| IA / Vídeo | Kling AI |
+| Automação | Puppeteer, Playwright |
+| Banco de Dados | Firebase Firestore |
+| Storage | Firebase Storage |
+| Auth | Firebase Admin SDK + JWT |
+| Agendamento | node-cron |
+| Filas | Bull + Redis |
+| Imagens | Sharp, FFmpeg, fluent-ffmpeg |
+| Frontend | Next.js 14, React 18, TypeScript |
+| Estilo | CSS (globals + CSS-in-JS) |
+| Notificações | react-hot-toast |
+| Upload | react-dropzone |
+| Datas | date-fns |
+
+---
+
+## Instalação
 
 ### Pré-requisitos
-
-- Node.js 18+ 
+- Node.js 18+
+- Redis (para filas)
 - Firebase Project (Firestore + Storage + Auth habilitados)
-- Redis (para sistema de filas)
+- Chaves de API: OpenAI, Google Generative AI, Replicate, Kling
 
-### 1. Clone o Repositório
-
-```bash
-cd /Users/victoralmeidaj16/.gemini/antigravity/scratch/instagram-automation
-```
-
-### 2. Configurar Firebase
-
-1. Acesse [Firebase Console](https://console.firebase.google.com)
-2. Crie um novo projeto
-3. Habilite **Authentication** (Email/Password)
-4. Habilite **Firestore Database**
-5. Habilite **Storage**
-6. Gere credenciais:
-   - **Service Account** (para backend): Settings → Service Accounts → Generate new private key
-   - **Web App** (para frontend): Project Settings → Add app → Web
-
-### 3. Backend
+### 1. Clone e instale
 
 ```bash
-cd backend
-npm install
+git clone <repo-url>
+cd Insta-Automation
 
-# Copiar .env
-cp .env.example .env
+# Backend
+cd backend && npm install
 
-# Editar .env com suas credenciais Firebase
-nano .env
+# Frontend
+cd ../frontend && npm install
 ```
 
-Configurar `.env`:
+### 2. Variáveis de ambiente — Backend (`backend/.env`)
 
 ```env
-# Firebase Admin SDK (do arquivo JSON baixado)
+# Firebase Admin
 FIREBASE_PROJECT_ID=seu-projeto
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk@seu-projeto.iam.gserviceaccount.com
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 
-# Server
-PORT=3001
+# Servidor
+PORT=3011
 NODE_ENV=development
-
-# Redis (local ou Render)
-REDIS_URL=redis://localhost:6379
-
-# Frontend URL
 FRONTEND_URL=http://localhost:3000
 
-# Chave de criptografia (gere uma aleatória)
-ENCRYPTION_KEY=$(openssl rand -base64 32)
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Criptografia de credenciais
+ENCRYPTION_KEY=<openssl rand -base64 32>
+
+# IA
+OPENAI_API_KEY=sk-...
+GOOGLE_GENERATIVE_AI_API_KEY=AIza...
+REPLICATE_API_TOKEN=r8_...
+KLING_API_KEY=...
+KLING_API_SECRET=...
 ```
 
-### 4. Frontend
-
-```bash
-cd ../frontend
-npm install
-
-# Copiar .env
-cp .env.example .env.local
-
-# Editar .env.local
-nano .env.local
-```
-
-Configurar `.env.local`:
+### 3. Variáveis de ambiente — Frontend (`frontend/.env.local`)
 
 ```env
-# Firebase Client SDK (da configuração Web App)
 NEXT_PUBLIC_FIREBASE_API_KEY=AIza...
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=seu-projeto.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=seu-projeto
@@ -122,238 +172,185 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=seu-projeto.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123...
 NEXT_PUBLIC_FIREBASE_APP_ID=1:123...:web:abc...
 
-# Backend API
-NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_API_URL=http://localhost:3011
 ```
 
-### 5. Redis (Desenvolvimento Local)
+### 4. Executar em desenvolvimento
 
-**Mac:**
 ```bash
-brew install redis
-brew services start redis
-```
+# Terminal 1 — Backend
+cd backend && npm run dev
 
-**Linux:**
-```bash
-sudo apt-get install redis-server
-sudo systemctl start redis
-```
-
-## 🏃 Executar Localmente
-
-### Terminal 1 - Backend
-```bash
-cd backend
-npm run dev
-```
-
-### Terminal 2 - Frontend
-```bash
-cd frontend
-npm run dev
+# Terminal 2 — Frontend
+cd frontend && npm run dev
 ```
 
 Acesse: `http://localhost:3000`
 
-## 📡 API Endpoints
+---
 
-### Accounts
-- `POST /api/accounts` - Adicionar conta
-- `GET /api/accounts` - Listar contas
-- `PUT /api/accounts/:id` - Atualizar conta
-- `DELETE /api/accounts/:id` - Remover conta
-- `POST /api/accounts/:id/verify` - Verificar login
+## API — Principais Endpoints
 
-### Posts
-- `POST /api/posts` - Criar post
-- `GET /api/posts?status=pending&type=static` - Listar posts
-- `GET /api/posts/:id` - Detalhes do post
-- `DELETE /api/posts/:id` - Cancelar/deletar
+### Accounts `/api/accounts`
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/` | Listar contas |
+| POST | `/` | Adicionar conta |
+| PUT | `/:id` | Atualizar conta |
+| DELETE | `/:id` | Remover conta |
+| POST | `/:id/verify` | Verificar login |
 
-### Upload
-- `POST /api/upload` - Upload de mídias (multipart/form-data)
+### Posts `/api/posts`
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/` | Listar posts (filtros: status, type, accountId, businessProfileId) |
+| POST | `/` | Criar post |
+| GET | `/:id` | Detalhes do post |
+| PUT | `/:id` | Editar post pendente |
+| DELETE | `/:id` | Cancelar/deletar |
 
-### Stats
-- `GET /api/stats` - Estatísticas da fila
-- `GET /health` - Health check
+### AI `/api/ai`
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/generate` | Gerar imagens (simples ou carrossel) |
+| POST | `/generate-caption` | Gerar legenda |
+| POST | `/generate-ideas` | Gerar ideias de posts |
+| POST | `/generate-html-carousel` | Gerar carrossel HTML |
+| POST | `/composite-scientific` | Overlay de composição científica |
+| POST | `/generate-variations` | Variações editoriais |
 
-## 🚢 Deploy no Render
+### Auto-Generate `/api/auto-generate`
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/preview` | Pré-visualizar plano semanal |
+| POST | `/weekly` | Gerar plano semanal (background) |
+| GET | `/status/:profileId` | Status do job em background |
+| GET | `/drafts` | Listar drafts pendentes |
+| POST | `/drafts/:id/approve` | Aprovar e agendar draft |
+| POST | `/drafts/:id/reject` | Rejeitar draft |
 
-### Backend
+### Library `/api/library`
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/` | Listar itens (paginação por cursor) |
+| POST | `/upload` | Upload direto (detecção de duplicatas) |
+| POST | `/` | Criar item de URL existente |
+| PUT | `/:id` | Atualizar item |
+| DELETE | `/:id` | Deletar item |
+| POST | `/:id/format` | Reformatar para proporção Instagram |
 
-1. Crie um **Web Service** no Render
-2. Conecte seu repositório Git
-3. Configure:
-   - **Build Command**: `cd backend && npm install`
-   - **Start Command**: `cd backend && npm start`
-   - **Environment**: Node
-4. Adicione todas as variáveis de ambiente do `.env`
-5. Adicione um **Redis** instance (gratuito no Render)
-6. Copie a **Internal Redis URL** e cole em `REDIS_URL`
-7. Deploy!
+### Video Reels `/api/video-reels`
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/` | Criar projeto de Reel |
+| POST | `/:id/generate-anchor` | Gerar imagem âncora |
+| POST | `/:id/approve-anchor` | Aprovar/rejeitar âncora |
+| POST | `/:id/generate-scenes` | Gerar cenas |
+| POST | `/:id/scenes/:sceneId/approve` | Aprovar cena |
+| POST | `/:id/merge` | Merge final do vídeo |
 
-### Frontend
+### Business Profiles `/api/business-profiles`
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/` | Listar perfis |
+| POST | `/` | Criar perfil |
+| PUT | `/:id` | Atualizar perfil |
+| DELETE | `/:id` | Deletar perfil |
+| POST | `/:id/link-account` | Vincular conta ao perfil |
 
-1. Crie um **Static Site** no Render (ou use Vercel)
-2. Configure:
-   - **Build Command**: `cd frontend && npm install && npm run build`
-   - **Publish Directory**: `frontend/.next`
-3. Adicione as variáveis de ambiente do `.env.local`
-4. Atualize `NEXT_PUBLIC_API_URL` com a URL do backend
-5. Deploy!
+---
 
-**Alternativa**: Deploy do frontend na [Vercel](https://vercel.com) (mais simples para Next.js)
+## Estrutura do Firestore
 
-## 🎭 Como Funciona?
-
-### 1. Comportamento Humanizado
-
-Antes de cada postagem, o sistema simula ações humanas:
-
-- 🖱️ Scrolling aleatório do feed (2-4 vezes)
-- ❤️ Curtir 2-4 posts aleatórios
-- ⏸️ Pausar em posts (3-8 segundos)
-- ⏱️ Delays aleatórios entre ações (1-5s)
-- 🔄 User-agent randomizado
-- 📱 Viewport randomizado
-
-### 2. Persistência de Sessão
-
-- Primeiro login: manual (suporta 2FA)
-- Cookies salvos localmente
-- Logins subsequentes: automáticos
-- "Manter logado" ativado por padrão
-
-### 3. Sistema de Filas
-
-- Posts imediatos → fila imediata
-- Posts agendados → verificação a cada minuto
-- 3 tentativas em caso de falha
-- Retry com backoff exponencial
-
-### 4. Limpeza Automática
-
-Após publicação bem-sucedida:
-- ✅ Mídias deletadas do Firebase Storage
-- 💰 Economia de custos
-- 📊 Apenas metadados mantidos no Firestore
-
-## 💡 Uso Recomendado
-
-### Volume Seguro
-- **2-3 posts por dia** por conta
-- **Intervalo mínimo**: 4-6 horas entre posts
-- **Evite**: Múltiplos posts simultâneos
-
-### Horários Ideais
-- Manhã: 8h-10h
-- Almoço: 12h-14h  
-- Noite: 18h-21h
-
-### Boas Práticas
-1. ✅ Comece com 1 conta para testar
-2. ✅ Use contas "descartáveis" para testes
-3. ✅ Monitore logs de perto
-4. ❌ Não use conta principal/comercial
-5. ❌ Não abuse do volume
-
-## 🐛 Troubleshooting
-
-### "Login falhou"
-- Verifique credenciais
-- Tente login manual primeiro
-- Verifique se 2FA está desabilitado (ou responda manualmente)
-
-### "Botão não encontrado"
-- Instagram mudou a interface
-- Atualize os seletores em `src/automation/instagram.js`
-
-### "Post travado em 'processing'"
-- Verifique logs do backend
-- Redis pode estar offline
-- Reinicie o servidor
-
-### Cookies não salvam
-- Verifique permissões da pasta `cookies/`
-- Certifique-se que `COOKIES_DIR` existe
-
-## 📊 Estrutura do Firestore
-
-### Collection: `accounts`
+### `accounts`
 ```json
 {
   "userId": "string",
   "username": "string",
   "email": "encrypted",
   "password": "encrypted",
-  "status": "active|error|blocked",
-  "stayLoggedIn": true,
-  "lastVerified": "timestamp",
-  "createdAt": "timestamp"
+  "businessProfileId": "string",
+  "status": "active | error | blocked",
+  "lastVerified": "timestamp"
 }
 ```
 
-### Collection: `posts`
+### `posts`
 ```json
 {
   "userId": "string",
   "accountId": "string",
-  "type": "static|carousel|video|story|reel",
+  "businessProfileId": "string",
+  "type": "static | carousel | video | story | reel",
+  "format": "image | carousel | carousel-html | carousel-premium | video | reel",
   "mediaUrls": ["array"],
   "caption": "string",
-  "scheduledFor": "timestamp|null",
-  "status": "pending|processing|success|error",
-  "errorMessage": "string|null",
-  "postedAt": "timestamp|null",
+  "scheduledFor": "timestamp | null",
+  "status": "draft | pending | processing | success | error",
+  "source": "manual | auto-generated",
+  "pillar": "string | null",
   "createdAt": "timestamp"
 }
 ```
 
-## 🔒 Segurança
-
-- ✅ Credenciais criptografadas (AES)
-- ✅ Cookies salvos localmente
-- ✅ JWT para autenticação frontend
-- ✅ Validação de entrada
-- ✅ CORS configurado
-- ✅ HTTPS recomendado em produção
-
-## 📝 Logs
-
-O sistema exibe logs detalhados:
-
-```
-🔐 Iniciando login para @username...
-📝 Preenchendo credenciais...
-✅ Login bem-sucedido!
-🎭 Iniciando simulação de comportamento humano...
-🖱️ Rolando o feed...
-❤️ Curtiu 3 posts
-⏸️ Pausou por 5.2s
-📸 Criando post estático...
-✅ Post publicado com sucesso!
+### `businessProfiles`
+```json
+{
+  "userId": "string",
+  "name": "string",
+  "description": "string",
+  "branding": { "primaryColor": "string", "fonts": [], "logoUrl": "string" },
+  "aiPreferences": { "style": "string", "tone": "string" },
+  "contentStrategy": { "pillars": [], "postingFrequency": "string" }
+}
 ```
 
-## 🤝 Contribuindo
-
-Este é um projeto educacional. Contribuições são bem-vindas:
-
-1. Fork o projeto
-2. Crie uma branch (`git checkout -b feature/nova-feature`)
-3. Commit suas mudanças (`git commit -m 'Add nova feature'`)
-4. Push para a branch (`git push origin feature/nova-feature`)
-5. Abra um Pull Request
-
-## ⚖️ Licença
-
-MIT - Apenas para fins educacionais
-
-## 📞 Suporte
-
-- 🐛 Issues: [GitHub Issues](#)
-- 📧 Email: [seu-email@example.com](#)
+### `library`
+```json
+{
+  "userId": "string",
+  "businessProfileId": "string",
+  "mediaUrls": ["array"],
+  "htmlContent": "string | null",
+  "tag": "string",
+  "fileHash": "string",
+  "createdAt": "timestamp"
+}
+```
 
 ---
 
-**Desenvolvido com ❤️ para educação. Não nos responsabilizamos pelo uso indevido.**
+## Segurança
+
+- Credenciais Instagram criptografadas com AES antes de salvar no Firestore
+- Autenticação via Firebase Auth + JWT em todas as rotas protegidas
+- CORS configurado para aceitar apenas origem do frontend
+- Rate limiting nas rotas de IA
+- Validação de entrada em todos os endpoints
+- Cookies de sessão armazenados localmente (nunca no banco)
+
+---
+
+## Troubleshooting
+
+**Backend não sobe (conflito de porta)**
+```bash
+lsof -ti:3011 | xargs kill -9
+cd backend && npm run dev
+```
+
+**Post travado em `processing`**
+- Verifique se o Redis está rodando
+- Confira os logs do backend em `backend/.dev-log.txt`
+
+**Placeholder literal nas imagens geradas**
+- Já corrigido: os prompts de overlay não passam mais texto literal para a IA de imagem
+
+**Erro de índice composto no Firestore**
+- Já corrigido: filtragem de datas movida para o código da aplicação
+
+---
+
+## Licença
+
+MIT — Projeto para uso educacional e de desenvolvimento pessoal.

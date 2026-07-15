@@ -11,19 +11,26 @@ interface ImageLightboxProps {
 }
 
 export default function ImageLightbox({ images, currentIndex, onClose, onNavigate, onDownload }: ImageLightboxProps) {
-    const currentImage = images[currentIndex];
+    const safeIndex = images.length
+        ? Math.max(0, Math.min(currentIndex, images.length - 1))
+        : 0;
+    const currentImage = images[safeIndex] || '';
 
     // Keyboard navigation
     useEffect(() => {
+        if (!images.length) return;
+
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose();
-            if (e.key === 'ArrowLeft' && currentIndex > 0) onNavigate(currentIndex - 1);
-            if (e.key === 'ArrowRight' && currentIndex < images.length - 1) onNavigate(currentIndex + 1);
+            if (e.key === 'ArrowLeft' && safeIndex > 0) onNavigate(safeIndex - 1);
+            if (e.key === 'ArrowRight' && safeIndex < images.length - 1) onNavigate(safeIndex + 1);
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [currentIndex, images.length, onClose, onNavigate]);
+    }, [safeIndex, images.length, onClose, onNavigate]);
+
+    if (!images.length) return null;
 
     return (
         <div
@@ -73,7 +80,7 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
             <button
                 onClick={(e) => {
                     e.stopPropagation();
-                    onDownload(currentImage, currentIndex);
+                    onDownload(currentImage, safeIndex);
                 }}
                 style={{
                     position: 'absolute',
@@ -112,16 +119,16 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                         zIndex: 2001
                     }}
                 >
-                    {currentIndex + 1} / {images.length}
+                    {safeIndex + 1} / {images.length}
                 </div>
             )}
 
             {/* Previous button */}
-            {currentIndex > 0 && (
+            {safeIndex > 0 && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        onNavigate(currentIndex - 1);
+                        onNavigate(safeIndex - 1);
                     }}
                     style={{
                         position: 'absolute',
@@ -150,11 +157,11 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
             )}
 
             {/* Next button */}
-            {currentIndex < images.length - 1 && (
+            {safeIndex < images.length - 1 && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        onNavigate(currentIndex + 1);
+                        onNavigate(safeIndex + 1);
                     }}
                     style={{
                         position: 'absolute',
@@ -185,7 +192,7 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
             {/* Image */}
             <img
                 src={currentImage}
-                alt={`Preview ${currentIndex + 1}`}
+                alt={`Preview ${safeIndex + 1}`}
                 onClick={(e) => e.stopPropagation()}
                 style={{
                     maxWidth: '90%',
@@ -227,13 +234,13 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                                 objectFit: 'cover',
                                 borderRadius: '0.375rem',
                                 cursor: 'pointer',
-                                border: idx === currentIndex ? '2px solid #7c3aed' : '2px solid transparent',
-                                opacity: idx === currentIndex ? 1 : 0.6,
+                                border: idx === safeIndex ? '2px solid #7c3aed' : '2px solid transparent',
+                                opacity: idx === safeIndex ? 1 : 0.6,
                                 transition: 'all 0.2s'
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
                             onMouseLeave={(e) => {
-                                if (idx !== currentIndex) e.currentTarget.style.opacity = '0.6';
+                                if (idx !== safeIndex) e.currentTarget.style.opacity = '0.6';
                             }}
                         />
                     ))}

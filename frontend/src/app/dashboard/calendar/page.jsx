@@ -41,6 +41,19 @@ export default function CalendarPage() {
         caption: ''
     });
 
+    // Auto-Fill Modal
+    const [showAutoFillModal, setShowAutoFillModal] = useState(false);
+    const [autoFillConfig, setAutoFillConfig] = useState({
+        postDays: [1, 3, 5],
+        postTimes: ['09:00', '18:00'],
+        storyDays: [0, 1, 2, 3, 4, 5, 6],
+        storyTimes: ['08:00', '20:00'],
+        startDate: (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })(),
+        count: 'all'
+    });
+    const [autoFillPreview, setAutoFillPreview] = useState([]);
+    const [autoFillLoading, setAutoFillLoading] = useState(false);
+
     // Initial Load & Profile Changes
     useEffect(() => {
         if (selectedProfile) {
@@ -80,20 +93,22 @@ export default function CalendarPage() {
         if (!selectedProfile) return;
         try {
             const res = await api.get('/api/library', {
-                params: { businessProfileId: selectedProfile.id }
+                params: { businessProfileId: selectedProfile.id, tag: 'pronto', limit: 200 }
             });
 
             // Filter for 'pronto' items and exclude already posted ones
-            const readyItems = res.data
+            const readyItems = (res.data?.items || [])
                 .filter(item => item.tag === 'pronto' && !item.isPosted && item.status !== 'posted')
                 .map(item => ({
                     id: item.id,
                     type: item.type,
-                    mediaUrls: item.mediaUrls,
+                    format: item.format,
+                    mediaUrls: item.mediaUrls || [],
                     caption: item.caption,
-                    thumbnail: item.mediaUrls[0] || '', // Ensure thumbnail exists
+                    htmlCode: item.htmlCode || null,
+                    thumbnail: item.mediaUrls?.[0] || '',
                     isLibraryItem: true,
-                    status: item.status, // 'available', 'scheduled', 'posted'
+                    status: item.status,
                     isScheduled: item.isScheduled,
                     isPosted: item.isPosted
                 }));
@@ -111,7 +126,7 @@ export default function CalendarPage() {
         try {
             // Use selectedProfile.id as businessProfileId
             const res = await api.get('/api/posts', {
-                params: { businessProfileId: selectedProfile.id }
+                params: { businessProfileId: selectedProfile.id, limit: 500 }
             });
             const scheduledPosts = res.data.posts.filter(p =>
                 p.status === 'scheduled' || p.status === 'processing' || p.status === 'success' || p.status === 'pending'
@@ -156,9 +171,13 @@ export default function CalendarPage() {
         setCurrentDate(new Date(newDate));
     };
 
+    function getCalendarDate(post) {
+        return parseDate(post.scheduledFor || post.postedAt || post.createdAt);
+    }
+
     const getPostsForDate = (date) => {
         return posts.filter(post => {
-            const postDate = parseDate(post.postedAt || post.scheduledFor || post.createdAt);
+            const postDate = getCalendarDate(post);
             if (!postDate || isNaN(postDate.getTime())) return false;
 
             return postDate.getDate() === date.getDate() &&
@@ -232,15 +251,26 @@ export default function CalendarPage() {
             // Extract only serializable primitives to avoid circular references
             const cleanMediaUrls = sourceItem?.mediaUrls ? [...sourceItem.mediaUrls] : [];
             const libraryItemId = sourceItem?.isLibraryItem ? String(sourceItem.id) : null;
+            const isHtmlDrop = Boolean(sourceItem?.htmlCode) || sourceItem?.type === 'carousel-html' || sourceItem?.type === 'html' || sourceItem?.format === 'html';
+            // Normalize story type: 'stories' is a display alias — backend expects 'story'
+            const resolveDropType = (t) => {
+                if (!t) return 'static';
+                if (t === 'stories') return 'story';
+                if (t === 'carousel-premium') return 'carousel';
+                return t;
+            };
+            const dropType = isHtmlDrop ? 'carousel-html' : resolveDropType(scheduleData.type || sourceItem?.type || 'static');
 
             const postData = {
                 accountId: String(selectedProfile.id),
-                type: String(scheduleData.type || 'static'),
+                type: dropType,
+                format: dropType,
                 caption: String(scheduleData.caption || ''),
-                mediaUrls: cleanMediaUrls,
+                mediaUrls: isHtmlDrop ? [] : cleanMediaUrls,
                 libraryItemId: libraryItemId,
                 scheduledFor: immediate ? null : scheduledDate.toISOString(),
-                isImmediate: Boolean(immediate)
+                isImmediate: Boolean(immediate),
+                ...(isHtmlDrop ? { htmlCode: sourceItem?.htmlCode || null } : {})
             };
 
             // Just create the post, backend handles execution if needed? 
@@ -275,7 +305,7 @@ export default function CalendarPage() {
     };
 
     const handleEditPost = (post) => {
-        const postDate = parseDate(post.postedAt || post.scheduledFor || post.createdAt);
+        const postDate = getCalendarDate(post);
         setEditingPost(post);
         setEditData({
             date: postDate,
@@ -322,6 +352,157 @@ export default function CalendarPage() {
         }
     };
 
+    const DAY_NAME_TO_NUM = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+
+    const isStoryItem = (item) => {
+        const fmt = (item.format || item.type || '').toLowerCase();
+        return fmt === 'story' || fmt === 'stories';
+    };
+
+    const buildAutoFillPreview = (config) => {
+        const allAvailable = mediaLibrary.filter(item => !item.isScheduled && item.status !== 'posted');
+        const storyItems = allAvailable.filter(isStoryItem);
+        const postItems = allAvailable.filter(i => !isStoryItem(i));
+        const total = allAvailable.length;
+        const limit = config.count === 'all' ? total : Math.min(parseInt(config.count) || total, total);
+
+        const start = new Date(config.startDate + 'T00:00:00');
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        let cursor = start < today ? new Date(today) : new Date(start);
+
+        const postSlots = [];
+        const storySlots = [];
+        let safety = 0;
+
+        const nowMs = Date.now();
+        const isFutureSlot = (date, time) => {
+            const d = new Date(date);
+            const [h, m] = time.split(':');
+            d.setHours(parseInt(h), parseInt(m), 0, 0);
+            return d.getTime() > nowMs;
+        };
+
+        while ((postSlots.length < postItems.length || storySlots.length < storyItems.length) && safety < 365) {
+            const dayNum = cursor.getDay();
+            if (config.postDays.includes(dayNum)) {
+                for (const time of (config.postTimes?.length ? config.postTimes : ['09:00'])) {
+                    if (postSlots.length < postItems.length && isFutureSlot(cursor, time))
+                        postSlots.push({ date: new Date(cursor), time, slotType: 'post' });
+                }
+            }
+            if (config.storyDays.includes(dayNum)) {
+                for (const time of (config.storyTimes?.length ? config.storyTimes : ['12:00'])) {
+                    if (storySlots.length < storyItems.length && isFutureSlot(cursor, time))
+                        storySlots.push({ date: new Date(cursor), time, slotType: 'story' });
+                }
+            }
+            cursor.setDate(cursor.getDate() + 1);
+            safety++;
+        }
+
+        return [
+            ...postSlots.map((slot, i) => ({ ...slot, item: postItems[i] })),
+            ...storySlots.map((slot, i) => ({ ...slot, item: storyItems[i] }))
+        ]
+            .filter(p => p.item)
+            .sort((a, b) => {
+                const toMs = ({ date, time }) => { const d = new Date(date); const [h, m] = time.split(':'); d.setHours(+h, +m, 0, 0); return d.getTime(); };
+                return toMs(a) - toMs(b);
+            })
+            .slice(0, limit);
+    };
+
+    const handleOpenAutoFill = () => {
+        const schedule = selectedProfile?.contentSchedule || {};
+        const allNums = [0, 1, 2, 3, 4, 5, 6];
+        const fromNames = (names) => (names || []).map(d => DAY_NAME_TO_NUM[d]).filter(n => n !== undefined);
+
+        const derived = {
+            postDays: schedule.preferredDays?.length ? fromNames(schedule.preferredDays) : [1, 3, 5],
+            postTimes: schedule.preferredTimes?.length ? schedule.preferredTimes : ['09:00', '18:00'],
+            storyDays: schedule.storyPreferredDays?.length ? fromNames(schedule.storyPreferredDays) : allNums,
+            storyTimes: schedule.storyPreferredTimes?.length ? schedule.storyPreferredTimes : ['08:00', '20:00'],
+            startDate: autoFillConfig.startDate,
+            count: autoFillConfig.count
+        };
+        setAutoFillConfig(derived);
+        setAutoFillPreview(buildAutoFillPreview(derived));
+        setShowAutoFillModal(true);
+    };
+
+    const handleAutoFillConfigChange = (newConfig) => {
+        setAutoFillConfig(newConfig);
+        setAutoFillPreview(buildAutoFillPreview(newConfig));
+    };
+
+    const handleConfirmAutoFill = async () => {
+        if (autoFillPreview.length === 0) { toast.error('Nenhum post disponível para agendar.'); return; }
+        setAutoFillLoading(true);
+        const toastId = toast.loading(`Agendando ${autoFillPreview.length} posts...`);
+        // carousel-premium is not directly postable — treat as carousel
+        // 'stories' is a display alias — normalize to 'story' so the backend recognizes the format
+        const resolvePostType = (t) => {
+            if (t === 'carousel-premium') return 'carousel';
+            if (t === 'stories') return 'story';
+            return t || 'static';
+        };
+        const isStoryType = (item) => {
+            const t = (item.format || item.type || '').toLowerCase();
+            return t === 'story' || t === 'stories';
+        };
+        const isHtmlItem = (item) => Boolean(item.htmlCode) || item.type === 'carousel-html' || item.format === 'carousel-html' || item.type === 'html' || item.format === 'html';
+
+        let ok = 0, fail = 0;
+        const failedItems = [];
+        for (const { date, time, item } of autoFillPreview) {
+            try {
+                const scheduledDate = new Date(date);
+                const [h, m] = time.split(':');
+                scheduledDate.setHours(parseInt(h), parseInt(m), 0, 0);
+
+                if (scheduledDate.getTime() <= Date.now()) {
+                    fail++;
+                    failedItems.push({ item, err: `Horário ${time} de ${scheduledDate.toLocaleDateString('pt-BR')} já passou — ignorado` });
+                    continue;
+                }
+
+                const isHtml = isHtmlItem(item);
+
+                if (isHtml && !item.htmlCode) {
+                    throw new Error(`Item "${item.caption?.substring(0, 30) || item.id}" é HTML mas sem código — reabra a biblioteca e salve novamente.`);
+                }
+
+                await api.post('/api/posts', {
+                    accountId: String(selectedProfile.id),
+                    type: isHtml ? 'carousel-html' : resolvePostType(item.type),
+                    format: isHtml ? 'carousel-html' : resolvePostType(item.type),
+                    caption: String(item.caption || ''),
+                    mediaUrls: isHtml ? [] : [...(item.mediaUrls || [])],
+                    libraryItemId: String(item.id),
+                    scheduledFor: scheduledDate.toISOString(),
+                    isImmediate: false,
+                    ...(isHtml ? { htmlCode: item.htmlCode } : {})
+                });
+                ok++;
+            } catch (err) {
+                fail++;
+                failedItems.push({ item, err: err?.response?.data?.error || err?.message || 'erro desconhecido' });
+            }
+        }
+        if (failedItems.length > 0) {
+            console.error('❌ Auto-Fill falhou em alguns posts:', failedItems);
+            const errMsg = failedItems.map(f => `• ${f.err}`).join('\n');
+            toast.error(`${fail} post(s) falharam:\n${errMsg}`, { duration: 8000 });
+        }
+        setAutoFillLoading(false);
+        toast.dismiss(toastId);
+        if (fail === 0) toast.success(`✅ ${ok} posts agendados com sucesso!`);
+        else toast.success(`✅ ${ok} agendados, ${fail} falharam — veja erros acima.`);
+        setShowAutoFillModal(false);
+        loadPosts();
+        loadLibraryItems();
+    };
+
     return (
         <div style={{ minHeight: '100vh', padding: '2rem' }}>
             <div className="container">
@@ -354,109 +535,10 @@ export default function CalendarPage() {
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem' }}>
-                    {/* Media Library Sidebar */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <PostsStatusWidget />
+                <PostsStatusWidget />
 
-                        <div className="card-glass" style={{ padding: '1.5rem', height: 'fit-content', maxHeight: '60vh', overflowY: 'auto' }}>
-                            <h3 className="mb-md">📚 Biblioteca ("Pronto")</h3>
-                            <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>
-                                Arraste para o calendário
-                            </p>
-
-                            {/* ... upload button ... */}
-                            <label
-                                className="btn btn-primary"
-                                style={{ width: '100%', marginBottom: '1rem', cursor: 'pointer', textAlign: 'center', display: 'block' }}
-                            >
-                                ➕ Upload Rápido
-                                <input
-                                    type="file"
-                                    accept="image/*,video/mp4"
-                                    multiple
-                                    onChange={handleFileUpload}
-                                    style={{ display: 'none' }}
-                                />
-                            </label>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {mediaLibrary.map((item) => (
-                                    <div
-                                        key={item.id}
-                                        draggable={!item.isScheduled && item.status !== 'posted'} // Disable drag if already scheduled/posted
-                                        onDragStart={(e) => handleDragStart(e, item)}
-                                        style={{
-                                            padding: '0.75rem',
-                                            background: 'rgba(255,255,255,0.05)',
-                                            borderRadius: 'var(--radius-md)',
-                                            cursor: (item.isScheduled || item.status === 'posted') ? 'default' : 'grab',
-                                            border: '2px solid transparent',
-                                            transition: 'all 0.2s ease',
-                                            opacity: (item.isScheduled || item.status === 'posted') ? 0.7 : 1,
-                                            position: 'relative'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (!item.isScheduled && item.status !== 'posted') {
-                                                e.currentTarget.style.borderColor = '#8e44ad';
-                                                e.currentTarget.style.transform = 'scale(1.02)';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.borderColor = 'transparent';
-                                            e.currentTarget.style.transform = 'scale(1)';
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                            <img
-                                                src={item.thumbnail}
-                                                alt="Thumbnail"
-                                                style={{
-                                                    width: '60px',
-                                                    height: '60px',
-                                                    objectFit: 'cover',
-                                                    borderRadius: 'var(--radius-sm)',
-                                                    pointerEvents: 'none',
-                                                    background: '#000',
-                                                    filter: (item.isScheduled || item.status === 'posted') ? 'grayscale(0.5)' : 'none'
-                                                }}
-                                            />
-                                            <div style={{ flex: 1, overflow: 'hidden' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                                    <p style={{ fontSize: '0.75rem', color: '#8e44ad', fontWeight: '500' }}>
-                                                        {item.type === 'carousel' ? '🎠 Carrossel' : '📸 Imagem'}
-                                                    </p>
-
-                                                    {/* Status Badge */}
-                                                    {item.status === 'posted' ? (
-                                                        <span style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', fontWeight: 'bold' }}>
-                                                            POSTADO
-                                                        </span>
-                                                    ) : (item.isScheduled || item.status === 'scheduled') ? (
-                                                        <span style={{ fontSize: '0.6rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(234, 179, 8, 0.2)', color: '#eab308', fontWeight: 'bold' }}>
-                                                            AGENDADO
-                                                        </span>
-                                                    ) : null}
-                                                </div>
-                                                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                    {item.caption || 'Sem legenda'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {mediaLibrary.length === 0 && (
-                                    <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', textAlign: 'center', padding: '2rem 0' }}>
-                                        Nenhum item "Pronto" na biblioteca deste perfil.
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Calendar */}
-                    <div className="card-glass" style={{ padding: '2rem' }}>
+                {/* ── Calendar ──────────────────────────────────────────────── */}
+                <div className="card-glass" style={{ padding: '2rem', marginTop: '1.5rem' }}>
                         {/* Month Navigation */}
                         <div className="flex-between mb-lg">
                             <button
@@ -615,7 +697,7 @@ export default function CalendarPage() {
                                                                                         post.type === 'story' ? '📖' : '📸'}
                                                                         </span>
                                                                         <span style={{ fontWeight: '600', fontSize: '0.6rem' }}>
-                                                                            {parseDate(post.postedAt || post.scheduledFor || post.createdAt).toLocaleTimeString('pt-BR', {
+                                                                            {getCalendarDate(post).toLocaleTimeString('pt-BR', {
                                                                                 hour: '2-digit',
                                                                                 minute: '2-digit'
                                                                             })}
@@ -731,8 +813,117 @@ export default function CalendarPage() {
                             })}
                         </div>
                     </div>
+
+                {/* ── Posts Prontos — tira horizontal ──────────────────────── */}
+                <div style={{ marginTop: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', gap: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                                ✅ Posts Prontos
+                            </h3>
+                            {mediaLibrary.length > 0 && (
+                                <span style={{ fontSize: '0.72rem', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)', color: '#a78bfa', borderRadius: '20px', padding: '2px 9px', fontWeight: 600 }}>
+                                    {mediaLibrary.length} {mediaLibrary.length === 1 ? 'post' : 'posts'}
+                                </span>
+                            )}
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                                Arraste para o calendário para agendar
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            {mediaLibrary.filter(i => !i.isScheduled && i.status !== 'posted').length > 0 && (
+                                <button
+                                    onClick={handleOpenAutoFill}
+                                    style={{ cursor: 'pointer', padding: '6px 14px', background: 'linear-gradient(135deg, rgba(124,58,237,0.25), rgba(168,85,247,0.2))', border: '1px solid rgba(168,85,247,0.5)', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, color: '#c4b5fd', display: 'flex', alignItems: 'center', gap: '5px' }}
+                                >
+                                    🪄 Auto-Fill
+                                </button>
+                            )}
+                            <label style={{ cursor: 'pointer', padding: '6px 14px', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.35)', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                ➕ Upload Rápido
+                                <input type="file" accept="image/*,video/mp4" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
+                            </label>
+                        </div>
+                    </div>
+
+                    {mediaLibrary.length === 0 ? (
+                        <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '12px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
+                            Nenhum post marcado como "Pronto" neste perfil. Vá à Library e marque posts como prontos.
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '8px', paddingTop: '4px' }}>
+                            {mediaLibrary.map((item) => {
+                                const locked = item.isScheduled || item.status === 'posted';
+                                return (
+                                    <div
+                                        key={item.id}
+                                        draggable={!locked}
+                                        onDragStart={(e) => handleDragStart(e, item)}
+                                        title={locked ? (item.isScheduled ? 'Já agendado' : 'Já postado') : (item.caption || 'Sem legenda')}
+                                        style={{
+                                            flexShrink: 0,
+                                            width: '90px',
+                                            background: 'rgba(255,255,255,0.04)',
+                                            border: locked ? '2px solid rgba(255,255,255,0.06)' : '2px solid transparent',
+                                            borderRadius: '10px',
+                                            overflow: 'hidden',
+                                            cursor: locked ? 'default' : 'grab',
+                                            opacity: locked ? 0.55 : 1,
+                                            transition: 'all 0.15s ease',
+                                            position: 'relative',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!locked) {
+                                                e.currentTarget.style.borderColor = '#8e44ad';
+                                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(142,68,173,0.3)';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.borderColor = locked ? 'rgba(255,255,255,0.06)' : 'transparent';
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }}
+                                    >
+                                        {/* Thumbnail */}
+                                        <div style={{ position: 'relative', width: '90px', height: '90px', background: '#111' }}>
+                                            {item.thumbnail ? (
+                                                <img
+                                                    src={item.thumbnail}
+                                                    alt=""
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', display: 'block' }}
+                                                />
+                                            ) : (
+                                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', color: 'rgba(255,255,255,0.2)' }}>
+                                                    {item.type?.includes('carousel') || item.type === 'html' ? '🎠' : item.type === 'video' ? '🎥' : '📸'}
+                                                </div>
+                                            )}
+
+                                            {/* type pill */}
+                                            <div style={{ position: 'absolute', bottom: '4px', left: '4px', fontSize: '0.58rem', fontWeight: 700, background: 'rgba(0,0,0,0.7)', color: '#e2e8f0', borderRadius: '4px', padding: '1px 5px', pointerEvents: 'none' }}>
+                                                {item.type?.includes('carousel') || item.type === 'html' ? '🎠 ' + (item.type.includes('html') ? 'HTML' : 'Carrossel') : item.type === 'video' ? '🎥 Vídeo' : '📸 Estático'}
+                                            </div>
+
+                                            {/* status badge */}
+                                            {item.isScheduled && (
+                                                <div style={{ position: 'absolute', top: '4px', right: '4px', fontSize: '0.55rem', fontWeight: 700, background: 'rgba(234,179,8,0.85)', color: '#000', borderRadius: '4px', padding: '1px 5px', pointerEvents: 'none' }}>
+                                                    AGEND.
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* caption */}
+                                        <div style={{ padding: '5px 6px', fontSize: '0.62rem', color: 'var(--text-tertiary)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.3 }}>
+                                            {item.caption || <span style={{ color: 'rgba(255,255,255,0.15)', fontStyle: 'italic' }}>sem legenda</span>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
-            </div >
+
+            </div>
 
             {/* Schedule Configuration Modal */}
             {
@@ -769,18 +960,27 @@ export default function CalendarPage() {
                             </p>
 
                             <div className="input-group">
-                                <label className="input-label">Tipo de Post</label>
-                                <select
-                                    className="input"
-                                    value={scheduleData.type}
-                                    onChange={(e) => setScheduleData({ ...scheduleData, type: e.target.value })}
+                                <label className="input-label">Tipo de Post (Detectado Automaticamente)</label>
+                                <div 
+                                    className="input" 
+                                    style={{ 
+                                        background: 'rgba(255,255,255,0.05)', 
+                                        color: 'var(--text-secondary)', 
+                                        cursor: 'not-allowed', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        opacity: 0.8 
+                                    }}
                                 >
-                                    <option value="static">📸 Post Estático (1 imagem)</option>
-                                    <option value="carousel">🎠 Carrossel (múltiplas imagens)</option>
-                                    <option value="video">🎥 Vídeo</option>
-                                    <option value="reel">🎬 Reel</option>
-                                    <option value="story">📖 Story</option>
-                                </select>
+                                    {scheduleData.type === 'static' && '📸 Post Estático (1 imagem)'}
+                                    {scheduleData.type === 'carousel' && '🎠 Carrossel (múltiplas imagens)'}
+                                    {(scheduleData.type === 'carousel-html' || scheduleData.type === 'html') && '🎠 Carrossel (HTML/ElevePic)'}
+                                    {scheduleData.type === 'carousel-premium' && '🎠 Carrossel Premium'}
+                                    {scheduleData.type === 'video' && '🎥 Vídeo'}
+                                    {scheduleData.type === 'reel' && '🎬 Reel'}
+                                    {(scheduleData.type === 'story' || scheduleData.type === 'stories') && '📱 Story'}
+                                    {!['static', 'carousel', 'carousel-html', 'html', 'carousel-premium', 'video', 'reel', 'story', 'stories'].includes(scheduleData.type) && `📌 ${scheduleData.type}`}
+                                </div>
                             </div>
 
                             <div className="input-group">
@@ -985,6 +1185,181 @@ export default function CalendarPage() {
                     </div>
                 )
             }
+            {/* Auto-Fill Modal */}
+            {showAutoFillModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '2rem' }}>
+                    <div className="card-glass" style={{ maxWidth: '560px', width: '100%', padding: '2rem', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <button onClick={() => setShowAutoFillModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+
+                        <h2 style={{ marginBottom: '0.25rem' }}>🪄 Auto-Fill do Calendário</h2>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>
+                            Distribui posts e stories prontos nos próximos dias conforme as configurações do perfil.
+                        </p>
+
+                        {/* Summary chips */}
+                        {(() => {
+                            const all = mediaLibrary.filter(i => !i.isScheduled && i.status !== 'posted');
+                            const stories = all.filter(isStoryItem).length;
+                            const posts = all.length - stories;
+                            return (
+                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '0.75rem', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)', color: '#c4b5fd', padding: '3px 10px', borderRadius: '20px' }}>
+                                        {posts} post{posts !== 1 ? 's' : ''} prontos
+                                    </span>
+                                    <span style={{ fontSize: '0.75rem', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7', padding: '3px 10px', borderRadius: '20px' }}>
+                                        {stories} stor{stories !== 1 ? 'ies' : 'y'} prontos
+                                    </span>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Posts config */}
+                        <div style={{ padding: '0.75rem', background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: '10px', marginBottom: '0.75rem' }}>
+                            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#a78bfa', marginBottom: '0.6rem' }}>Posts</p>
+                            <div style={{ marginBottom: '0.5rem' }}>
+                                <label style={{ fontSize: '0.73rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.35rem' }}>Dias</label>
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                    {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((name, idx) => {
+                                        const active = autoFillConfig.postDays.includes(idx);
+                                        return (
+                                            <button key={idx} onClick={() => {
+                                                const days = active ? autoFillConfig.postDays.filter(d => d !== idx) : [...autoFillConfig.postDays, idx].sort();
+                                                handleAutoFillConfigChange({ ...autoFillConfig, postDays: days });
+                                            }} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', background: active ? 'rgba(124,58,237,0.35)' : 'rgba(255,255,255,0.05)', border: active ? '1px solid rgba(168,85,247,0.7)' : '1px solid rgba(255,255,255,0.1)', color: active ? '#c4b5fd' : 'var(--text-tertiary)' }}>
+                                                {name}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '0.73rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.35rem' }}>Horários</label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
+                                    {(autoFillConfig.postTimes || []).map((t, i) => (
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.5)', borderRadius: '6px', padding: '2px 6px' }}>
+                                            <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#d8b4fe', fontSize: '0.78rem', outline: 'none', width: '5.2rem', cursor: 'pointer' }}
+                                                onChange={e => { const times = [...autoFillConfig.postTimes]; times[i] = e.target.value; handleAutoFillConfigChange({ ...autoFillConfig, postTimes: times }); }} />
+                                            <button onClick={() => { const times = autoFillConfig.postTimes.filter((_, idx) => idx !== i); handleAutoFillConfigChange({ ...autoFillConfig, postTimes: times }); }} style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
+                                        </div>
+                                    ))}
+                                    {autoFillConfig.postTimes.length < 4 && (
+                                        <button onClick={() => handleAutoFillConfigChange({ ...autoFillConfig, postTimes: [...autoFillConfig.postTimes, '12:00'] })} style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.73rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid #3f3f46', color: '#a1a1aa' }}>+ Horário</button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Stories config */}
+                        <div style={{ padding: '0.75rem', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', marginBottom: '0.75rem' }}>
+                            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#6ee7b7', marginBottom: '0.6rem' }}>Stories</p>
+                            <div style={{ marginBottom: '0.5rem' }}>
+                                <label style={{ fontSize: '0.73rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.35rem' }}>Dias</label>
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                    {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((name, idx) => {
+                                        const active = autoFillConfig.storyDays.includes(idx);
+                                        return (
+                                            <button key={idx} onClick={() => {
+                                                const days = active ? autoFillConfig.storyDays.filter(d => d !== idx) : [...autoFillConfig.storyDays, idx].sort();
+                                                handleAutoFillConfigChange({ ...autoFillConfig, storyDays: days });
+                                            }} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', background: active ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.05)', border: active ? '1px solid rgba(16,185,129,0.6)' : '1px solid rgba(255,255,255,0.1)', color: active ? '#6ee7b7' : 'var(--text-tertiary)' }}>
+                                                {name}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '0.73rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.35rem' }}>Horários</label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
+                                    {(autoFillConfig.storyTimes || []).map((t, i) => (
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: '6px', padding: '2px 6px' }}>
+                                            <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#6ee7b7', fontSize: '0.78rem', outline: 'none', width: '5.2rem', cursor: 'pointer' }}
+                                                onChange={e => { const times = [...autoFillConfig.storyTimes]; times[i] = e.target.value; handleAutoFillConfigChange({ ...autoFillConfig, storyTimes: times }); }} />
+                                            <button onClick={() => { const times = autoFillConfig.storyTimes.filter((_, idx) => idx !== i); handleAutoFillConfigChange({ ...autoFillConfig, storyTimes: times }); }} style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
+                                        </div>
+                                    ))}
+                                    {autoFillConfig.storyTimes.length < 4 && (
+                                        <button onClick={() => handleAutoFillConfigChange({ ...autoFillConfig, storyTimes: [...autoFillConfig.storyTimes, '12:00'] })} style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.73rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid #3f3f46', color: '#a1a1aa' }}>+ Horário</button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Start date + count */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div className="input-group">
+                                <label className="input-label">A partir de</label>
+                                <input type="date" className="input" value={autoFillConfig.startDate}
+                                    onChange={e => handleAutoFillConfigChange({ ...autoFillConfig, startDate: e.target.value })} />
+                            </div>
+                            <div className="input-group">
+                                <label className="input-label">Quantidade</label>
+                                <select className="input" value={autoFillConfig.count}
+                                    onChange={e => handleAutoFillConfigChange({ ...autoFillConfig, count: e.target.value })}>
+                                    <option value="all">Todos ({mediaLibrary.filter(i => !i.isScheduled && i.status !== 'posted').length})</option>
+                                    {[5,10,15,20,30].filter(n => n <= mediaLibrary.filter(i => !i.isScheduled && i.status !== 'posted').length).map(n => (
+                                        <option key={n} value={n}>{n}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Preview */}
+                        <div style={{ marginTop: '0.75rem', padding: '1rem', background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: '10px' }}>
+                            <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#a78bfa', marginBottom: '0.5rem' }}>
+                                📋 Preview — {autoFillPreview.length} item{autoFillPreview.length !== 1 ? 's' : ''} serão agendados
+                                {autoFillPreview.length > 0 && (() => {
+                                    const sc = autoFillPreview.filter(p => p.slotType === 'story').length;
+                                    const pc = autoFillPreview.length - sc;
+                                    return <span style={{ fontWeight: 400, color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}> ({pc} post{pc !== 1 ? 's' : ''} + {sc} stor{sc !== 1 ? 'ies' : 'y'})</span>;
+                                })()}
+                            </p>
+                            {autoFillPreview.length === 0 ? (
+                                <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Nenhum item disponível ou nenhum dia selecionado.</p>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '180px', overflowY: 'auto' }}>
+                                    {autoFillPreview.map(({ date, time, slotType, item }, i) => (
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                            <span style={{ color: slotType === 'story' ? '#10b981' : '#7c3aed', fontWeight: 700, minWidth: '118px' }}>
+                                                {date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })} {time}
+                                            </span>
+                                            <span style={{ fontSize: '0.68rem', background: slotType === 'story' ? 'rgba(16,185,129,0.15)' : 'rgba(124,58,237,0.15)', color: slotType === 'story' ? '#6ee7b7' : '#c4b5fd', padding: '1px 5px', borderRadius: '4px', flexShrink: 0 }}>
+                                                {slotType === 'story' ? 'story' : (item?.type || 'post')}
+                                            </span>
+                                            {item?.thumbnail ? (
+                                                <img src={item.thumbnail} alt="" style={{ width: '18px', height: '18px', objectFit: 'cover', borderRadius: '3px', flexShrink: 0 }} />
+                                            ) : (
+                                                <span style={{ fontSize: '0.85rem', flexShrink: 0 }}>{slotType === 'story' ? '📖' : (item?.type === 'carousel' || item?.type === 'carousel-html') ? '🎠' : (item?.type === 'html' || item?.htmlCode) ? '🖥️' : item?.type === 'video' ? '🎥' : '📸'}</span>
+                                            )}
+                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                                {item?.caption || <span style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.2)' }}>sem legenda</span>}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+                            <button
+                                onClick={handleConfirmAutoFill}
+                                disabled={autoFillLoading || autoFillPreview.length === 0}
+                                style={{
+                                    flex: 1, padding: '0.75rem', borderRadius: '10px', border: 'none', cursor: autoFillPreview.length === 0 ? 'not-allowed' : 'pointer',
+                                    background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                                    color: '#fff', fontWeight: 700, fontSize: '0.9rem', opacity: autoFillPreview.length === 0 ? 0.5 : 1,
+                                    transition: 'opacity 0.15s ease'
+                                }}
+                            >
+                                {autoFillLoading ? '⏳ Agendando...' : `🪄 Confirmar Auto-Fill (${autoFillPreview.length})`}
+                            </button>
+                            <button onClick={() => setShowAutoFillModal(false)} className="btn btn-secondary" style={{ padding: '0.75rem 1.25rem' }}>
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
 
     );

@@ -74,6 +74,6 @@ describe('CalendarPage smoke', () => {
         });
 
         expect(screen.getByText('Posts Status Widget')).toBeInTheDocument();
-        expect(screen.getByText('Nenhum item "Pronto" na biblioteca deste perfil.')).toBeInTheDocument();
+        expect(screen.getByText('Nenhum post marcado como "Pronto" neste perfil. Vá à Library e marque posts como prontos.')).toBeInTheDocument();
     });
 });

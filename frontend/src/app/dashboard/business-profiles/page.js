@@ -8,12 +8,87 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
+const createEmptyBrandKit = () => ({
+    personality: '',
+    coreMessage: '',
+    archetype: '',
+    voice: '',
+    toneRules: [],
+    copyArchetypes: [],
+    headlineExamples: [],
+    narrativeStructure: { description: '', slideRoles: [] },
+    ctaRules: [],
+    forbiddenWords: [],
+    forbiddenVisuals: [],
+    visualIdentity: {
+        photographyStyle: '',
+        colorUsage: '',
+        typographyFeel: '',
+        imagePromptGuidelines: []
+    },
+    captionRules: [],
+    hashtagStrategy: '',
+    visualReferenceUrls: [],
+    appUiReferenceUrls: [],
+    referencePrompts: []
+});
+
+const normalizeBrandKitForm = (brandKit = {}) => {
+    const defaults = createEmptyBrandKit();
+    return {
+        ...defaults,
+        ...brandKit,
+        toneRules: Array.isArray(brandKit.toneRules) ? brandKit.toneRules : [],
+        copyArchetypes: Array.isArray(brandKit.copyArchetypes) ? brandKit.copyArchetypes : [],
+        headlineExamples: Array.isArray(brandKit.headlineExamples) ? brandKit.headlineExamples : [],
+        ctaRules: Array.isArray(brandKit.ctaRules) ? brandKit.ctaRules : [],
+        forbiddenWords: Array.isArray(brandKit.forbiddenWords) ? brandKit.forbiddenWords : [],
+        forbiddenVisuals: Array.isArray(brandKit.forbiddenVisuals) ? brandKit.forbiddenVisuals : [],
+        captionRules: Array.isArray(brandKit.captionRules) ? brandKit.captionRules : [],
+        narrativeStructure: {
+            ...defaults.narrativeStructure,
+            ...(brandKit.narrativeStructure || {}),
+            slideRoles: Array.isArray(brandKit.narrativeStructure?.slideRoles)
+                ? brandKit.narrativeStructure.slideRoles
+                : []
+        },
+        visualIdentity: {
+            ...defaults.visualIdentity,
+            ...(brandKit.visualIdentity || {}),
+            imagePromptGuidelines: Array.isArray(brandKit.visualIdentity?.imagePromptGuidelines)
+                ? brandKit.visualIdentity.imagePromptGuidelines
+                : []
+        },
+        visualReferenceUrls: Array.isArray(brandKit.visualReferenceUrls) ? brandKit.visualReferenceUrls : [],
+        appUiReferenceUrls: Array.isArray(brandKit.appUiReferenceUrls) ? brandKit.appUiReferenceUrls : [],
+        referencePrompts: Array.isArray(brandKit.referencePrompts) ? brandKit.referencePrompts : []
+    };
+};
+
+function LineListField({ label, value, onChange, placeholder, rows = 4, help }) {
+    return (
+        <div className="input-group">
+            <label className="input-label">{label}</label>
+            <textarea
+                className="input"
+                value={(value || []).join('\n')}
+                onChange={(event) => onChange(event.target.value.split('\n').map(line => line.trim()).filter(Boolean))}
+                placeholder={placeholder}
+                rows={rows}
+            />
+            {help && <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>{help}</small>}
+        </div>
+    );
+}
+
 export default function BusinessProfilesPage() {
     const router = useRouter();
     const { profiles, selectedProfile, setSelectedProfile, createProfile, updateProfile, deleteProfile, loadProfiles } = useBusinessProfile();
     const parseLines = (value) => value.split('\n').map(line => line.trim()).filter(Boolean);
     const [showModal, setShowModal] = useState(false);
     const [editingProfile, setEditingProfile] = useState(null);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         brandKey: '',
@@ -32,11 +107,7 @@ export default function BusinessProfilesPage() {
             style: '',
             guidelines: ''
         },
-        brandKit: {
-            visualReferenceUrls: [],
-            appUiReferenceUrls: [],
-            referencePrompts: []
-        },
+        brandKit: createEmptyBrandKit(),
         aiPreferences: {
             defaultAspectRatio: '1:1',
             style: '',
@@ -48,8 +119,45 @@ export default function BusinessProfilesPage() {
     });
     const [newPromptName, setNewPromptName] = useState('');
     const [newPromptText, setNewPromptText] = useState('');
+    const [editingPromptId, setEditingPromptId] = useState(null);
 
     const [showPromptLibrary, setShowPromptLibrary] = useState(false);
+    const [showBrandIdentitySection, setShowBrandIdentitySection] = useState(false);
+    const [showPillarsSection, setShowPillarsSection] = useState(false);
+    const [showScheduleSection, setShowScheduleSection] = useState(false);
+
+    // Instagram connection state
+    const [showApiKey, setShowApiKey] = useState(false);
+    const [igTestStatus, setIgTestStatus] = useState(null); // null | 'loading' | 'ok' | 'error'
+    const [igTestResult, setIgTestResult] = useState(null); // { accountCount, instagramAccounts }
+    const [igTestError, setIgTestError] = useState('');
+
+    const handleTestInstagram = async () => {
+        if (!editingProfile?.id) {
+            toast.error('Salve o perfil primeiro antes de verificar a conexão.');
+            return;
+        }
+        setIgTestStatus('loading');
+        setIgTestResult(null);
+        setIgTestError('');
+        try {
+            const apiKeyFromForm = formData.instagram?.uploadPostApiKey?.trim() || undefined;
+            const usernameFromForm = formData.instagram?.username?.trim() || undefined;
+            const res = await api.post(`/api/business-profiles/${editingProfile.id}/test-instagram`, {
+                uploadPostApiKey: apiKeyFromForm,
+                username: usernameFromForm,
+            });
+            if (res.data.success) {
+                setIgTestStatus('ok');
+                setIgTestResult(res.data);
+            } else {
+                throw new Error(res.data.error || 'Falha desconhecida.');
+            }
+        } catch (err) {
+            setIgTestStatus('error');
+            setIgTestError(err.message || 'Erro ao verificar conexão.');
+        }
+    };
     const [isExtractingStyle, setIsExtractingStyle] = useState(false);
     const [stylePrompt, setStylePrompt] = useState('');
     const [showStyleExtractor, setShowStyleExtractor] = useState(false);
@@ -61,6 +169,10 @@ export default function BusinessProfilesPage() {
 
 
     const handleOpenModal = (profile = null) => {
+        setShowApiKey(false);
+        setIgTestStatus(null);
+        setIgTestResult(null);
+        setIgTestError('');
         if (profile) {
             setEditingProfile(profile);
             setFormData({
@@ -73,8 +185,18 @@ export default function BusinessProfilesPage() {
                 productService: profile.productService || '',
                 instagram: profile.instagram || { username: '' },
                 branding: profile.branding || formData.branding,
-                brandKit: profile.brandKit || formData.brandKit,
-                aiPreferences: profile.aiPreferences || formData.aiPreferences
+                brandKit: normalizeBrandKitForm(profile.brandKit),
+                aiPreferences: profile.aiPreferences || formData.aiPreferences,
+                editorialPillars: profile.editorialPillars || [],
+                contentSchedule: {
+                    postsPerWeek: 5, storiesPerWeek: 7,
+                    preferredDays: ['tuesday', 'thursday', 'saturday'],
+                    preferredTimes: ['09:00', '18:00'],
+                    storyPreferredTimes: ['08:00', '20:00'],
+                    storyPreferredDays: ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'],
+                    autonomyMode: 'review', autoGenerateDay: 'sunday', autoGenerateTime: '20:00',
+                    ...(profile.contentSchedule || {})
+                }
             });
         } else {
             setEditingProfile(null);
@@ -86,30 +208,29 @@ export default function BusinessProfilesPage() {
                 contentStrategy: '',
                 targetAudience: '',
                 productService: '',
-                instagram: {
-                    username: ''
-                },
+                instagram: { username: '' },
                 branding: {
-                    primaryColor: '#8e44ad',
-                    secondaryColor: '#e74c3c',
-                    logoUrl: '',
-                    style: '',
-                    guidelines: ''
+                    primaryColor: '#8e44ad', secondaryColor: '#e74c3c',
+                    logoUrl: '', style: '', guidelines: ''
                 },
-                brandKit: {
-                    visualReferenceUrls: [],
-                    appUiReferenceUrls: [],
-                    referencePrompts: []
-                },
+                brandKit: createEmptyBrandKit(),
                 aiPreferences: {
-                    defaultAspectRatio: '1:1',
-                    style: '',
-                    tone: '',
-                    photographyStyle: '',
-                    prohibitedElements: '',
-                    favoritePrompts: []
+                    defaultAspectRatio: '1:1', style: '', tone: '',
+                    photographyStyle: '', prohibitedElements: '', favoritePrompts: []
+                },
+                editorialPillars: [],
+                contentSchedule: {
+                    postsPerWeek: 5, storiesPerWeek: 7,
+                    preferredDays: ['tuesday', 'thursday', 'saturday'],
+                    preferredTimes: ['09:00', '18:00'],
+                    storyPreferredTimes: ['08:00', '20:00'],
+                    storyPreferredDays: ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'],
+                    autonomyMode: 'review', autoGenerateDay: 'sunday', autoGenerateTime: '20:00'
                 }
             });
+            setNewPromptName('');
+            setNewPromptText('');
+            setEditingPromptId(null);
         }
         setShowModal(true);
     };
@@ -186,24 +307,50 @@ export default function BusinessProfilesPage() {
             return;
         }
 
-        const newPrompt = {
-            id: Date.now().toString(),
+        const promptData = {
             name: newPromptName,
             text: newPromptText,
-            createdAt: new Date().toISOString()
         };
 
-        setFormData({
-            ...formData,
-            aiPreferences: {
-                ...formData.aiPreferences,
-                favoritePrompts: [...(formData.aiPreferences.favoritePrompts || []), newPrompt]
-            }
-        });
+        if (editingPromptId) {
+            setFormData({
+                ...formData,
+                aiPreferences: {
+                    ...formData.aiPreferences,
+                    favoritePrompts: formData.aiPreferences.favoritePrompts.map(p => 
+                        p.id === editingPromptId ? { ...p, ...promptData } : p
+                    )
+                }
+            });
+            toast.success('✅ Prompt atualizado!');
+            setEditingPromptId(null);
+        } else {
+            promptData.id = Date.now().toString();
+            promptData.createdAt = new Date().toISOString();
+            setFormData({
+                ...formData,
+                aiPreferences: {
+                    ...formData.aiPreferences,
+                    favoritePrompts: [...(formData.aiPreferences.favoritePrompts || []), promptData]
+                }
+            });
+            toast.success('✅ Prompt adicionado à biblioteca!');
+        }
 
         setNewPromptName('');
         setNewPromptText('');
-        toast.success('✅ Prompt adicionado à biblioteca!');
+    };
+
+    const handleEditFavoritePrompt = (prompt) => {
+        setNewPromptName(prompt.name);
+        setNewPromptText(prompt.text);
+        setEditingPromptId(prompt.id);
+    };
+
+    const handleCancelEditPrompt = () => {
+        setNewPromptName('');
+        setNewPromptText('');
+        setEditingPromptId(null);
     };
 
     const handleDeleteFavoritePrompt = (promptId) => {
@@ -216,6 +363,100 @@ export default function BusinessProfilesPage() {
         });
         toast.success('Prompt removido da biblioteca');
     };
+
+    const handleLogoFileSelected = async (file) => {
+        if (!file) return;
+        setUploadingLogo(true);
+        try {
+            const payload = new FormData();
+            payload.append('files', file);
+
+            const res = await api.post('/api/upload', payload, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            const url = res?.data?.urls?.[0];
+            if (!url) {
+                throw new Error('Upload não retornou URL.');
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                branding: { ...(prev.branding || {}), logoUrl: url }
+            }));
+            toast.success('✅ Logo enviada com sucesso!');
+        } catch (error) {
+            toast.error(`❌ Falha ao enviar logo: ${error.message || error}`);
+        } finally {
+            setUploadingLogo(false);
+        }
+    };
+
+    const handleAppScreenshotUpload = async (file) => {
+        if (!file) return;
+        if (!editingProfile?.id) {
+            toast.error('⚠️ Salve o perfil primeiro antes de fazer o upload do screenshot.');
+            return;
+        }
+        setUploadingScreenshot(true);
+        try {
+            const formDataUpload = new FormData();
+            formDataUpload.append('file', file);
+
+            const res = await api.post(`/api/business-profiles/${editingProfile.id}/app-screenshot`, formDataUpload, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            const url = res?.data?.url;
+            if (!url) {
+                throw new Error('Upload não retornou URL.');
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                brandKit: { ...(prev.brandKit || {}), appScreenshotUrl: url }
+            }));
+            toast.success('✅ Screenshot do app enviado!');
+        } catch (error) {
+            toast.error(`❌ Falha ao enviar screenshot: ${error.message || error}`);
+        } finally {
+            setUploadingScreenshot(false);
+        }
+    };
+
+    const updateBrandKitField = (field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            brandKit: { ...normalizeBrandKitForm(prev.brandKit), [field]: value }
+        }));
+    };
+
+    const updateNarrativeStructure = (updates) => {
+        setFormData(prev => {
+            const brandKit = normalizeBrandKitForm(prev.brandKit);
+            return {
+                ...prev,
+                brandKit: {
+                    ...brandKit,
+                    narrativeStructure: { ...brandKit.narrativeStructure, ...updates }
+                }
+            };
+        });
+    };
+
+    const updateVisualIdentity = (updates) => {
+        setFormData(prev => {
+            const brandKit = normalizeBrandKitForm(prev.brandKit);
+            return {
+                ...prev,
+                brandKit: {
+                    ...brandKit,
+                    visualIdentity: { ...brandKit.visualIdentity, ...updates }
+                }
+            };
+        });
+    };
+
 
     return (
         <div style={{ minHeight: '100vh', padding: '2rem' }}>
@@ -536,24 +777,120 @@ export default function BusinessProfilesPage() {
 
 
 
-                                {/* Post Settings for Upload-Post */}
-                                <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem', fontSize: '1.25rem' }}>Configurações de Postagem</h3>
+                                {/* ── Instagram / Upload-Post Setup ───────────────── */}
+                                <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', overflow: 'hidden' }}>
+                                    {/* Header */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 20px', background: 'linear-gradient(135deg, rgba(225,48,108,0.12), rgba(193,53,132,0.08))', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f1f5f9' }}>Conta Instagram</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '1px' }}>Publicação automática via Upload-Post</div>
+                                        </div>
+                                        {/* connection pill */}
+                                        <div style={{ flexShrink: 0, padding: '4px 12px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px',
+                                            background: igTestStatus === 'ok' ? 'rgba(34,197,94,0.15)' : igTestStatus === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)',
+                                            border: `1px solid ${igTestStatus === 'ok' ? 'rgba(34,197,94,0.4)' : igTestStatus === 'error' ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                                            color: igTestStatus === 'ok' ? '#4ade80' : igTestStatus === 'error' ? '#f87171' : '#94a3b8'
+                                        }}>
+                                            <span style={{ fontSize: '8px' }}>{igTestStatus === 'ok' ? '●' : igTestStatus === 'error' ? '●' : '○'}</span>
+                                            {igTestStatus === 'ok' ? 'Conectado' : igTestStatus === 'error' ? 'Falha' : igTestStatus === 'loading' ? 'Verificando...' : 'Não verificado'}
+                                        </div>
+                                    </div>
 
-                                <div className="input-group">
-                                    <label className="input-label">Usuário Instagram (Upload-Post)</label>
-                                    <input
-                                        className="input"
-                                        type="text"
-                                        value={formData.instagram?.username || ''}
-                                        onChange={(e) => setFormData({
-                                            ...formData,
-                                            instagram: { ...formData.instagram, username: e.target.value }
-                                        })}
-                                        placeholder="@username"
-                                    />
-                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem' }}>
-                                        Necessário apenas para identificar a conta na API de agendamento.
-                                    </small>
+                                    {/* Form fields */}
+                                    <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        {/* Username */}
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>@ Usuário do Instagram</label>
+                                            <div style={{ position: 'relative' }}>
+                                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontSize: '0.9rem', fontWeight: 600 }}>@</span>
+                                                <input
+                                                    className="input"
+                                                    type="text"
+                                                    value={(formData.instagram?.username || '').replace(/^@/, '')}
+                                                    onChange={(e) => setFormData({ ...formData, instagram: { ...formData.instagram, username: e.target.value.replace(/^@/, '') } })}
+                                                    placeholder="username"
+                                                    style={{ paddingLeft: '28px' }}
+                                                />
+                                            </div>
+                                            <p style={{ fontSize: '0.72rem', color: '#4b5563', marginTop: '4px' }}>Usuário exato cadastrado na sua conta Upload-Post.</p>
+                                        </div>
+
+                                        {/* API Key */}
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#94a3b8', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🔑 API Key — Upload-Post</label>
+                                            <div style={{ position: 'relative' }}>
+                                                <input
+                                                    className="input"
+                                                    type={showApiKey ? 'text' : 'password'}
+                                                    value={formData.instagram?.uploadPostApiKey || ''}
+                                                    onChange={(e) => {
+                                                        setIgTestStatus(null);
+                                                        setFormData({ ...formData, instagram: { ...formData.instagram, uploadPostApiKey: e.target.value } });
+                                                    }}
+                                                    placeholder="Cole a chave aqui..."
+                                                    style={{ paddingRight: '44px', fontFamily: showApiKey ? 'monospace' : 'inherit', letterSpacing: showApiKey ? '0.03em' : 'normal', fontSize: showApiKey ? '0.8rem' : 'inherit' }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowApiKey(v => !v)}
+                                                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px', display: 'flex', alignItems: 'center' }}
+                                                    title={showApiKey ? 'Ocultar' : 'Mostrar'}
+                                                >
+                                                    {showApiKey
+                                                        ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                                        : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                                    }
+                                                </button>
+                                            </div>
+                                            <p style={{ fontSize: '0.72rem', color: '#4b5563', marginTop: '4px' }}>Específica deste perfil. Sobrescreve a key global do <code style={{ background: 'rgba(255,255,255,0.07)', padding: '0 4px', borderRadius: '3px' }}>.env</code>.</p>
+                                        </div>
+
+                                        {/* Verify button + result */}
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                            <button
+                                                type="button"
+                                                onClick={handleTestInstagram}
+                                                disabled={igTestStatus === 'loading' || !formData.instagram?.uploadPostApiKey?.trim()}
+                                                style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid rgba(167,139,250,0.4)', background: igTestStatus === 'loading' ? 'rgba(167,139,250,0.08)' : 'rgba(167,139,250,0.12)', color: '#a78bfa', fontWeight: 700, fontSize: '0.82rem', cursor: (!formData.instagram?.uploadPostApiKey?.trim() || igTestStatus === 'loading') ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', opacity: !formData.instagram?.uploadPostApiKey?.trim() ? 0.45 : 1, transition: 'all 0.15s' }}
+                                            >
+                                                {igTestStatus === 'loading'
+                                                    ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span> Verificando...</>
+                                                    : <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Verificar Conexão</>
+                                                }
+                                            </button>
+
+                                            {igTestStatus === 'ok' && igTestResult && (
+                                                <div style={{ flex: 1, padding: '9px 14px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '8px', fontSize: '0.8rem', color: '#4ade80', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span style={{ fontWeight: 700 }}>✅ API key válida!</span>
+                                                    {igTestResult.configuredUsername && (
+                                                        <span style={{ color: '#86efac', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                            Conta configurada para este perfil: @{igTestResult.configuredUsername}
+                                                        </span>
+                                                    )}
+                                                    {igTestResult.instagramAccounts?.length > 1 && (
+                                                        <span style={{ color: 'rgba(134,239,172,0.6)', fontSize: '0.72rem' }}>
+                                                            Outras contas na key: {igTestResult.instagramAccounts.filter(a => a.username !== igTestResult.configuredUsername).map(a => `@${a.username}`).join(', ')}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {igTestStatus === 'error' && (
+                                                <div style={{ flex: 1, padding: '9px 14px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', fontSize: '0.8rem', color: '#f87171' }}>
+                                                    <span style={{ fontWeight: 700 }}>❌ Erro: </span>{igTestError}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {!editingProfile?.id && (
+                                            <p style={{ fontSize: '0.75rem', color: '#64748b', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', margin: 0 }}>
+                                                💡 Salve o perfil primeiro para habilitar a verificação de conexão.
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* AI Preferences */}
@@ -625,6 +962,194 @@ export default function BusinessProfilesPage() {
                                 </div>
 
                                 <div className="input-group">
+                                    <label className="input-label">Screenshot do App (Upload de arquivo) 📱</label>
+                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'start', flexWrap: 'wrap' }}>
+                                        {formData.brandKit?.appScreenshotUrl && (
+                                            <div style={{ position: 'relative' }}>
+                                                <img 
+                                                    src={formData.brandKit.appScreenshotUrl} 
+                                                    alt="Preview App UI" 
+                                                    style={{ width: '120px', borderRadius: '0.5rem', border: '1px solid #3f3f46' }} 
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({
+                                                        ...formData,
+                                                        brandKit: { ...formData.brandKit, appScreenshotUrl: '' }
+                                                    })}
+                                                    style={{
+                                                        position: 'absolute', top: '-5px', right: '-5px',
+                                                        background: '#ef4444', color: '#fff', border: 'none',
+                                                        borderRadius: '50%', width: '20px', height: '20px',
+                                                        fontSize: '12px', cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        )}
+                                        <div style={{ flex: 1 }}>
+                                            <label
+                                                className="btn btn-secondary"
+                                                style={{
+                                                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                                                    cursor: uploadingScreenshot ? 'default' : 'pointer',
+                                                    opacity: uploadingScreenshot ? 0.7 : 1,
+                                                    width: '100%', justifyContent: 'center', padding: '0.75rem'
+                                                }}
+                                            >
+                                                {uploadingScreenshot ? '⏳ Enviando...' : '⬆️ Fazer Upload do App Screenshot'}
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    disabled={uploadingScreenshot}
+                                                    onChange={(e) => handleAppScreenshotUpload(e.target.files?.[0])}
+                                                    style={{ display: 'none' }}
+                                                />
+                                            </label>
+                                            <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.5rem', display: 'block' }}>
+                                                Imagem real da interface do app. Será usada automaticamente em cenas de celular.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    onClick={() => setShowBrandIdentitySection(!showBrandIdentitySection)}
+                                    style={{
+                                        marginTop: '1.5rem', marginBottom: '1rem', display: 'flex',
+                                        alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
+                                        padding: '0.75rem', borderRadius: '0.5rem',
+                                        background: showBrandIdentitySection ? 'rgba(124,58,237,0.12)' : 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(124,58,237,0.25)'
+                                    }}
+                                >
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.2rem' }}>🧠 Identidade de marca (IA)</h3>
+                                        <small style={{ color: '#a1a1aa' }}>Voz, narrativa, direção visual e regras usadas nas gerações.</small>
+                                    </div>
+                                    <span style={{ fontSize: '1.4rem', transform: showBrandIdentitySection ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                                </div>
+
+                                {showBrandIdentitySection && (
+                                    <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid #27272a', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem' }}>
+                                        <h4 style={{ margin: '0 0 1rem', color: '#d8b4fe' }}>Essência e voz</h4>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                                            <div className="input-group">
+                                                <label className="input-label">Personalidade</label>
+                                                <textarea className="input" rows={3} value={formData.brandKit?.personality || ''}
+                                                    onChange={(e) => updateBrandKitField('personality', e.target.value)}
+                                                    placeholder="Ex.: confiante, humana e pragmática" />
+                                            </div>
+                                            <div className="input-group">
+                                                <label className="input-label">Arquétipo</label>
+                                                <textarea className="input" rows={3} value={formData.brandKit?.archetype || ''}
+                                                    onChange={(e) => updateBrandKitField('archetype', e.target.value)}
+                                                    placeholder="Ex.: Mentora com energia de Exploradora" />
+                                            </div>
+                                        </div>
+                                        <div className="input-group">
+                                            <label className="input-label">Mensagem central</label>
+                                            <textarea className="input" rows={3} value={formData.brandKit?.coreMessage || ''}
+                                                onChange={(e) => updateBrandKitField('coreMessage', e.target.value)}
+                                                placeholder="A ideia que toda comunicação da marca deve reforçar." />
+                                        </div>
+                                        <div className="input-group">
+                                            <label className="input-label">Voz da marca</label>
+                                            <textarea className="input" rows={4} value={formData.brandKit?.voice || ''}
+                                                onChange={(e) => updateBrandKitField('voice', e.target.value)}
+                                                placeholder="Descreva ritmo, vocabulário, nível de formalidade e atitude." />
+                                        </div>
+                                        <LineListField label="Regras de tom" value={formData.brandKit?.toneRules}
+                                            onChange={(value) => updateBrandKitField('toneRules', value)}
+                                            placeholder="Uma regra por linha\nUse frases curtas\nPrefira exemplos concretos" />
+                                        <LineListField label="Arquétipos de copy" value={formData.brandKit?.copyArchetypes}
+                                            onChange={(value) => updateBrandKitField('copyArchetypes', value)}
+                                            placeholder="Um formato por linha, com exemplo quando possível" />
+                                        <LineListField label="Exemplos de headline" value={formData.brandKit?.headlineExamples}
+                                            onChange={(value) => updateBrandKitField('headlineExamples', value)}
+                                            placeholder="Uma headline aprovada por linha" />
+
+                                        <h4 style={{ margin: '1.5rem 0 1rem', color: '#d8b4fe' }}>Estrutura narrativa</h4>
+                                        <div className="input-group">
+                                            <label className="input-label">Descrição do arco</label>
+                                            <textarea className="input" rows={3} value={formData.brandKit?.narrativeStructure?.description || ''}
+                                                onChange={(e) => updateNarrativeStructure({ description: e.target.value })}
+                                                placeholder="Ex.: tensão → insight → método → prova → CTA" />
+                                        </div>
+                                        {(formData.brandKit?.narrativeStructure?.slideRoles || []).map((slideRole, index) => (
+                                            <div key={`slide-role-${index}`} style={{ display: 'grid', gridTemplateColumns: '130px minmax(140px, 0.8fr) minmax(220px, 1.4fr) auto', gap: '0.5rem', marginBottom: '0.6rem', alignItems: 'start' }}>
+                                                <select className="input" value={slideRole.position || 'middle'} onChange={(e) => {
+                                                    const roles = [...(formData.brandKit?.narrativeStructure?.slideRoles || [])];
+                                                    roles[index] = { ...roles[index], position: e.target.value };
+                                                    updateNarrativeStructure({ slideRoles: roles });
+                                                }}>
+                                                    <option value="1">Slide 1</option>
+                                                    <option value="2">Slide 2</option>
+                                                    <option value="middle">Slides do meio</option>
+                                                    <option value="last-1">Penúltimo</option>
+                                                    <option value="last">Último</option>
+                                                </select>
+                                                <input className="input" value={slideRole.role || ''} placeholder="Papel" onChange={(e) => {
+                                                    const roles = [...(formData.brandKit?.narrativeStructure?.slideRoles || [])];
+                                                    roles[index] = { ...roles[index], role: e.target.value };
+                                                    updateNarrativeStructure({ slideRoles: roles });
+                                                }} />
+                                                <input className="input" value={slideRole.rules || ''} placeholder="Regras para este papel" onChange={(e) => {
+                                                    const roles = [...(formData.brandKit?.narrativeStructure?.slideRoles || [])];
+                                                    roles[index] = { ...roles[index], rules: e.target.value };
+                                                    updateNarrativeStructure({ slideRoles: roles });
+                                                }} />
+                                                <button type="button" onClick={() => {
+                                                    const roles = (formData.brandKit?.narrativeStructure?.slideRoles || []).filter((_, roleIndex) => roleIndex !== index);
+                                                    updateNarrativeStructure({ slideRoles: roles });
+                                                }} style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '0.375rem', padding: '0.55rem', cursor: 'pointer' }}>🗑️</button>
+                                            </div>
+                                        ))}
+                                        <button type="button" onClick={() => updateNarrativeStructure({
+                                            slideRoles: [...(formData.brandKit?.narrativeStructure?.slideRoles || []), { position: 'middle', role: '', rules: '' }]
+                                        })} style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.4)', color: '#d8b4fe', borderRadius: '0.375rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+                                            ➕ Adicionar papel de slide
+                                        </button>
+
+                                        <h4 style={{ margin: '1.5rem 0 1rem', color: '#d8b4fe' }}>Direção visual</h4>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                                            {[
+                                                ['photographyStyle', 'Estilo fotográfico', 'Luz, enquadramento, cenário e acabamento.'],
+                                                ['colorUsage', 'Uso de cores', 'Proporção, contraste e função das cores.'],
+                                                ['typographyFeel', 'Sensação tipográfica', 'Peso, ritmo e personalidade da tipografia.']
+                                            ].map(([field, label, placeholder]) => (
+                                                <div className="input-group" key={field}>
+                                                    <label className="input-label">{label}</label>
+                                                    <textarea className="input" rows={4} value={formData.brandKit?.visualIdentity?.[field] || ''}
+                                                        onChange={(e) => updateVisualIdentity({ [field]: e.target.value })} placeholder={placeholder} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <LineListField label="Diretrizes para prompts de imagem" value={formData.brandKit?.visualIdentity?.imagePromptGuidelines}
+                                            onChange={(value) => updateVisualIdentity({ imagePromptGuidelines: value })}
+                                            placeholder="Uma diretriz por linha" />
+                                        <LineListField label="Visuais proibidos" value={formData.brandKit?.forbiddenVisuals}
+                                            onChange={(value) => updateBrandKitField('forbiddenVisuals', value)}
+                                            placeholder="Um elemento visual proibido por linha" />
+
+                                        <h4 style={{ margin: '1.5rem 0 1rem', color: '#d8b4fe' }}>CTA, legenda e restrições</h4>
+                                        <LineListField label="Regras de CTA" value={formData.brandKit?.ctaRules}
+                                            onChange={(value) => updateBrandKitField('ctaRules', value)} placeholder="Uma regra por linha" />
+                                        <LineListField label="Regras de legenda" value={formData.brandKit?.captionRules}
+                                            onChange={(value) => updateBrandKitField('captionRules', value)} placeholder="Uma regra por linha" />
+                                        <LineListField label="Palavras e expressões proibidas" value={formData.brandKit?.forbiddenWords}
+                                            onChange={(value) => updateBrandKitField('forbiddenWords', value)} placeholder="Uma expressão por linha" />
+                                        <div className="input-group">
+                                            <label className="input-label">Estratégia de hashtags</label>
+                                            <textarea className="input" rows={3} value={formData.brandKit?.hashtagStrategy || ''}
+                                                onChange={(e) => updateBrandKitField('hashtagStrategy', e.target.value)}
+                                                placeholder="Quantidade, equilíbrio entre nicho/marca e termos a evitar." />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="input-group">
                                     <div className="flex-between">
                                         <label className="input-label">Estilo Visual (Prompt Base para Imagens)</label>
                                         <button
@@ -652,7 +1177,7 @@ export default function BusinessProfilesPage() {
                                             border: '1px solid #8b5cf6'
                                         }}>
                                             <p style={{ fontSize: '0.8rem', color: '#ddd', marginBottom: '0.5rem' }}>
-                                                Cole um prompt de imagem que você gostou e a IA vai "copiar" o estilo dele para usar na sua conta.
+                                                Cole um prompt de imagem que você gostou e a IA vai &quot;copiar&quot; o estilo dele para usar na sua conta.
                                             </p>
                                             <textarea
                                                 className="input"
@@ -721,6 +1246,97 @@ export default function BusinessProfilesPage() {
                                     <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
                                         O que a IA NUNCA deve incluir nas imagens de fundo.
                                     </small>
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">🎙️ Voz de Narração ElevenLabs</label>
+                                    <select
+                                        className="input"
+                                        value={formData.aiPreferences?.elevenLabsVoiceId || ''}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            aiPreferences: {
+                                                ...formData.aiPreferences,
+                                                elevenLabsVoiceId: e.target.value
+                                            }
+                                        })}
+                                    >
+                                        <option value="">Voz Padrão do Sistema</option>
+                                        <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Feminina - Natural/UGC, Wellness)</option>
+                                        <option value="TxGEqn7nUaPPbxWZZna9">Josh (Masculino - Jovem/UGC, Conversacional)</option>
+                                        <option value="EXAVITQu4vr4xnSDxMaL">Bella (Feminina - Animada/UGC, Promocional)</option>
+                                        <option value="ErXwobaYiN019thtWkih">Antoni (Masculino - Claro, Educação/Tech)</option>
+                                        <option value="AZnzlk1XvdvUeBnXmlld">Dom (Masculino - Narrador Profundo)</option>
+                                        <option value="VR6A4YtNus435nKCKunm">Arnold (Masculino - Enérgico, Fitness/Ação)</option>
+                                    </select>
+                                    <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                        Esta voz será usada por padrão na narração dos Reels deste perfil.
+                                    </small>
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Logo do Perfil (para carrosséis premium) 🪪</label>
+                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <input
+                                            type="text"
+                                            className="input"
+                                            value={formData.branding?.logoUrl || ''}
+                                            onChange={(e) => setFormData({
+                                                ...formData,
+                                                branding: { ...formData.branding, logoUrl: e.target.value }
+                                            })}
+                                            placeholder="Cole aqui a URL do logo (PNG/JPG) ou use o upload ao lado"
+                                            style={{ flex: 1, minWidth: '260px' }}
+                                        />
+
+                                        <label
+                                            className="btn btn-secondary"
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                cursor: uploadingLogo ? 'default' : 'pointer',
+                                                opacity: uploadingLogo ? 0.7 : 1
+                                            }}
+                                        >
+                                            {uploadingLogo ? '⏳ Enviando...' : '⬆️ Upload'}
+                                            <input
+                                                type="file"
+                                                accept="image/png,image/jpeg,image/jpg"
+                                                disabled={uploadingLogo}
+                                                onChange={(e) => handleLogoFileSelected(e.target.files?.[0])}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </label>
+
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={() => setFormData({
+                                                ...formData,
+                                                branding: { ...formData.branding, logoUrl: '' }
+                                            })}
+                                            disabled={!formData.branding?.logoUrl}
+                                            style={{ opacity: !formData.branding?.logoUrl ? 0.5 : 1 }}
+                                        >
+                                            🗑️ Remover
+                                        </button>
+                                    </div>
+
+                                    {formData.branding?.logoUrl ? (
+                                        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <div style={{ width: '44px', height: '44px', borderRadius: '999px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', background: '#111827' }}>
+                                                <img src={formData.branding.logoUrl} alt="Logo preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            </div>
+                                            <small style={{ fontSize: '0.75rem', color: '#71717a' }}>
+                                                Esse logo será usado no círculo do Carrossel Premium quando você aplicar/assar o overlay.
+                                            </small>
+                                        </div>
+                                    ) : (
+                                        <small style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem', display: 'block' }}>
+                                            Se não definir o logo, o sistema usa as iniciais do nome do perfil.
+                                        </small>
+                                    )}
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
@@ -835,14 +1451,27 @@ export default function BusinessProfilesPage() {
                                                 />
                                             </div>
 
-                                            <button
-                                                type="button"
-                                                onClick={handleAddFavoritePrompt}
-                                                className="btn btn-secondary"
-                                                style={{ width: '100%' }}
-                                            >
-                                                ➕ Adicionar à Biblioteca
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAddFavoritePrompt}
+                                                    className="btn btn-secondary"
+                                                    style={{ flex: 1 }}
+                                                >
+                                                    {editingPromptId ? '💾 Atualizar Modelo' : '➕ Adicionar à Biblioteca'}
+                                                </button>
+                                                {editingPromptId && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleCancelEditPrompt}
+                                                        className="btn btn-danger"
+                                                        style={{ padding: '0.5rem' }}
+                                                        title="Cancelar Edição"
+                                                    >
+                                                        Cancelar
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {formData.aiPreferences.favoritePrompts && formData.aiPreferences.favoritePrompts.length > 0 && (
@@ -879,20 +1508,307 @@ export default function BusinessProfilesPage() {
                                                                     {prompt.text}
                                                                 </p>
                                                             </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDeleteFavoritePrompt(prompt.id)}
-                                                                className="btn btn-danger"
-                                                                style={{ padding: '0.5rem', fontSize: '0.75rem' }}
-                                                            >
-                                                                🗑️
-                                                            </button>
+                                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleEditFavoritePrompt(prompt)}
+                                                                    className="btn"
+                                                                    style={{ padding: '0.5rem', fontSize: '0.75rem', background: '#3f3f46', border: 'none', color: '#fff' }}
+                                                                    title="Editar"
+                                                                >
+                                                                    ✏️
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteFavoritePrompt(prompt.id)}
+                                                                    className="btn btn-danger"
+                                                                    style={{ padding: '0.5rem', fontSize: '0.75rem' }}
+                                                                    title="Excluir"
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
                                         )}
                                     </>
+                                )}
+
+                                {/* Pilares Editoriais */}
+                                <div
+                                    onClick={() => setShowPillarsSection(!showPillarsSection)}
+                                    style={{ marginTop: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.5rem', background: showPillarsSection ? 'rgba(255,255,255,0.05)' : 'transparent', transition: 'background 0.2s' }}
+                                >
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem' }}>🎯 Pilares Editoriais (Autopilot)</h3>
+                                    <span style={{ fontSize: '1.5rem', transform: showPillarsSection ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                                </div>
+
+                                {showPillarsSection && (
+                                    <div style={{ marginBottom: '1.5rem' }}>
+                                        <p style={{ fontSize: '0.8rem', color: '#71717a', marginBottom: '1rem' }}>
+                                            Defina os pilares de conteúdo com peso (%) para geração automática. A soma dos pesos deve ser 100.
+                                        </p>
+
+                                        {(formData.editorialPillars || []).map((pillar, index) => (
+                                            <div key={pillar.id || index} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #27272a', borderRadius: '0.5rem', padding: '1rem', marginBottom: '0.75rem' }}>
+                                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                                                    <input
+                                                        className="input"
+                                                        placeholder="Nome do pilar"
+                                                        value={pillar.name || ''}
+                                                        onChange={(e) => {
+                                                            const updated = [...formData.editorialPillars];
+                                                            updated[index] = { ...updated[index], name: e.target.value };
+                                                            setFormData({ ...formData, editorialPillars: updated });
+                                                        }}
+                                                        style={{ flex: 3 }}
+                                                    />
+                                                    <input
+                                                        className="input"
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        placeholder="%"
+                                                        value={pillar.weight || 0}
+                                                        onChange={(e) => {
+                                                            const updated = [...formData.editorialPillars];
+                                                            updated[index] = { ...updated[index], weight: Number(e.target.value) };
+                                                            setFormData({ ...formData, editorialPillars: updated });
+                                                        }}
+                                                        style={{ flex: 1, textAlign: 'center' }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const updated = formData.editorialPillars.filter((_, i) => i !== index);
+                                                            setFormData({ ...formData, editorialPillars: updated });
+                                                        }}
+                                                        style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '0.375rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.875rem', flexShrink: 0 }}
+                                                    >🗑️</button>
+                                                </div>
+                                                <textarea
+                                                    className="input"
+                                                    placeholder="Descrição do pilar (ex: Anti-restrição e psicologia alimentar)"
+                                                    value={pillar.description || ''}
+                                                    onChange={(e) => {
+                                                        const updated = [...formData.editorialPillars];
+                                                        updated[index] = { ...updated[index], description: e.target.value };
+                                                        setFormData({ ...formData, editorialPillars: updated });
+                                                    }}
+                                                    rows={2}
+                                                    style={{ marginBottom: '0.5rem', fontSize: '0.8rem' }}
+                                                />
+                                                <input
+                                                    className="input"
+                                                    placeholder="Tom da caption (ex: Identificação emocional, CTA de salvar)"
+                                                    value={pillar.captionStyle || ''}
+                                                    onChange={(e) => {
+                                                        const updated = [...formData.editorialPillars];
+                                                        updated[index] = { ...updated[index], captionStyle: e.target.value };
+                                                        setFormData({ ...formData, editorialPillars: updated });
+                                                    }}
+                                                    style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}
+                                                />
+                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                    {[
+                                                        ['static', '🖼️ Estático'],
+                                                        ['carousel', '📋 Carrossel'],
+                                                        ['carousel-premium', '✨ Premium'],
+                                                        ['carousel-html', '🎨 HTML'],
+                                                        ['story', '📱 Story'],
+                                                        ['reel', '🎬 Reel'],
+                                                    ].map(([fmt, label]) => (
+                                                        <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: '#a1a1aa', cursor: 'pointer' }}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={(pillar.formats || []).includes(fmt)}
+                                                                onChange={(e) => {
+                                                                    const updated = [...formData.editorialPillars];
+                                                                    const currentFormats = updated[index].formats || [];
+                                                                    updated[index] = {
+                                                                        ...updated[index],
+                                                                        formats: e.target.checked
+                                                                            ? [...currentFormats, fmt]
+                                                                            : currentFormats.filter(f => f !== fmt)
+                                                                    };
+                                                                    setFormData({ ...formData, editorialPillars: updated });
+                                                                }}
+                                                            />
+                                                            {label}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newPillar = { id: `pilar-${Date.now()}`, name: '', description: '', captionStyle: '', weight: 25, formats: ['static', 'carousel'], enabled: true };
+                                                    setFormData({ ...formData, editorialPillars: [...(formData.editorialPillars || []), newPillar] });
+                                                }}
+                                                style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.4)', color: '#d8b4fe', borderRadius: '0.375rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.875rem' }}
+                                            >
+                                                ➕ Adicionar Pilar
+                                            </button>
+                                            {formData.editorialPillars?.length > 0 && (
+                                                <span style={{ fontSize: '0.75rem', color: (formData.editorialPillars.reduce((s, p) => s + (p.weight || 0), 0) === 100) ? '#22c55e' : '#f59e0b' }}>
+                                                    Total: {formData.editorialPillars.reduce((s, p) => s + (p.weight || 0), 0)}%
+                                                    {formData.editorialPillars.reduce((s, p) => s + (p.weight || 0), 0) !== 100 ? ' ⚠️ deve ser 100%' : ' ✓'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Configuração de Agendamento Automático */}
+                                <div
+                                    onClick={() => setShowScheduleSection(!showScheduleSection)}
+                                    style={{ marginTop: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.5rem', background: showScheduleSection ? 'rgba(255,255,255,0.05)' : 'transparent', transition: 'background 0.2s' }}
+                                >
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem' }}>⚙️ Agendamento Automático</h3>
+                                    <span style={{ fontSize: '1.5rem', transform: showScheduleSection ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+                                </div>
+
+                                {showScheduleSection && (
+                                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #27272a', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.5rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                            <div className="input-group" style={{ margin: 0 }}>
+                                                <label className="input-label" style={{ fontSize: '0.8rem' }}>Posts por semana</label>
+                                                <input className="input" type="number" min="1" max="14" value={formData.contentSchedule?.postsPerWeek || 5}
+                                                    onChange={(e) => setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, postsPerWeek: Number(e.target.value) } })} />
+                                            </div>
+                                            <div className="input-group" style={{ margin: 0 }}>
+                                                <label className="input-label" style={{ fontSize: '0.8rem' }}>Stories por semana</label>
+                                                <input className="input" type="number" min="0" max="21" value={formData.contentSchedule?.storiesPerWeek || 7}
+                                                    onChange={(e) => setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, storiesPerWeek: Number(e.target.value) } })} />
+                                            </div>
+                                        </div>
+
+                                        <div className="input-group" style={{ marginBottom: '0.75rem' }}>
+                                            <label className="input-label" style={{ fontSize: '0.8rem' }}>Dias preferidos de postagem</label>
+                                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                                                {[['monday','Seg'],['tuesday','Ter'],['wednesday','Qua'],['thursday','Qui'],['friday','Sex'],['saturday','Sáb'],['sunday','Dom']].map(([val, label]) => {
+                                                    const selected = (formData.contentSchedule?.preferredDays || []).includes(val);
+                                                    return (
+                                                        <button key={val} type="button"
+                                                            onClick={() => {
+                                                                const days = formData.contentSchedule?.preferredDays || [];
+                                                                const updated = selected ? days.filter(d => d !== val) : [...days, val];
+                                                                setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, preferredDays: updated } });
+                                                            }}
+                                                            style={{ padding: '0.3rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: selected ? 'rgba(124,58,237,0.3)' : 'rgba(255,255,255,0.05)', border: selected ? '1px solid #7c3aed' : '1px solid #3f3f46', color: selected ? '#d8b4fe' : '#71717a' }}
+                                                        >{label}</button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Horários dos Posts */}
+                                        <div style={{ marginBottom: '0.75rem' }}>
+                                            <label className="input-label" style={{ fontSize: '0.8rem', marginBottom: '0.4rem', display: 'block' }}>Horários de postagem</label>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
+                                                {(formData.contentSchedule?.preferredTimes || ['09:00','18:00']).map((t, i) => (
+                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(124,58,237,0.15)', border: '1px solid #7c3aed', borderRadius: '0.375rem', padding: '0.15rem 0.4rem' }}>
+                                                        <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#d8b4fe', fontSize: '0.8rem', outline: 'none', width: '5.5rem', cursor: 'pointer' }}
+                                                            onChange={(e) => {
+                                                                const times = [...(formData.contentSchedule?.preferredTimes || [])];
+                                                                times[i] = e.target.value;
+                                                                setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, preferredTimes: times } });
+                                                            }} />
+                                                        <button type="button" onClick={() => {
+                                                            const times = (formData.contentSchedule?.preferredTimes || []).filter((_, idx) => idx !== i);
+                                                            setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, preferredTimes: times } });
+                                                        }} style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
+                                                    </div>
+                                                ))}
+                                                {(formData.contentSchedule?.preferredTimes || []).length < 4 && (
+                                                    <button type="button" onClick={() => {
+                                                        const times = [...(formData.contentSchedule?.preferredTimes || []), '12:00'];
+                                                        setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, preferredTimes: times } });
+                                                    }} style={{ padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid #3f3f46', color: '#a1a1aa' }}>+ Horário</button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Horários dos Stories */}
+                                        <div style={{ marginBottom: '0.75rem' }}>
+                                            <label className="input-label" style={{ fontSize: '0.8rem', marginBottom: '0.4rem', display: 'block' }}>Horários dos stories (por dia)</label>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
+                                                {(formData.contentSchedule?.storyPreferredTimes || ['08:00','20:00']).map((t, i) => (
+                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(16,185,129,0.15)', border: '1px solid #10b981', borderRadius: '0.375rem', padding: '0.15rem 0.4rem' }}>
+                                                        <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#6ee7b7', fontSize: '0.8rem', outline: 'none', width: '5.5rem', cursor: 'pointer' }}
+                                                            onChange={(e) => {
+                                                                const times = [...(formData.contentSchedule?.storyPreferredTimes || [])];
+                                                                times[i] = e.target.value;
+                                                                setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, storyPreferredTimes: times } });
+                                                            }} />
+                                                        <button type="button" onClick={() => {
+                                                            const times = (formData.contentSchedule?.storyPreferredTimes || []).filter((_, idx) => idx !== i);
+                                                            setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, storyPreferredTimes: times } });
+                                                        }} style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
+                                                    </div>
+                                                ))}
+                                                {(formData.contentSchedule?.storyPreferredTimes || []).length < 4 && (
+                                                    <button type="button" onClick={() => {
+                                                        const times = [...(formData.contentSchedule?.storyPreferredTimes || []), '12:00'];
+                                                        setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, storyPreferredTimes: times } });
+                                                    }} style={{ padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid #3f3f46', color: '#a1a1aa' }}>+ Horário</button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Dias dos Stories */}
+                                        <div style={{ marginBottom: '0.75rem' }}>
+                                            <label className="input-label" style={{ fontSize: '0.8rem', marginBottom: '0.4rem', display: 'block' }}>Dias dos stories</label>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                                {[['monday','Seg'],['tuesday','Ter'],['wednesday','Qua'],['thursday','Qui'],['friday','Sex'],['saturday','Sáb'],['sunday','Dom']].map(([val, label]) => {
+                                                    const allDays = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+                                                    const storyDays = formData.contentSchedule?.storyPreferredDays || allDays;
+                                                    const selected = storyDays.includes(val);
+                                                    return (
+                                                        <button key={val} type="button"
+                                                            onClick={() => {
+                                                                const updated = selected ? storyDays.filter(d => d !== val) : [...storyDays, val];
+                                                                setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, storyPreferredDays: updated } });
+                                                            }}
+                                                            style={{ padding: '0.3rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: selected ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)', border: selected ? '1px solid #10b981' : '1px solid #3f3f46', color: selected ? '#6ee7b7' : '#71717a' }}
+                                                        >{label}</button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                            <div className="input-group" style={{ margin: 0 }}>
+                                                <label className="input-label" style={{ fontSize: '0.8rem' }}>Modo de autonomia</label>
+                                                <select className="input" value={formData.contentSchedule?.autonomyMode || 'review'}
+                                                    onChange={(e) => setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, autonomyMode: e.target.value } })}>
+                                                    <option value="manual">Manual (sem autopilot)</option>
+                                                    <option value="review">Gerar + Revisar antes de postar</option>
+                                                    <option value="auto">Automático (posta direto)</option>
+                                                </select>
+                                            </div>
+                                            <div className="input-group" style={{ margin: 0 }}>
+                                                <label className="input-label" style={{ fontSize: '0.8rem' }}>Gerar conteúdo toda</label>
+                                                <select className="input" value={formData.contentSchedule?.autoGenerateDay || 'sunday'}
+                                                    onChange={(e) => setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, autoGenerateDay: e.target.value } })}>
+                                                    <option value="sunday">Domingo</option>
+                                                    <option value="monday">Segunda</option>
+                                                    <option value="saturday">Sábado</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ fontSize: '0.75rem', color: '#71717a', padding: '0.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.375rem' }}>
+                                            {formData.contentSchedule?.autonomyMode === 'auto' && '🤖 Modo Auto: conteúdo será gerado e postado sem revisão.'}
+                                            {formData.contentSchedule?.autonomyMode === 'review' && '👁️ Modo Revisão: rascunhos gerados aguardam sua aprovação em /dashboard/review.'}
+                                            {formData.contentSchedule?.autonomyMode === 'manual' && '✋ Modo Manual: geração automática desativada.'}
+                                        </div>
+                                    </div>
                                 )}
 
                                 <div className="flex gap-md mt-md">

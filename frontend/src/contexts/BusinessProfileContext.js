@@ -28,12 +28,18 @@ export function BusinessProfileProvider({ children }) {
     const loadProfiles = async () => {
         try {
             const res = await api.get('/api/business-profiles');
-            setProfiles(res.data.profiles || []);
+            const newProfiles = res.data.profiles || [];
+            setProfiles(newProfiles);
 
-            // Restore previously selected profile from localStorage
+            // Restore previously selected profile from localStorage or update existing selection
             const savedProfileId = localStorage.getItem('selectedBusinessProfile');
-            if (savedProfileId && res.data.profiles) {
-                const savedProfile = res.data.profiles.find(p => p.id === savedProfileId);
+            if (selectedProfile) {
+                const freshProfile = newProfiles.find(p => p.id === selectedProfile.id);
+                if (freshProfile) {
+                    setSelectedProfile(freshProfile);
+                }
+            } else if (savedProfileId && newProfiles.length > 0) {
+                const savedProfile = newProfiles.find(p => p.id === savedProfileId);
                 if (savedProfile) {
                     setSelectedProfile(savedProfile);
                 }
@@ -61,14 +67,18 @@ export function BusinessProfileProvider({ children }) {
     const updateProfile = async (profileId, updates) => {
         try {
             await api.put(`/api/business-profiles/${profileId}`, updates);
-            await loadProfiles();
-            // Update selected profile if it was updated
-            if (selectedProfile?.id === profileId) {
-                const updated = profiles.find(p => p.id === profileId);
-                if (updated) {
-                    setSelectedProfile({ ...updated, ...updates });
-                }
+            
+            // Fetch updated profiles list
+            const res = await api.get('/api/business-profiles');
+            const newProfiles = res.data.profiles || [];
+            setProfiles(newProfiles);
+
+            // Update selected profile with fresh data from database
+            const freshProfile = newProfiles.find(p => p.id === profileId);
+            if (freshProfile && selectedProfile?.id === profileId) {
+                setSelectedProfile(freshProfile);
             }
+            
             toast.success('Perfil atualizado!');
         } catch (error) {
             toast.error(error.response?.data?.error || 'Erro ao atualizar perfil');

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { auth } from './firebase';
 
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3011',
     timeout: 30000, // 30 seconds default timeout
 });
 
@@ -88,9 +88,9 @@ function handleError(error) {
             errorMessage = 'Acesso negado.';
         } else if (error.response.status === 404) {
             errorMessage = 'Recurso não encontrado.';
-        } else if (error.response.status === 429) {
+        } else if (error.response.status === 429 && !error.response.data?.error && !error.response.data?.message) {
             errorMessage = 'Muitas requisições. Tente novamente em alguns minutos.';
-        } else if (error.response.status >= 500) {
+        } else if (error.response.status >= 500 && !error.response.data?.error && !error.response.data?.message) {
             errorMessage = 'Erro no servidor. Tente novamente.';
         }
     } else if (error.request) {
@@ -115,6 +115,8 @@ function handleError(error) {
     enhancedError.code = errorCode;
     enhancedError.originalError = error;
     enhancedError.config = error.config;
+    enhancedError.response = error.response;
+    enhancedError.status = error.response?.status;
 
     throw enhancedError;
 }

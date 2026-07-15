@@ -1,20 +1,14 @@
-
-import { getBusinessProfiles } from './src/services/businessProfileService.js';
 import { db } from './src/config/firebase.js';
 
-const userId = 'A9NJto9KIOSgYJg8uRj8u5xAvAg1';
-
 async function listProfiles() {
-    console.log('Fetching profiles for user:', userId);
-    try {
-        const profiles = await getBusinessProfiles(userId);
-        console.log(`Found ${profiles.length} profiles:`);
-        profiles.forEach(p => {
-            console.log(`- ID: ${p.id} | Name: "${p.name}" | Instagram: ${p.instagram?.username || 'N/A'}`);
-        });
-    } catch (error) {
-        console.error('Error:', error);
-    }
+  try {
+    const profilesSnap = await db.collection('business_profiles').get();
+    console.log(`Found ${profilesSnap.size} profiles.`);
+    profilesSnap.docs.forEach(doc => {
+      console.log(doc.id, doc.data().name, doc.data().brandKey);
+    });
+  } catch (error) {
+    console.error('Error fetching profiles:', error);
+  }
 }
-
-listProfiles();
+listProfiles().then(() => process.exit(0));

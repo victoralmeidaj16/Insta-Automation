@@ -11,8 +11,6 @@ export default function Breadcrumbs() {
         '/dashboard': 'Dashboard',
         '/dashboard/generate': 'AI Generator',
         '/dashboard/history': 'Histórico',
-        '/dashboard/create-post': 'Criar Post',
-        '/dashboard/posts': 'Posts',
         '/dashboard/accounts': 'Contas',
         '/dashboard/business-profiles': 'Perfis de Negócio'
     };
@@ -20,7 +18,6 @@ export default function Breadcrumbs() {
     // Don't show breadcrumbs on dashboard home
     if (pathname === '/dashboard') return null;
 
-    const pathSegments = pathname.split('/').filter(Boolean);
     const breadcrumbs = [];
 
     // Always start with Dashboard

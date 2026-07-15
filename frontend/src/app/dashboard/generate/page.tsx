@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/PageHeader';
 import ImageLightbox from '@/components/ImageLightbox';
@@ -18,6 +18,7 @@ import {
     PremiumEditorModal,
     renderPremiumPostToDataUrl
 } from './components/PremiumCarouselEditor';
+import ElevepicTemplatePicker from './components/ElevepicTemplatePicker';
 
 const DownloadIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -82,9 +83,74 @@ const HistoryIcon = () => (
     </svg>
 );
 
+const HTML_TEMPLATE_SLIDE_RULES: Record<string, { min: number; max: number; defaultCount: number; label: string }> = {
+    bold: { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
+    editorial: { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
+    'editorial-sci': { min: 3, max: 7, defaultCount: 5, label: '3–7 slides' },
+    photo: { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
+    moodboard: { min: 6, max: 6, defaultCount: 6, label: '6 slides fixos' },
+    tudy:      { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
+    instagram:   { min: 5, max: 5, defaultCount: 5, label: '5 slides fixos' },
+    comparison:  { min: 6, max: 6, defaultCount: 6, label: '6 slides fixos' },
+    template1: { min: 4, max: 8, defaultCount: 5, label: '4–8 slides' },
+    free: { min: 4, max: 8, defaultCount: 5, label: '4–8 slides' },
+};
+
+const HTML_CAROUSEL_IDEA_COUNT = 3;
+
+type ContentPlanSlide = {
+    background: string;
+    headline: string;
+    subheadline: string;
+    highlights: string[];
+};
+
+const sanitizePlanTagValue = (value: unknown) => String(value || '')
+    .replace(/[\]|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const serializeContentPlanSlide = (slide: ContentPlanSlide, white = false) => {
+    const tags = [white ? '[WHITE_OVERLAY]' : '[PREMIUM_OVERLAY]'];
+    const background = sanitizePlanTagValue(slide.background);
+    const headline = sanitizePlanTagValue(slide.headline);
+    const subheadline = sanitizePlanTagValue(slide.subheadline);
+    const highlights = Array.isArray(slide.highlights)
+        ? slide.highlights.map(sanitizePlanTagValue).filter(Boolean)
+        : [];
+
+    if (background) tags.push(`[BACKGROUND: ${background}]`);
+    if (headline) tags.push(`[HEADLINE: ${headline}]`);
+    if (subheadline) tags.push(`[SUBHEADLINE: ${subheadline}]`);
+    if (highlights.length) tags.push(`[HIGHLIGHTS: ${highlights.join(', ')}]`);
+    return tags.join(' ');
+};
+
+function getComparisonAutoBrief(profile: any): string {
+  if (!profile) return 'Comparação: antes e depois do produto/serviço';
+  const name: string = profile.name || profile.brandName || '';
+  const brandKey: string = (profile.brandKey || name).toLowerCase();
+  if (brandKey.includes('elevepic')) {
+    return 'Comparação: foto pessoal sem produção vs. foto profissional com ElevePic — mostrar a diferença de impacto e credibilidade';
+  }
+  if (brandKey.includes('fitswap')) {
+    return 'Comparação: refeição comum do dia a dia vs. versão saudável e equilibrada com FitSwap — mesma comida, mais proteína e menos calorias';
+  }
+  const benefit: string = profile.brandKit?.coreMessage || profile.description || '';
+  return `Comparação: situação sem ${name} vs. resultado com ${name}${benefit ? ` — ${benefit}` : ''}`;
+}
+
+const clampCount = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
 export default function GeneratePage() {
     const router = useRouter();
-    const { selectedProfile } = useBusinessProfile();
+    const { selectedProfile, profiles, setSelectedProfile, updateProfile } = useBusinessProfile();
+
+    // Model Template Manager State
+    const [showModelManager, setShowModelManager] = useState(false);
+    const [templateName, setTemplateName] = useState('');
+    const [templateText, setTemplateText] = useState('');
+    const [editingTemplateId, setEditingTemplateId] = useState(null);
 
     // Simple mode states
     const [prompt, setPrompt] = useState('');
@@ -103,7 +169,6 @@ export default function GeneratePage() {
     // Common states
     const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:5' | '16:9' | '9:16'>('4:5');
     const [imageCount, setImageCount] = useState<number>(1);
-    const [selectedDate] = useState<string>('');
     const [view, setView] = useState<'generate' | 'calendar'>('generate');
 
     // Lightbox states
@@ -121,12 +186,83 @@ export default function GeneratePage() {
     const [generationMode, setGenerationMode] = useState<'standard' | 'premium' | 'html'>('premium');
     const [premiumEditorIndex, setPremiumEditorIndex] = useState<number | null>(null);
     const [generatedHtml, setGeneratedHtml] = useState<string>('');
+    const [htmlCaption, setHtmlCaption] = useState<string>('');
+    const [isGeneratingHtmlCaption, setIsGeneratingHtmlCaption] = useState<boolean>(false);
     const [isGeneratingHtml, setIsGeneratingHtml] = useState<boolean>(false);
-    const [htmlTemplate, setHtmlTemplate] = useState<'template1' | 'free' | 'fitswap_minimal'>('template1');
+    const [htmlTemplate, setHtmlTemplate] = useState<string>('bold');
     const [showHtmlFixer, setShowHtmlFixer] = useState(false);
     const [htmlFixInstruction, setHtmlFixInstruction] = useState('');
     const [isFixingHtml, setIsFixingHtml] = useState(false);
+    const [savedHtmlTemplates, setSavedHtmlTemplates] = useState<{ id: string; name: string; createdAt: string }[]>([]);
+    const [selectedCustomTemplateId, setSelectedCustomTemplateId] = useState<string | null>(null);
+    const [isSavingHtmlTemplate, setIsSavingHtmlTemplate] = useState(false);
+    const htmlCaptionRequestIdRef = useRef(0);
     const selectedModel: 'gemini' | 'seedream' = 'gemini';
+    const currentHtmlTemplateRule = HTML_TEMPLATE_SLIDE_RULES[htmlTemplate] || { min: 4, max: 7, defaultCount: 5, label: '4–7 slides' };
+    const currentHtmlTemplateMin = currentHtmlTemplateRule.min;
+    const currentHtmlTemplateMax = currentHtmlTemplateRule.max;
+    const currentHtmlTemplateDefault = currentHtmlTemplateRule.defaultCount;
+
+    const handleSaveOrUpdateTemplate = async () => {
+        if (!templateName.trim() || !templateText.trim()) {
+            toast.error('Informe um Título e o Texto do Modelo!');
+            return;
+        }
+
+        try {
+            const currentPrompts = selectedProfile?.aiPreferences?.favoritePrompts || [];
+            let newPrompts = [];
+            
+            if (editingTemplateId) {
+                newPrompts = currentPrompts.map(p => 
+                    p.id === editingTemplateId 
+                        ? { ...p, name: templateName.trim(), text: templateText.trim() } 
+                        : p
+                );
+                toast.success('Modelo atualizado!');
+            } else {
+                const newPrompt = {
+                    id: Date.now().toString(),
+                    name: templateName.trim(),
+                    text: templateText.trim(),
+                    createdAt: new Date().toISOString()
+                };
+                newPrompts = [...currentPrompts, newPrompt];
+                toast.success('Modelo salvo com sucesso!');
+            }
+
+            await updateProfile(selectedProfile.id, {
+                aiPreferences: {
+                    ...selectedProfile.aiPreferences,
+                    favoritePrompts: newPrompts
+                }
+            });
+
+            setEditingTemplateId(null);
+            setTemplateName('');
+            setTemplateText('');
+        } catch (error) {
+            console.error('Error saving template:', error);
+            toast.error('Erro ao salvar modelo.');
+        }
+    };
+
+    const handleDeleteTemplate = async (id: string) => {
+        if (!confirm('Tem certeza que deseja excluir esse modelo?')) return;
+        try {
+            const currentPrompts = selectedProfile?.aiPreferences?.favoritePrompts || [];
+            const newPrompts = currentPrompts.filter(p => p.id !== id);
+            await updateProfile(selectedProfile.id, {
+                aiPreferences: {
+                    ...selectedProfile.aiPreferences,
+                    favoritePrompts: newPrompts
+                }
+            });
+            toast.success('Modelo excluído!');
+        } catch (e) {
+            toast.error('Erro ao excluir modelo.');
+        }
+    };
 
     // Reference Image Upload Handler
     const onDrop = (acceptedFiles: File[]) => {
@@ -218,6 +354,43 @@ export default function GeneratePage() {
         }
     }, [selectedProfile]);
 
+    useEffect(() => {
+        if (!selectedProfile?.id) { setSavedHtmlTemplates([]); return; }
+        api.get(`/api/ai/html-templates?businessProfileId=${selectedProfile.id}`)
+            .then(res => { if (res.data.success) setSavedHtmlTemplates(res.data.templates); })
+            .catch(() => {});
+    }, [selectedProfile?.id]);
+
+    useEffect(() => {
+        if (generationMode !== 'html') return;
+        const nextCount = clampCount(imageCount || currentHtmlTemplateDefault, currentHtmlTemplateMin, currentHtmlTemplateMax);
+        if (nextCount !== imageCount) {
+            setImageCount(nextCount);
+        }
+    }, [generationMode, htmlTemplate, imageCount, currentHtmlTemplateDefault, currentHtmlTemplateMin, currentHtmlTemplateMax]);
+
+    useEffect(() => {
+        if (generationMode !== 'html' || htmlTemplate !== 'comparison') return;
+        const isEmptyOrAuto = !carouselDescription.trim() || carouselDescription.startsWith('Comparação:');
+        if (isEmptyOrAuto) {
+            setCarouselDescription(getComparisonAutoBrief(selectedProfile));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [htmlTemplate, selectedProfile, generationMode]);
+
+    useEffect(() => {
+        if (generationMode === 'html') return;
+        if (!carouselDescription) return;
+
+        // Auto-detect number of cards (lines starting with "Card X:")
+        const cardMatches = carouselDescription.match(/^Card\s+\d+:/gmi);
+        if (cardMatches && cardMatches.length > 0) {
+            const detectedCount = Math.min(10, cardMatches.length);
+            if (detectedCount !== imageCount) {
+                setImageCount(detectedCount);
+            }
+        }
+    }, [carouselDescription, generationMode]);
 
 
     const getApiErrorMessage = (error: unknown, fallback: string) => {
@@ -335,12 +508,18 @@ export default function GeneratePage() {
             return numberedBlocks;
         }
 
-        return normalized
-            .split('\n')
-            .map(line => line.trim())
-            .filter(Boolean)
-            .map(line => line.replace(/^[-*•]\s*/, '').trim())
-            .filter(Boolean);
+        // Only fallback to \n split if the lines look like a structured bullet point list
+        // where a significant portion of the lines start with -, *, • or **
+        const lines = normalized.split('\n').map(line => line.trim()).filter(Boolean);
+        const bulletLines = lines.filter(line => /^[-*•]|\*\*/.test(line));
+        
+        if (lines.length > 1 && bulletLines.length >= lines.length * 0.5) {
+            return lines
+                .map(line => line.replace(/^[-*•]\s*/, '').trim())
+                .filter(Boolean);
+        }
+
+        return [normalized]; 
     };
 
     const normalizeCardText = (value: string) => value
@@ -391,7 +570,7 @@ export default function GeneratePage() {
         return renderPremiumPostToDataUrl({
             layout,
             backgroundImage,
-            apiBaseUrl: api.defaults.baseURL || 'http://localhost:3001'
+            apiBaseUrl: api.defaults.baseURL || 'http://localhost:3011'
         });
     };
 
@@ -444,7 +623,7 @@ export default function GeneratePage() {
         }
     };
 
-    const handleUpdatePremiumLayout = async (index: number, field: keyof PremiumLayout, value: string | boolean) => {
+    const handleUpdatePremiumLayout = async (index: number, field: keyof PremiumLayout, value: string | boolean | number) => {
         const currentCard = carouselCards[index];
         if (!currentCard) return;
 
@@ -502,14 +681,40 @@ export default function GeneratePage() {
         setIsGeneratingPrompt(true);
         try {
             const profileContext = buildSelectedProfileContext();
+            if (generationMode === 'premium') {
+                const response = await api.post('/api/ai/generate-content-plan', {
+                    description: carouselDescription,
+                    count: imageCount,
+                    businessProfileId: selectedProfile?.id,
+                    context: profileContext,
+                    premium: true
+                }, { timeout: 120000 });
+
+                if (response.data.success && response.data.plan?.slides) {
+                    const plan = response.data.plan;
+                    const whiteOverlay = getBrandKey() === 'fitswap';
+                    const newCards: CarouselCard[] = plan.slides.map((slide: ContentPlanSlide) => ({
+                        concept: slide.subheadline || slide.headline,
+                        prompt: serializeContentPlanSlide(slide, whiteOverlay),
+                        backgroundPrompt: slide.background,
+                        isGeneratingImage: false
+                    }));
+                    const hashtags = Array.isArray(plan.hashtags) ? plan.hashtags.join(' ') : '';
+                    setCarouselCards(buildPremiumCards(newCards));
+                    setGeneratedCaption([plan.caption, hashtags].filter(Boolean).join('\n\n'));
+                    toast.success(`Plano completo com ${newCards.length} slides gerado!`);
+                }
+                return;
+            }
+
             const response = await api.post('/api/ai/generate-carousel-prompts', {
                 carouselDescription,
                 totalCards: imageCount,
                 guidelines: selectedProfile?.branding?.guidelines,
                 savedPrompts: selectedProfile?.aiPreferences?.favoritePrompts,
-                isEditorial: generationMode === 'premium',
-                isPremiumCarousel: generationMode === 'premium',
-                overlayMode: generationMode === 'premium' ? 'premium' : undefined,
+                isEditorial: false,
+                isPremiumCarousel: false,
+                overlayMode: undefined,
                 isScientific: false, // Unified into Editorial/Carousel mode
                 businessProfileId: selectedProfile?.id,
                 brandName: selectedProfile?.name || 'VIVER MAIS PSICOLOGIA STREAMING',
@@ -517,12 +722,12 @@ export default function GeneratePage() {
                     ...profileContext,
                     brandTone: selectedProfile?.branding?.tone,
                 },
-                referenceImage: getProfileReferenceImages({ premiumOnly: generationMode === 'premium' })
+                referenceImage: getProfileReferenceImages({ premiumOnly: false })
             }, { timeout: 120000 });
 
             if (response.data.success && response.data.prompts) {
                 const newCards = response.data.prompts.map((prompt: string) => ({
-                    prompt: generationMode === 'premium' ? normalizePremiumPrompt(prompt) : prompt,
+                    prompt,
                     isGeneratingImage: false
                 }));
                 setCarouselCards(buildPremiumCards(newCards));
@@ -542,7 +747,18 @@ export default function GeneratePage() {
             return;
         }
 
-        const ideasCount = generationMode === 'premium' ? 3 : imageCount;
+        const isTemplateMode = carouselDescription.includes('{') && carouselDescription.includes('}');
+        if (isTemplateMode) {
+            // Se o usuário clicou em sugerir ideias, mas já tem um modelo com { },
+            // redireciona para a geração real de templates para não estragar a estrutura
+            return handleGenerateBatchConcepts();
+        }
+
+        const ideasCount = generationMode === 'html'
+            ? HTML_CAROUSEL_IDEA_COUNT
+            : generationMode === 'premium'
+                ? 3
+                : imageCount;
         setIsGeneratingIdeas(true);
         try {
             const response = await api.post('/api/ai/generate-ideas', {
@@ -605,7 +821,8 @@ export default function GeneratePage() {
                             }
                         });
                         if (res.data.success) {
-                            updatedCards[index] = { ...updatedCards[index], prompt: res.data.prompt };
+                            // Clear premiumLayout so buildPremiumCards recomputes from the new [TITLE:]/[BACKGROUND:] tags
+                            updatedCards[index] = { ...updatedCards[index], prompt: res.data.prompt, premiumLayout: undefined };
                         }
                     } catch (err) {
                         console.error(`Falha no card ${index + 1}`, err);
@@ -631,10 +848,19 @@ export default function GeneratePage() {
             toast.error('Selecione um Perfil de Negócio para continuar.');
             return;
         }
-        const count = idea.slideCount || 5;
-        setImageCount(count);
+        const count = generationMode === 'html'
+            ? imageCount
+            : (idea.slideCount || 5);
+        if (generationMode !== 'html') {
+            setImageCount(count);
+        }
         setAspectRatio('4:5');
         setShowIdeasModal(false);
+
+        if (generationMode === 'html') {
+            setCarouselCards([]);
+            return;
+        }
 
         const structuredCards = parseStructuredCarouselCards(idea.description, { ideaTitle: idea.title });
         if (structuredCards.length > 0) {
@@ -643,6 +869,13 @@ export default function GeneratePage() {
                 prompt: '',
                 isGeneratingImage: false
             })));
+            return;
+        }
+
+        if (generationMode === 'premium') {
+            // Em modo Premium, exigimos a etapa de processamento por IA.
+            // Limpamos e impedimos a auto-atribuição direta de texto cru.
+            setCarouselCards([]);
             return;
         }
 
@@ -698,19 +931,7 @@ export default function GeneratePage() {
                         prompt: '',
                         isGeneratingImage: false
                     }));
-                    setCarouselCards(newCards);
-                    toast.success(`Brief de ${newCards.length} slides aplicado com sucesso!`, { id: 'carousel-script' });
-                    return;
-                }
-
-                const parsedBriefs = parsePremiumCardBriefs(carouselDescription);
-                if (parsedBriefs.length > 1) {
-                    const newCards = parsedBriefs.slice(0, imageCount).map((conceptStr: string) => ({
-                        concept: conceptStr,
-                        prompt: '',
-                        isGeneratingImage: false
-                    }));
-                    setCarouselCards(newCards);
+                    setCarouselCards(buildPremiumCards(newCards));
                     toast.success(`Brief de ${newCards.length} slides aplicado com sucesso!`, { id: 'carousel-script' });
                     return;
                 }
@@ -728,10 +949,40 @@ export default function GeneratePage() {
                         prompt: '',
                         isGeneratingImage: false
                     }));
-                    setCarouselCards(newCards);
+                    setCarouselCards(buildPremiumCards(newCards));
                     toast.success('Roteiro do carrossel gerado com sucesso!', { id: 'carousel-script' });
                 }
             } else {
+                const isTemplateMode = carouselDescription.includes('{') && carouselDescription.includes('}');
+                
+                if (isTemplateMode) {
+                    toast.loading(`Gerando ${imageCount} variações do template...`, { id: 'batch-template' });
+                    try {
+                        const response = await api.post('/api/ai/generate-template-variations', {
+                            templateText: carouselDescription,
+                            count: imageCount,
+                            context: buildSelectedProfileContext()
+                        });
+                        
+                        if (response.data.success && response.data.prompts) {
+                            const newCards = response.data.prompts.map((p: string) => ({
+                                concept: p,
+                                prompt: p,
+                                isGeneratingImage: false
+                            }));
+                            setCarouselCards(newCards);
+                            toast.success(`${newCards.length} variações geradas!`, { id: 'batch-template' });
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('Error generating template variations:', error);
+                        toast.error('Erro ao gerar variações do template.', { id: 'batch-template' });
+                        throw error;
+                    } finally {
+                        toast.dismiss('batch-template');
+                    }
+                }
+
                 const structuredCards = parseStructuredCarouselCards(carouselDescription);
                 if (structuredCards.length > 0) {
                     setCarouselCards(structuredCards.slice(0, imageCount).map(card => ({
@@ -797,14 +1048,20 @@ export default function GeneratePage() {
                 : (card.prompt || '');
             const premiumStructuredPrompt = generationMode === 'premium' && isPremiumPrompt(normalizedPrompt);
             const premiumAnyStructuredPrompt = generationMode === 'premium' && /\[(PREMIUM_OVERLAY|WHITE_OVERLAY)\]/i.test(normalizedPrompt);
-            let enhancedPrompt = premiumStructuredPrompt
-                ? extractPremiumBackgroundPrompt(normalizedPrompt)
-                : premiumAnyStructuredPrompt
-                    ? extractStructuredBackgroundPrompt(normalizedPrompt)
-                    : normalizedPrompt;
+            // New format: [TITLE:...]\n[BACKGROUND: <visual prompt>]
+            const hasTitleBackgroundFormat = generationMode === 'premium' && /\[TITLE:/i.test(normalizedPrompt) && /\[BACKGROUND:/i.test(normalizedPrompt);
+            let enhancedPrompt = generationMode === 'premium' && card.backgroundPrompt
+                ? card.backgroundPrompt
+                : premiumStructuredPrompt
+                    ? extractPremiumBackgroundPrompt(normalizedPrompt)
+                    : premiumAnyStructuredPrompt
+                        ? extractStructuredBackgroundPrompt(normalizedPrompt)
+                        : hasTitleBackgroundFormat
+                            ? extractPremiumBackgroundPrompt(normalizedPrompt) // [BACKGROUND: ...] extraction
+                            : normalizedPrompt;
             // Detect if the prompt is already a structured template (e.g. [WHITE_OVERLAY] / [BACKGROUND:])
             // These must be sent as-is — the backend will parse and process them correctly
-            const isStructuredPrompt = enhancedPrompt.includes('[WHITE_OVERLAY]') || 
+            const isStructuredPrompt = enhancedPrompt.includes('[WHITE_OVERLAY]') ||
                 (enhancedPrompt.includes('[BACKGROUND:') && enhancedPrompt.includes('[HEADLINE:'));
 
             if (!isStructuredPrompt) {
@@ -954,22 +1211,86 @@ export default function GeneratePage() {
 
     const handleConfirmPost = async () => {
         const images = await getResolvedOutputImages();
-        const postData = {
-            caption: `Generated carousel: ${carouselDescription.substring(0, 100)}...${generatedCaption ? '\n\n' + generatedCaption : ''}`,
-            mediaUrls: images,
-            type: images.length > 1 ? 'carousel' : 'static',
-            scheduledFor: selectedDate ? `${selectedDate}T12:00` : undefined
-        };
-        localStorage.setItem('params_createPost', JSON.stringify(postData));
-        localStorage.removeItem('carouselDraft');
-        toast.success('✅ Rascunho limpo!');
-        router.push('/dashboard/create-post?source=generated');
+        if (images.length === 0) {
+            toast.error('Gere pelo menos uma imagem primeiro');
+            return;
+        }
+        if (!selectedProfile) {
+            toast.error('Selecione um perfil de negócio primeiro');
+            return;
+        }
+
+        try {
+            await api.post('/api/library', {
+                businessProfileId: selectedProfile.id,
+                mediaUrls: images,
+                caption: generatedCaption || carouselDescription || prompt || '',
+                tag: 'pronto',
+                type: images.length > 1 ? 'carousel' : 'static'
+            });
+            localStorage.removeItem('carouselDraft');
+            setShowPreview(false);
+            toast.success('✅ Conteúdo salvo na Library!');
+            router.push('/dashboard/library');
+        } catch (error: unknown) {
+            toast.error(getApiErrorMessage(error, 'Erro ao salvar na Library'));
+        }
     };
 
     const handleOpenLightbox = (images: string[], startIndex: number = 0) => {
         setLightboxImages(images);
         setLightboxIndex(startIndex);
         setLightboxOpen(true);
+    };
+
+    const getHtmlCaptionBaseText = () => {
+        const carouselTopic = carouselDescription.trim();
+        const fallbackPrompt = prompt.trim();
+        return carouselTopic || fallbackPrompt;
+    };
+
+    const handleGenerateHtmlCaption = async (options?: { baseText?: string; showSuccessToast?: boolean }) => {
+        const baseText = options?.baseText?.trim() || getHtmlCaptionBaseText();
+        if (!baseText) {
+            toast.error('⚠️ Adicione um roteiro/tema para gerar a legenda!');
+            return;
+        }
+        const requestId = htmlCaptionRequestIdRef.current + 1;
+        htmlCaptionRequestIdRef.current = requestId;
+
+        const captionPrompt = [
+            selectedProfile?.name ? `Perfil: ${selectedProfile.name}` : null,
+            selectedProfile?.description ? `Contexto: ${selectedProfile.description}` : null,
+            `Tema do carrossel HTML: ${baseText}`,
+            `ATENÇÃO: NUNCA invente funcionalidades ou serviços que não estão descritos aqui (ex: se for sobre alimentação, não fale de app de treino). Baseie-se ESTRITAMENTE no tema e contexto.`
+        ].filter(Boolean).join('\n');
+
+        setIsGeneratingHtmlCaption(true);
+        try {
+            const res = await api.post('/api/ai/generate-caption', {
+                prompt: captionPrompt,
+                tone: captionTone,
+                includeHashtags: true,
+                language: 'pt',
+                businessProfileId: selectedProfile?.id
+            });
+
+            if (res.data.success && htmlCaptionRequestIdRef.current === requestId) {
+                setHtmlCaption(res.data.caption);
+                if (options?.showSuccessToast !== false) {
+                    toast.success('✅ Legenda do HTML gerada com IA!');
+                }
+            }
+        } catch (error: unknown) {
+            console.error('Error generating HTML caption:', error);
+            if (htmlCaptionRequestIdRef.current === requestId) {
+                toast.error(getApiErrorMessage(error, 'Erro ao gerar legenda do HTML'));
+            }
+        } finally {
+            if (htmlCaptionRequestIdRef.current === requestId) {
+                setIsGeneratingHtmlCaption(false);
+            }
+        }
     };
 
     const handleGenerateCaption = async () => {
@@ -984,7 +1305,8 @@ export default function GeneratePage() {
                 prompt: promptText,
                 tone: captionTone,
                 includeHashtags: true,
-                language: 'pt'
+                language: 'pt',
+                businessProfileId: selectedProfile?.id
             });
             if (res.data.success) {
                 setGeneratedCaption(res.data.caption);
@@ -1130,7 +1452,7 @@ export default function GeneratePage() {
         const toastId = toast.loading(`Salvando ${imagesToSave.length} imagem(ns)...`);
         try {
             let savedCount = 0;
-            const mode = (imageCount > 1 || imagesToSave.length > 1) ? 'carousel' : 'static';
+            const mode = (generationMode !== 'standard' && (imageCount > 1 || imagesToSave.length > 1)) ? 'carousel' : 'static';
             
             if (mode === 'carousel') {
                 await api.post('/api/library', {
@@ -1154,7 +1476,7 @@ export default function GeneratePage() {
                 }));
             }
             toast.dismiss(toastId);
-            toast.success(`${savedCount} imagem(ns) salva(s) na Biblioteca no formato ${mode === 'carousel' ? 'Carrossel' : 'Post Simples'}!`);
+            toast.success(`${savedCount} imagem(ns) salva(s) na Biblioteca no formato ${mode === 'carousel' ? 'Carrossel' : 'Post Independente'}!`);
         } catch (error: unknown) {
             console.error('Error saving to library:', error);
             toast.dismiss(toastId);
@@ -1163,7 +1485,8 @@ export default function GeneratePage() {
     };
 
     const handleGenerateHtmlCarousel = async () => {
-        if (!carouselDescription) {
+        const effectiveBrief = carouselDescription || (htmlTemplate === 'comparison' ? getComparisonAutoBrief(selectedProfile) : '');
+        if (!effectiveBrief) {
             toast.error('⚠️ Adicione um roteiro/tema primeiro!');
             return;
         }
@@ -1174,6 +1497,9 @@ export default function GeneratePage() {
 
         setIsGeneratingHtml(true);
         setGeneratedHtml('');
+        htmlCaptionRequestIdRef.current += 1;
+        setHtmlCaption('');
+        setIsGeneratingHtmlCaption(false);
 
         try {
             // Step 1: Fetch library images from the selected profile
@@ -1208,10 +1534,13 @@ export default function GeneratePage() {
             // Step 2: Generate HTML carousel with library images
             toast.loading('🎨 Gerando Carrossel HTML...', { id: 'html-gen' });
             const res = await api.post('/api/ai/generate-html-carousel', {
-                topic: carouselDescription,
+                topic: effectiveBrief,
                 context: buildSelectedProfileContext(),
                 htmlTemplate,
-                libraryImages
+                requestedSlideCount: imageCount,
+                libraryImages,
+                businessProfileId: (selectedProfile as any)?.id,
+                ...(selectedCustomTemplateId ? { customTemplateId: selectedCustomTemplateId } : {}),
             }, {
                 timeout: 120000 // 2 minutes
             });
@@ -1220,6 +1549,10 @@ export default function GeneratePage() {
             if (res.data.success && res.data.html) {
                 setGeneratedHtml(res.data.html);
                 toast.success('✅ Carrossel HTML gerado com sucesso!');
+                void handleGenerateHtmlCaption({
+                    baseText: carouselDescription,
+                    showSuccessToast: false
+                });
             }
         } catch (error: unknown) {
             console.error('Error generating HTML carousel:', error);
@@ -1246,7 +1579,7 @@ export default function GeneratePage() {
             await api.post('/api/library', {
                 businessProfileId: selectedProfile.id,
                 htmlCode: generatedHtml,
-                caption: carouselDescription || prompt || '',
+                caption: htmlCaption || carouselDescription || prompt || '',
                 tag: 'pronto',
                 type: 'html'
             });
@@ -1257,6 +1590,53 @@ export default function GeneratePage() {
             console.error('Error saving HTML to library:', error);
             toast.dismiss(toastId);
             toast.error(getApiErrorMessage(error, 'Erro ao salvar na biblioteca'));
+        }
+    };
+
+    const handleSaveHtmlTemplate = async () => {
+        if (!generatedHtml) {
+            toast.error('Gere um carrossel HTML antes de salvar como modelo');
+            return;
+        }
+        if (!selectedProfile) {
+            toast.error('Selecione um perfil de negócio primeiro');
+            return;
+        }
+        const name = window.prompt('Nome para este modelo de carrossel:');
+        if (!name?.trim()) return;
+
+        setIsSavingHtmlTemplate(true);
+        const toastId = toast.loading('Salvando modelo...');
+        try {
+            const res = await api.post('/api/ai/html-templates', {
+                businessProfileId: selectedProfile.id,
+                name: name.trim(),
+                html: generatedHtml,
+            });
+            if (res.data.success) {
+                const newTpl = { id: res.data.id, name: name.trim(), createdAt: new Date().toISOString() };
+                setSavedHtmlTemplates(prev => [newTpl, ...prev]);
+                toast.dismiss(toastId);
+                toast.success('Modelo salvo com sucesso!');
+            }
+        } catch (error: unknown) {
+            toast.dismiss(toastId);
+            toast.error(getApiErrorMessage(error, 'Erro ao salvar modelo'));
+        } finally {
+            setIsSavingHtmlTemplate(false);
+        }
+    };
+
+    const handleDeleteHtmlTemplate = async (id: string) => {
+        if (!selectedProfile) return;
+        if (!window.confirm('Excluir este modelo?')) return;
+        try {
+            await api.delete(`/api/ai/html-templates/${id}?businessProfileId=${selectedProfile.id}`);
+            setSavedHtmlTemplates(prev => prev.filter(t => t.id !== id));
+            if (selectedCustomTemplateId === id) setSelectedCustomTemplateId(null);
+            toast.success('Modelo excluído');
+        } catch {
+            toast.error('Erro ao excluir modelo');
         }
     };
 
@@ -1293,6 +1673,30 @@ export default function GeneratePage() {
         }
     };
 
+    const generatorTextareaStyle: React.CSSProperties = {
+        width: '100%',
+        minHeight: generationMode === 'standard' ? '96px' : '152px',
+        padding: '1rem 1.125rem',
+        borderRadius: '0.75rem',
+        border: '1px solid #3f3f46',
+        background: '#18181b',
+        color: '#f4f4f5',
+        fontSize: '0.95rem',
+        fontFamily: 'inherit',
+        fontWeight: 400,
+        letterSpacing: 'normal',
+        lineHeight: 1.6,
+        resize: 'vertical',
+        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+    };
+
+    const helperNoticeStyle: React.CSSProperties = {
+        background: 'rgba(24, 24, 27, 0.88)',
+        border: '1px solid #27272a',
+        borderRadius: '0.75rem',
+        padding: '1rem 1.125rem',
+    };
+
 
     return (
         <div style={{ minHeight: '100vh', padding: '2rem', background: '#000', color: '#fff' }}>
@@ -1314,6 +1718,30 @@ export default function GeneratePage() {
                         </div>
                     }
                 />
+
+                {/* Inline profile selector — shown when no profile is selected via header */}
+                {!selectedProfile && profiles.length > 0 && (
+                    <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: 'rgba(124, 58, 237, 0.07)', border: '1px solid rgba(124, 58, 237, 0.25)', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '1.25rem' }}>🌐</span>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                            <p style={{ margin: '0 0 0.25rem', fontSize: '0.875rem', fontWeight: 600, color: '#e4e4e7' }}>Selecione um perfil de negócio</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#71717a' }}>Necessário para gerar conteúdo personalizado</p>
+                        </div>
+                        <select
+                            value=""
+                            onChange={(e) => {
+                                const p = profiles.find(p => p.id === e.target.value);
+                                if (p) setSelectedProfile(p);
+                            }}
+                            style={{ padding: '0.625rem 1rem', borderRadius: '0.5rem', background: '#27272a', border: '1px solid #3f3f46', color: '#fff', fontSize: '0.875rem', cursor: 'pointer', minWidth: '200px' }}
+                        >
+                            <option value="" disabled>Escolher perfil…</option>
+                            {profiles.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 {selectedProfile && (
                     <div className="card-glass" style={{ padding: '0.75rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', background: 'rgba(24, 24, 27, 0.6)', border: '1px solid #27272a' }}>
@@ -1346,13 +1774,15 @@ export default function GeneratePage() {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '0.5rem',
-                                        background: generationMode === 'standard' ? '#3f3f46' : 'transparent',
+                                        background: generationMode === 'standard' ? 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)' : 'rgba(39, 39, 42, 0.4)',
                                         color: generationMode === 'standard' ? '#fff' : '#a1a1aa',
-                                        padding: '0.75rem',
-                                        borderRadius: '0.25rem',
-                                        border: 'none',
+                                        padding: '0.875rem',
+                                        borderRadius: '0.75rem',
+                                        border: generationMode === 'standard' ? '1px solid rgba(124, 58, 237, 0.5)' : '1px solid rgba(63, 63, 70, 0.2)',
                                         cursor: 'pointer',
-                                        fontWeight: 500
+                                        fontWeight: 700,
+                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        boxShadow: generationMode === 'standard' ? '0 4px 15px rgba(124, 58, 237, 0.25)' : 'none'
                                     }}
                                 >
                                     ✨ Geração em Lote
@@ -1370,13 +1800,15 @@ export default function GeneratePage() {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '0.5rem',
-                                        background: generationMode === 'premium' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent',
-                                        color: generationMode === 'premium' ? '#000' : '#a1a1aa',
-                                        padding: '0.75rem',
-                                        borderRadius: '0.25rem',
-                                        border: 'none',
+                                        background: generationMode === 'premium' ? 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)' : 'rgba(39, 39, 42, 0.4)',
+                                        color: generationMode === 'premium' ? '#fff' : '#a1a1aa',
+                                        padding: '0.875rem',
+                                        borderRadius: '0.75rem',
+                                        border: generationMode === 'premium' ? '1px solid rgba(251, 191, 36, 0.5)' : '1px solid rgba(63, 63, 70, 0.2)',
                                         cursor: 'pointer',
-                                        fontWeight: 700
+                                        fontWeight: 700,
+                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        boxShadow: generationMode === 'premium' ? '0 4px 15px rgba(251, 191, 36, 0.25)' : 'none'
                                     }}
                                 >
                                     💎 Carrossel Premium
@@ -1393,13 +1825,15 @@ export default function GeneratePage() {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '0.5rem',
-                                        background: generationMode === 'html' ? 'linear-gradient(135deg, #FF0080 0%, #7928CA 100%)' : 'transparent',
+                                        background: generationMode === 'html' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'rgba(39, 39, 42, 0.4)',
                                         color: generationMode === 'html' ? '#fff' : '#a1a1aa',
-                                        padding: '0.75rem',
-                                        borderRadius: '0.25rem',
-                                        border: 'none',
+                                        padding: '0.875rem',
+                                        borderRadius: '0.75rem',
+                                        border: generationMode === 'html' ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid rgba(63, 63, 70, 0.2)',
                                         cursor: 'pointer',
-                                        fontWeight: 700
+                                        fontWeight: 700,
+                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        boxShadow: generationMode === 'html' ? '0 4px 15px rgba(59, 130, 246, 0.25)' : 'none'
                                     }}
                                 >
                                     🌐 Carrossel HTML
@@ -1447,27 +1881,37 @@ export default function GeneratePage() {
                                     <label style={{ fontSize: '0.75rem', color: '#71717a', display: 'block', marginBottom: '0.5rem' }}>
                                         {generationMode === 'standard' ? 'Quantidade de Posts' : 'Quantidade de Slides'}
                                     </label>
+                                    {generationMode === 'html' && (
+                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.72rem', color: '#71717a' }}>
+                                            Template atual: {currentHtmlTemplateRule.label}
+                                        </p>
+                                    )}
                                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((count) => (
-                                            <button
-                                                key={count}
-                                                onClick={() => setImageCount(count)}
-                                                className="btn"
-                                                style={{
-                                                    flex: '1 0 calc(20% - 0.5rem)',
-                                                    minWidth: '44px',
-                                                    background: imageCount === count ? '#7c3aed' : '#27272a',
-                                                    padding: '0.5rem 0.25rem',
-                                                    borderRadius: '0.5rem',
-                                                    border: 'none',
-                                                    color: '#fff',
-                                                    fontSize: '0.75rem',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {count}
-                                            </button>
-                                        ))}
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((count) => {
+                                            const isDisabled = generationMode === 'html' && (count < currentHtmlTemplateMin || count > currentHtmlTemplateMax);
+                                            return (
+                                                <button
+                                                    key={count}
+                                                    onClick={() => !isDisabled && setImageCount(count)}
+                                                    className="btn"
+                                                    disabled={isDisabled}
+                                                    style={{
+                                                        flex: '1 0 calc(20% - 0.5rem)',
+                                                        minWidth: '44px',
+                                                        background: imageCount === count ? '#7c3aed' : '#27272a',
+                                                        padding: '0.5rem 0.25rem',
+                                                        borderRadius: '0.5rem',
+                                                        border: 'none',
+                                                        color: isDisabled ? '#52525b' : '#fff',
+                                                        fontSize: '0.75rem',
+                                                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                                        opacity: isDisabled ? 0.45 : 1
+                                                    }}
+                                                >
+                                                    {count}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -1476,41 +1920,50 @@ export default function GeneratePage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                         <label className="input-label" style={{ marginBottom: 0 }}>
-                                            📝 Brief do Carrossel por Card
+                                            {generationMode === 'html' && htmlTemplate === 'comparison'
+                                                ? '🔀 Tema do Comparativo'
+                                                : '📝 Brief do Carrossel por Card'}
                                         </label>
-                                        <button
-                                            onClick={handleGenerateIdeas}
-                                            disabled={isGeneratingIdeas || !selectedProfile}
-                                            className="btn"
-                                            style={{
-                                                fontSize: '0.75rem',
-                                                padding: '0.25rem 0.75rem',
-                                                background: 'linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%)',
-                                                border: 'none',
-                                                borderRadius: '999px',
-                                                color: '#fff',
-                                                cursor: 'pointer',
-                                                opacity: isGeneratingIdeas ? 0.7 : 1
-                                            }}
-                                        >
-                                            {isGeneratingIdeas ? '✨ Gerando...' : '✨ Gerar Ideias'}
-                                        </button>
+                                        {!(generationMode === 'html' && htmlTemplate === 'comparison') && (
+                                            <button
+                                                onClick={handleGenerateIdeas}
+                                                disabled={isGeneratingIdeas || !selectedProfile}
+                                                className="btn"
+                                                style={{
+                                                    fontSize: '0.75rem',
+                                                    padding: '0.25rem 0.75rem',
+                                                    background: 'linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%)',
+                                                    border: 'none',
+                                                    borderRadius: '999px',
+                                                    color: '#fff',
+                                                    cursor: 'pointer',
+                                                    opacity: isGeneratingIdeas ? 0.7 : 1
+                                                }}
+                                            >
+                                                {isGeneratingIdeas ? '✨ Gerando...' : '✨ Gerar Ideias'}
+                                            </button>
+                                        )}
                                     </div>
 
                                     <textarea
                                         value={carouselDescription}
                                         onChange={(e) => setCarouselDescription(e.target.value)}
-                                        placeholder={`Card 1: Gancho principal sobre dietas restritivas\nCard 2: Explique o ciclo restricao -> compulsao\nCard 3: Mostre o impacto nos objetivos\nCard 4: Apresente a alternativa Fitswap\nCard 5: CTA final`}
-                                        className="input"
-                                        rows={6}
-                                        style={{ width: '100%' }}
+                                        placeholder={
+                                            generationMode === 'html' && htmlTemplate === 'comparison'
+                                                ? 'Comparação: descreva o cenário (ex: foto amadora vs. profissional, refeição comum vs. saudável)'
+                                                : `Card 1: Gancho principal sobre dietas restritivas\nCard 2: Explique o ciclo restricao -> compulsao\nCard 3: Mostre o impacto nos objetivos\nCard 4: Apresente a alternativa Fitswap\nCard 5: CTA final`
+                                        }
+                                        rows={generationMode === 'html' && htmlTemplate === 'comparison' ? 3 : 6}
+                                        style={generatorTextareaStyle}
                                     />
 
-                                    <div className="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800 text-sm text-zinc-400">
-                                        <p>
-                                            {generationMode === 'premium' 
-                                                ? '💎 Modo Premium Ativo: escreva uma breve descrição por card, uma linha por slide. O sistema usa esse roteiro para gerar cada fundo e só aplica o template premium depois da sua aprovação.' 
-                                                : '🌐 Modo HTML Ativo: escreva o roteiro do seu carrossel detalhadamente. A IA processará e montará o código HTML estruturado contendo todos os slides baseados nesse roteiro.'}
+                                    <div style={helperNoticeStyle}>
+                                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#a1a1aa', lineHeight: 1.6 }}>
+                                            {generationMode === 'html' && htmlTemplate === 'comparison'
+                                                ? '✅ Auto-preenchido com base no perfil de negócio. Edite se quiser customizar o cenário comparado.'
+                                                : generationMode === 'premium'
+                                                    ? '💎 Modo Premium Ativo: escreva uma breve descrição por card, uma linha por slide. O sistema usa esse roteiro para gerar cada fundo e só aplica o template premium depois da sua aprovação.'
+                                                    : '🌐 Modo HTML Ativo: escreva o roteiro do seu carrossel detalhadamente. A IA processará e montará o código HTML estruturado contendo todos os slides baseados nesse roteiro.'}
                                         </p>
                                     </div>
 
@@ -1582,9 +2035,31 @@ export default function GeneratePage() {
                                         <label style={{ fontSize: '0.875rem', color: '#a1a1aa', display: 'block' }}>
                                             {imageCount > 1 ? '💡 Temas Base Específicos (Em Lote)' : 'Descrição do Post Único'}
                                         </label>
-                                        <button
-                                            onClick={handleGenerateIdeas}
-                                            disabled={isGeneratingIdeas || !selectedProfile}
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                onClick={() => {
+                                                    setTemplateText(carouselDescription);
+                                                    setTemplateName('');
+                                                    setEditingTemplateId(null);
+                                                    setShowModelManager(true);
+                                                }}
+                                                disabled={!selectedProfile}
+                                                className="btn"
+                                                style={{
+                                                    fontSize: '0.75rem',
+                                                    padding: '0.25rem 0.75rem',
+                                                    background: '#27272a',
+                                                    border: '1px solid #3f3f46',
+                                                    borderRadius: '999px',
+                                                    color: '#d4d4d8',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                💾 Gerenciar Modelos
+                                            </button>
+                                            <button
+                                                onClick={handleGenerateIdeas}
+                                                disabled={isGeneratingIdeas || !selectedProfile}
                                             className="btn"
                                             style={{
                                                 fontSize: '0.75rem',
@@ -1599,82 +2074,28 @@ export default function GeneratePage() {
                                         >
                                             {isGeneratingIdeas ? '✨ Gerando...' : '💡 Sugerir Temas IA'}
                                         </button>
+                                        </div>
                                     </div>
                                     <textarea
                                         value={carouselDescription}
                                         onChange={(e) => setCarouselDescription(e.target.value)}
                                         placeholder="Ex: Sugestões de posts sobre..."
-                                        className="input"
                                         rows={3}
-                                        style={{ width: '100%', marginBottom: '1rem' }}
+                                        style={{ ...generatorTextareaStyle, minHeight: '96px', marginBottom: '1rem' }}
                                     />
                                 </>
                             )}
 
                             {generationMode === 'html' && (
-                                <div style={{ marginBottom: '1.5rem', background: 'rgba(236, 72, 153, 0.05)', border: '1px solid rgba(236, 72, 153, 0.2)', padding: '1rem', borderRadius: '0.75rem' }}>
-                                        <label style={{
-                                        display: 'block',
-                                        fontSize: '0.875rem',
-                                        fontWeight: 600,
-                                        color: '#e4e4e7',
-                                        marginBottom: '0.75rem'
-                                    }}>
-                                        🎨 Design do Carrossel HTML
-                                    </label>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                        {selectedProfile?.name?.toLowerCase().includes('fitswap') && (
-                                            <div
-                                                onClick={() => setHtmlTemplate('fitswap_minimal')}
-                                                style={{
-                                                    padding: '1rem',
-                                                    background: htmlTemplate === 'fitswap_minimal' ? 'rgba(166, 240, 0, 0.15)' : '#18181b', /* Lime accent */
-                                                    border: `1px solid ${htmlTemplate === 'fitswap_minimal' ? '#A6F000' : '#27272a'}`,
-                                                    borderRadius: '0.5rem',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s',
-                                                    position: 'relative',
-                                                    overflow: 'hidden',
-                                                    gridColumn: '1 / -1' /* Make it span both columns since it's the premium brand choice */
-                                                }}
-                                            >
-                                                <h4 style={{ margin: '0 0 0.5rem 0', color: htmlTemplate === 'fitswap_minimal' ? '#fff' : '#a1a1aa', fontSize: '0.875rem' }}>🟢 Fitswap Minimal (Branding)</h4>
-                                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#71717a' }}>Fundo branco, tipografia bold escura, overlay minimalista com marca e barra de progresso (Oficial da marca).</p>
-                                            </div>
-                                        )}
-                                        <div
-                                            onClick={() => setHtmlTemplate('template1')}
-                                            style={{
-                                                padding: '1rem',
-                                                background: htmlTemplate === 'template1' ? 'rgba(236, 72, 153, 0.15)' : '#18181b',
-                                                border: `1px solid ${htmlTemplate === 'template1' ? '#ec4899' : '#27272a'}`,
-                                                borderRadius: '0.5rem',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s',
-                                                position: 'relative',
-                                                overflow: 'hidden'
-                                            }}
-                                        >
-                                            <h4 style={{ margin: '0 0 0.5rem 0', color: htmlTemplate === 'template1' ? '#fff' : '#a1a1aa', fontSize: '0.875rem' }}>🔥 Template 1: Bold Overlay</h4>
-                                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#71717a' }}>Design moderno com sombras intensas, overlay de gradiente e texto em destaque.</p>
-                                        </div>
-                                        <div
-                                            onClick={() => setHtmlTemplate('free')}
-                                            style={{
-                                                padding: '1rem',
-                                                background: htmlTemplate === 'free' ? 'rgba(236, 72, 153, 0.15)' : '#18181b',
-                                                border: `1px solid ${htmlTemplate === 'free' ? '#ec4899' : '#27272a'}`,
-                                                borderRadius: '0.5rem',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s',
-                                                position: 'relative'
-                                            }}
-                                        >
-                                            <h4 style={{ margin: '0 0 0.5rem 0', color: htmlTemplate === 'free' ? '#fff' : '#a1a1aa', fontSize: '0.875rem' }}>✨ Livre (Criado pela IA)</h4>
-                                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#71717a' }}>Estrutura gerada do zero pela IA com criatividade solta baseada na marca.</p>
-                                        </div>
-                                    </div>
-                                </div>
+                                <ElevepicTemplatePicker
+                                    selected={htmlTemplate}
+                                    onChange={(id) => { setHtmlTemplate(id); setSelectedCustomTemplateId(null); }}
+                                    primaryColor={(selectedProfile as any)?.branding?.primaryColor}
+                                    savedTemplates={savedHtmlTemplates}
+                                    selectedCustomTemplateId={selectedCustomTemplateId}
+                                    onSelectCustomTemplate={setSelectedCustomTemplateId}
+                                    onDeleteCustomTemplate={handleDeleteHtmlTemplate}
+                                />
                             )}
 
                             {generationMode === 'html' ? (
@@ -1698,7 +2119,7 @@ export default function GeneratePage() {
                                 </button>
                             ) : (
                                 <button
-                                    onClick={handleGenerateBatchConcepts}
+                                    onClick={generationMode === 'premium' ? handleGenerateAllPrompts : handleGenerateBatchConcepts}
                                     disabled={isGeneratingPrompt || !carouselDescription}
                                     className="btn btn-primary"
                                     style={{
@@ -1771,26 +2192,31 @@ export default function GeneratePage() {
                                     
                                     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 420px', gap: '2rem', alignItems: 'start' }}>
                                         <div style={{
-                                            background: '#18181b',
-                                            borderRadius: '0.75rem',
-                                            border: '1px solid #27272a',
-                                            position: 'relative',
-                                            overflow: 'hidden',
+                                            flex: 1, 
+                                            background: '#1a1a1a', 
+                                            padding: '1.5rem', 
+                                            borderRadius: '1rem', 
+                                            border: '1px solid #333',
+                                            height: '525px',
                                             display: 'flex',
-                                            flexDirection: 'column',
-                                            height: '525px'
+                                            flexDirection: 'column'
                                         }}>
-                                            <div style={{ padding: '1rem', borderBottom: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#27272a' }}>
-                                                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#e4e4e7' }}>Código Fonte</span>
+                                            <div style={{ 
+                                                display: 'flex', 
+                                                justifyContent: 'space-between', 
+                                                alignItems: 'center',
+                                                marginBottom: '1rem' 
+                                            }}>
+                                                <span style={{ fontSize: '0.8rem', color: '#888', fontWeight: 600 }}>CÓDIGO FONTE</span>
                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                     <button
                                                         onClick={() => {
                                                             navigator.clipboard.writeText(generatedHtml);
-                                                            toast.success('HTML copiado para a área de transferência!');
+                                                            toast.success('Código HTML copiado!');
                                                         }}
                                                         className="btn"
                                                         style={{
-                                                            background: '#3f3f46',
+                                                            background: '#333',
                                                             border: 'none',
                                                             color: '#fff',
                                                             padding: '0.25rem 0.75rem',
@@ -1816,6 +2242,23 @@ export default function GeneratePage() {
                                                         }}
                                                     >
                                                         💾 Salvar na Biblioteca
+                                                    </button>
+                                                    <button
+                                                        onClick={handleSaveHtmlTemplate}
+                                                        disabled={isSavingHtmlTemplate}
+                                                        className="btn"
+                                                        style={{
+                                                            background: 'rgba(168, 85, 247, 0.15)',
+                                                            border: '1px solid rgba(168, 85, 247, 0.4)',
+                                                            color: '#c084fc',
+                                                            padding: '0.25rem 0.75rem',
+                                                            borderRadius: '0.25rem',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 600
+                                                        }}
+                                                    >
+                                                        {isSavingHtmlTemplate ? '...' : '📐 Salvar como Modelo'}
                                                     </button>
                                                 </div>
                                             </div>
@@ -1850,6 +2293,111 @@ export default function GeneratePage() {
                                             <p style={{ textAlign: 'center', color: '#a1a1aa', fontSize: '0.75rem', marginTop: '0.5rem' }}>
                                                 Preview interativo (Arraste para rolar o carrossel se aplicável)
                                             </p>
+
+                                            <div style={{
+                                                marginTop: '1rem',
+                                                background: '#18181b',
+                                                border: '1px solid rgba(168, 85, 247, 0.2)',
+                                                borderRadius: '0.75rem',
+                                                padding: '1rem'
+                                            }}>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    gap: '0.75rem',
+                                                    marginBottom: '0.75rem'
+                                                }}>
+                                                    <div>
+                                                        <p style={{ margin: 0, color: '#f4f4f5', fontSize: '0.85rem', fontWeight: 700 }}>
+                                                            Legenda do HTML
+                                                        </p>
+                                                        <p style={{ margin: '0.25rem 0 0', color: '#a1a1aa', fontSize: '0.72rem' }}>
+                                                            Gerada automaticamente após criar um novo HTML
+                                                        </p>
+                                                    </div>
+                                                    <select
+                                                        value={captionTone}
+                                                        onChange={(e) => setCaptionTone(e.target.value as typeof captionTone)}
+                                                        style={{
+                                                            background: '#09090b',
+                                                            border: '1px solid #3f3f46',
+                                                            borderRadius: '0.5rem',
+                                                            color: '#e4e4e7',
+                                                            padding: '0.45rem 0.65rem',
+                                                            fontSize: '0.75rem',
+                                                            minWidth: '120px'
+                                                        }}
+                                                    >
+                                                        <option value="casual">Casual</option>
+                                                        <option value="formal">Formal</option>
+                                                        <option value="motivacional">Motivacional</option>
+                                                        <option value="educativo">Educativo</option>
+                                                        <option value="divertido">Divertido</option>
+                                                    </select>
+                                                </div>
+
+                                                <textarea
+                                                    value={htmlCaption}
+                                                    onChange={(e) => setHtmlCaption(e.target.value)}
+                                                    placeholder={isGeneratingHtmlCaption ? 'Gerando legenda automática...' : 'A legenda do HTML aparecerá aqui.'}
+                                                    rows={7}
+                                                    style={{
+                                                        width: '100%',
+                                                        background: '#09090b',
+                                                        border: '1px solid #3f3f46',
+                                                        borderRadius: '0.75rem',
+                                                        color: '#e4e4e7',
+                                                        padding: '0.875rem',
+                                                        fontSize: '0.82rem',
+                                                        lineHeight: 1.6,
+                                                        resize: 'vertical',
+                                                        outline: 'none'
+                                                    }}
+                                                />
+
+                                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
+                                                    <button
+                                                        onClick={() => void handleGenerateHtmlCaption({ showSuccessToast: true })}
+                                                        disabled={isGeneratingHtmlCaption}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: '0.65rem 0.9rem',
+                                                            background: isGeneratingHtmlCaption
+                                                                ? '#3f3f46'
+                                                                : 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+                                                            border: 'none',
+                                                            borderRadius: '0.65rem',
+                                                            color: '#fff',
+                                                            fontWeight: 700,
+                                                            fontSize: '0.8rem',
+                                                            cursor: isGeneratingHtmlCaption ? 'not-allowed' : 'pointer'
+                                                        }}
+                                                    >
+                                                        {isGeneratingHtmlCaption ? '✨ Gerando legenda...' : (htmlCaption ? '🔄 Regenerar legenda' : '✨ Gerar legenda')}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(htmlCaption);
+                                                            toast.success('Legenda copiada!');
+                                                        }}
+                                                        disabled={!htmlCaption.trim()}
+                                                        style={{
+                                                            padding: '0.65rem 0.9rem',
+                                                            background: 'rgba(255, 255, 255, 0.04)',
+                                                            border: '1px solid #3f3f46',
+                                                            borderRadius: '0.65rem',
+                                                            color: htmlCaption.trim() ? '#e4e4e7' : '#71717a',
+                                                            fontWeight: 600,
+                                                            fontSize: '0.8rem',
+                                                            cursor: htmlCaption.trim() ? 'pointer' : 'not-allowed',
+                                                            minWidth: '120px'
+                                                        }}
+                                                    >
+                                                        📋 Copiar
+                                                    </button>
+                                                </div>
+                                            </div>
 
                                             {/* Fix HTML button */}
                                             <button
@@ -2437,7 +2985,9 @@ export default function GeneratePage() {
                                                 padding: '0.25rem 0.75rem',
                                                 borderRadius: '999px'
                                             }}>
-                                                {idea.type === 'carousel' ? `🎠 Carrossel (${idea.slideCount})` : '📸 Post Único'}
+                                                {generationMode === 'html'
+                                                    ? '🌐 Ideia de Carrossel'
+                                                    : idea.type === 'carousel' ? `🎠 Carrossel (${idea.slideCount})` : '📸 Post Único'}
                                             </div>
                                         </div>
 
@@ -2580,7 +3130,7 @@ export default function GeneratePage() {
                                     className="btn btn-primary"
                                     style={{ flex: 1, background: '#22c55e' }}
                                 >
-                                    ✅ Confirmar e Criar Post
+                                    ✅ Confirmar e Salvar na Library
                                 </button>
                             </div>
                         </div>
@@ -2596,12 +3146,14 @@ export default function GeneratePage() {
                         if (premiumEditorIndex === null) return;
                         handleUpdatePremiumLayout(premiumEditorIndex, field, value);
                     }}
-                    onDownload={() => {
+                    onAction={() => {
                         if (premiumEditorIndex === null) return;
                         const imageUrl = carouselCards[premiumEditorIndex]?.image;
                         if (!imageUrl) return;
                         handleDownloadImage(imageUrl, premiumEditorIndex);
                     }}
+                    actionLabel="Baixar Arte Premium"
+                    apiBaseUrl={api.defaults.baseURL || 'http://localhost:3001'}
                 />
 
                 {lightboxOpen && (
@@ -2614,6 +3166,119 @@ export default function GeneratePage() {
                     />
                 )}
             </div>
+            {/* Model Manager Modal */}
+            {showModelManager && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', padding: '1rem'
+                }}>
+                    <div style={{
+                        background: '#18181b', borderRadius: '1rem', width: '100%', maxWidth: '600px',
+                        border: '1px solid #3f3f46', padding: '2rem', maxHeight: '90vh', overflowY: 'auto'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', margin: 0, color: '#fff' }}>Gerenciar Modelos</h2>
+                            <button onClick={() => setShowModelManager(false)} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', fontSize: '1.5rem' }}>×</button>
+                        </div>
+
+                        <div style={{ background: '#09090b', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid #27272a' }}>
+                            <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#e4e4e7' }}>
+                                {editingTemplateId ? 'Editar Modelo' : 'Salvar Novo Modelo'}
+                            </h3>
+                            <div style={{ marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: '#a1a1aa' }}>Título do Modelo</label>
+                                <input 
+                                    className="input" 
+                                    value={templateName} 
+                                    onChange={(e) => setTemplateName(e.target.value)}
+                                    placeholder="Ex: Receitas Fitswap com Overlay" 
+                                />
+                            </div>
+                            <div style={{ marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: '#a1a1aa' }}>Texto do Modelo</label>
+                                <textarea
+                                    value={templateText}
+                                    onChange={(e) => setTemplateText(e.target.value)}
+                                    rows={8}
+                                    placeholder="Ex: Crie um post focado em {tema}..."
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        background: '#27272a',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        borderRadius: '0.5rem',
+                                        color: '#fff',
+                                        outline: 'none'
+                                    }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button
+                                    onClick={handleSaveOrUpdateTemplate}
+                                    className="btn btn-primary"
+                                    style={{ flex: 1 }}
+                                >
+                                    {editingTemplateId ? '💾 Atualizar Modelo' : '➕ Salvar Modelo'}
+                                </button>
+                                {editingTemplateId && (
+                                    <button
+                                        onClick={() => { setEditingTemplateId(null); setTemplateName(''); setTemplateText(''); }}
+                                        className="btn btn-secondary"
+                                    >
+                                        Cancelar
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#e4e4e7' }}>Modelos Salvos</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {selectedProfile?.aiPreferences?.favoritePrompts?.map((prompt: any) => (
+                                    <div key={prompt.id} style={{
+                                        padding: '1rem',
+                                        background: '#27272a',
+                                        borderRadius: '0.75rem',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => {
+                                            setPrompt(prompt.text);
+                                            setShowModelManager(false);
+                                            toast.success('Modelo carregado!');
+                                        }}>
+                                            <div style={{ fontWeight: 600, color: '#fff' }}>{prompt.name}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem' }}>
+                                                {prompt.text?.substring(0, 80)}...
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                onClick={() => {
+                                                    setEditingTemplateId(prompt.id);
+                                                    setTemplateName(prompt.name);
+                                                    setTemplateText(prompt.text);
+                                                }}
+                                                style={{ background: 'transparent', border: 'none', color: '#a1a1aa', cursor: 'pointer' }}
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteTemplate(prompt.id)}
+                                                style={{ background: 'transparent', border: 'none', color: '#a1a1aa', cursor: 'pointer' }}
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

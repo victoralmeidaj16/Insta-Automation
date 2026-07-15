@@ -9,9 +9,11 @@ export default function DashboardHeader() {
     const navItems = [
         { href: '/dashboard', label: 'Dashboard', icon: '📊' },
         { href: '/dashboard/generate', label: 'AI Generator', icon: '✨' },
+        { href: '/dashboard/video-reels', label: 'Reels IA', icon: '🎬' },
+        { href: '/dashboard/competitors', label: 'Espião', icon: '🕵️' },
+        { href: '/dashboard/review', label: 'Revisão', icon: '🎯' },
         { href: '/dashboard/library', label: 'Library', icon: '📚' },
         { href: '/dashboard/calendar', label: 'Calendário', icon: '📅' },
-        { href: '/dashboard/create-post', label: 'Criar Post', icon: '📸' },
     ];
 
     return (

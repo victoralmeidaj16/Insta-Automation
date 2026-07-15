@@ -132,7 +132,7 @@ describe('critical post flow', () => {
         const savedPost = firebase.getCollection('posts').get(postRef.id);
         expect(savedPost.status).toBe('success');
         expect(savedPost.postedAt).toBeInstanceOf(Date);
-        expect(checkJobStatusMock).toHaveBeenCalledWith('job-123');
+        expect(checkJobStatusMock).toHaveBeenCalledWith('job-123', undefined);
         expect(firebase.deletedFiles).toEqual(['media/sync-post.jpg']);
     });
 });

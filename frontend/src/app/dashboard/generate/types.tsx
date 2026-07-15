@@ -9,11 +9,19 @@ export interface PremiumLayout {
     logoIcon: string;
     logoUrl?: string;
     backgroundImage?: string;
+    imageOffsetX?: number;
+    imageOffsetY?: number;
+    imageScale?: number;
+    gradientOpacity?: number;
+    slideIndex?: number;
+    slideCount?: number;
+    hideOverlay?: boolean;
 }
 
 export interface CarouselCard {
     concept?: string;
     prompt: string;
+    backgroundPrompt?: string;
     image?: string;
     premiumBaseImage?: string;
     premiumOverlayApplied?: boolean;

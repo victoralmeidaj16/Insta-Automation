@@ -7,7 +7,7 @@ const app = createApp();
 const PORT = process.env.PORT || 3001;
 
 // Iniciar servidor
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log('\n' + '='.repeat(60));
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
     console.log(`📍 http://localhost:${PORT}`);
@@ -18,6 +18,9 @@ app.listen(PORT, () => {
     startScheduler();
     console.log('✅ Scheduler de posts iniciado\n');
 });
+
+// Aumenta timeout do servidor para suportar operações longas (ex: Raio-X Profundo com vídeo ~3min)
+server.setTimeout(300000); // 5 minutos
 
 // Graceful shutdown
 process.on('SIGINT', () => {

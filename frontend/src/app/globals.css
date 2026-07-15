@@ -313,6 +313,10 @@ textarea.input {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
 
+.grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .text-center {
   text-align: center;
 }

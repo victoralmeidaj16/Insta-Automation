@@ -139,6 +139,52 @@ export async function getBusinessProfile(profileId) {
 }
 
 /**
+ * Retorna exatamente o documento persistido, sem aplicar defaults de marca.
+ * Use em fluxos de escrita para não materializar valores herdados do preset.
+ */
+export async function getRawBusinessProfile(profileId) {
+    try {
+        const doc = await db.collection('businessProfiles').doc(profileId).get();
+
+        if (!doc.exists) {
+            throw new Error('Business profile not found');
+        }
+
+        return {
+            id: doc.id,
+            ...doc.data()
+        };
+    } catch (error) {
+        console.error('❌ Error fetching raw business profile:', error);
+        throw error;
+    }
+}
+
+/**
+ * Monta um patch de perfil usando somente os valores persistidos como base.
+ * Campos herdados de presets nunca são gravados implicitamente pelo PUT.
+ */
+export function buildBusinessProfileUpdates(rawProfile = {}, input = {}) {
+    const updates = {};
+    const scalarFields = [
+        'name', 'description', 'brandKey', 'brandContext', 'targetAudience',
+        'productService', 'contentStrategy', 'editorialPillars'
+    ];
+
+    for (const field of scalarFields) {
+        if (input[field] !== undefined) updates[field] = input[field];
+    }
+
+    if (input.instagram !== undefined) updates.instagram = { ...(rawProfile.instagram || {}), ...input.instagram };
+    if (input.branding !== undefined) updates.branding = { ...(rawProfile.branding || {}), ...input.branding };
+    if (input.aiPreferences !== undefined) updates.aiPreferences = { ...(rawProfile.aiPreferences || {}), ...input.aiPreferences };
+    if (input.brandKit !== undefined) updates.brandKit = { ...(rawProfile.brandKit || {}), ...input.brandKit };
+    if (input.contentSchedule !== undefined) updates.contentSchedule = { ...(rawProfile.contentSchedule || {}), ...input.contentSchedule };
+
+    return updates;
+}
+
+/**
  * Update a business profile
  * @param {string} profileId - Profile ID
  * @param {Object} updates - Fields to update

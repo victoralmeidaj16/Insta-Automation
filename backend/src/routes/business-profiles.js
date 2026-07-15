@@ -3,6 +3,8 @@ import {
     createBusinessProfile,
     getBusinessProfiles,
     getBusinessProfile,
+    getRawBusinessProfile,
+    buildBusinessProfileUpdates,
     updateBusinessProfile,
     deleteBusinessProfile,
     linkAccountToProfile,
@@ -15,7 +17,12 @@ import {
     updateAccount,
     verifyAccount
 } from '../services/accountService.js';
-import { db } from '../config/firebase.js';
+import { db, storage } from '../config/firebase.js';
+import multer from 'multer';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 
@@ -24,11 +31,10 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
     try {
-        const { name, description, branding, aiPreferences, targetAudience, productService, contentStrategy, brandContext, brandKey, brandKit } = req.body;
-
-        const profile = await createBusinessProfile(req.userId, {
+        const {
             name,
             description,
+            instagram,
             branding,
             aiPreferences,
             targetAudience,
@@ -36,7 +42,25 @@ router.post('/', async (req, res) => {
             contentStrategy,
             brandContext,
             brandKey,
-            brandKit
+            brandKit,
+            editorialPillars,
+            contentSchedule
+        } = req.body;
+
+        const profile = await createBusinessProfile(req.userId, {
+            name,
+            description,
+            instagram,
+            branding,
+            aiPreferences,
+            targetAudience,
+            productService,
+            contentStrategy,
+            brandContext,
+            brandKey,
+            brandKit,
+            editorialPillars,
+            contentSchedule
         });
 
         res.json({
@@ -107,7 +131,7 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const profile = await getBusinessProfile(id);
+        const profile = await getRawBusinessProfile(id);
 
         // Verify ownership
         if (profile.userId !== req.userId) {
@@ -117,21 +141,8 @@ router.put('/:id', async (req, res) => {
             });
         }
 
-        const { name, description, branding, aiPreferences, targetAudience, productService, contentStrategy, brandContext, brandKey, brandKit } = req.body;
         console.log('🔄 [DEBUG] PUT /:id - Body:', JSON.stringify(req.body, null, 2));
-        console.log('🔄 [DEBUG] Content Strategy received:', contentStrategy);
-        const updates = {};
-
-        if (name !== undefined) updates.name = name;
-        if (description !== undefined) updates.description = description;
-        if (brandKey !== undefined) updates.brandKey = brandKey;
-        if (brandContext !== undefined) updates.brandContext = brandContext;
-        if (targetAudience !== undefined) updates.targetAudience = targetAudience;
-        if (productService !== undefined) updates.productService = productService;
-        if (contentStrategy !== undefined) updates.contentStrategy = contentStrategy;
-        if (branding !== undefined) updates.branding = { ...profile.branding, ...branding };
-        if (aiPreferences !== undefined) updates.aiPreferences = { ...profile.aiPreferences, ...aiPreferences };
-        if (brandKit !== undefined) updates.brandKit = { ...(profile.brandKit || {}), ...brandKit };
+        const updates = buildBusinessProfileUpdates(profile, req.body);
 
         await updateBusinessProfile(id, updates);
 
@@ -359,6 +370,112 @@ router.post('/:id/connect', async (req, res) => {
             success: false,
             error: error.message
         });
+    }
+});
+
+/**
+ * POST /api/business-profiles/:id/app-screenshot - Upload app screenshot to Firebase Storage
+ */
+router.post('/:id/app-screenshot', upload.single('file'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const file = req.file;
+
+        if (!file) {
+            return res.status(400).json({ success: false, error: 'Arquivo é obrigatório' });
+        }
+
+        // Verify profile ownership
+        const profile = await getBusinessProfile(id);
+        if (profile.userId !== req.userId) {
+            return res.status(403).json({ success: false, error: 'Not authorized' });
+        }
+
+        const fileExt = path.extname(file.originalname) || '.png';
+        const fileName = `business-profiles/${id}/app-screenshot-${uuidv4()}${fileExt}`;
+        const fileUpload = storage.file(fileName);
+
+        await fileUpload.save(file.buffer, {
+            metadata: { contentType: file.mimetype }
+        });
+
+        await fileUpload.makePublic();
+        const publicUrl = `https://storage.googleapis.com/${storage.name}/${fileName}`;
+
+        // Update profile
+        await updateBusinessProfile(id, {
+            brandKit: {
+                ...(profile.brandKit || {}),
+                appScreenshotUrl: publicUrl
+            }
+        });
+
+        res.json({
+            success: true,
+            url: publicUrl
+        });
+    } catch (error) {
+        console.error('Error uploading app screenshot:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/business-profiles/:id/test-instagram
+ * Verifies that the stored upload-post API key is valid and returns linked accounts.
+ */
+router.post('/:id/test-instagram', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const profile = await getBusinessProfile(id);
+
+        if (profile.userId !== req.userId) {
+            return res.status(403).json({ success: false, error: 'Acesso negado.' });
+        }
+
+        // Accept key from request body (when user hasn't saved yet) or fall back to saved value
+        const apiKey = (req.body?.uploadPostApiKey?.trim()) || profile?.instagram?.uploadPostApiKey;
+        if (!apiKey || !apiKey.trim()) {
+            return res.status(400).json({ success: false, error: 'Nenhuma API key configurada para este perfil.' });
+        }
+
+        const configuredUsername = (req.body?.username?.trim()) || profile?.instagram?.username || '';
+        const axios = (await import('axios')).default;
+
+        // Verify key is valid — use schedule endpoint as health check
+        const response = await axios.get('https://api.upload-post.com/api/uploadposts/schedule', {
+            headers: { Authorization: `Apikey ${apiKey.trim()}` },
+            timeout: 12000,
+        });
+
+        // Extract all unique usernames seen across scheduled posts
+        const scheduledPosts = response.data?.scheduled_posts || (Array.isArray(response.data) ? response.data : []);
+        const usernameSet = new Set();
+        scheduledPosts.forEach(p => { if (p.profile_username) usernameSet.add(p.profile_username); });
+
+        // The configured username for THIS profile is what matters for posting
+        // Add it to the set so it always appears in the result
+        if (configuredUsername) usernameSet.add(configuredUsername);
+
+        const instagramAccounts = Array.from(usernameSet).map(u => ({ username: u, platform: 'instagram' }));
+
+        return res.json({
+            success: true,
+            configuredUsername,
+            accountCount: instagramAccounts.length,
+            instagramAccounts,
+            allAccounts: instagramAccounts,
+        });
+    } catch (error) {
+        const status = error?.response?.status;
+        const msg = status === 401 || status === 403
+            ? 'API key inválida ou sem permissão.'
+            : error?.response?.data?.message || error?.response?.data?.error || error.message;
+
+        return res.status(400).json({ success: false, error: msg });
     }
 });
 
