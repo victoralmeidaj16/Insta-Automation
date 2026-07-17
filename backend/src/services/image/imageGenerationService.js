@@ -74,6 +74,21 @@ export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingS
 
     enhancedReferenceImages = [...new Set(enhancedReferenceImages)];
 
+    // Modo premium: o background deve sair SEM logo (overlay é aplicado depois),
+    // então logos não podem ir como referência visual. Limita a 3 referências de estilo.
+    if (skipLegacyOverlayComposition) {
+        const logoRefs = new Set([
+            context.logoUrl,
+            context.branding?.logoUrl,
+            context.branding?.logo,
+            fitswapProfile?.branding?.logoUrl,
+            fitswapProfile?.branding?.logo
+        ].filter(Boolean));
+        enhancedReferenceImages = enhancedReferenceImages
+            .filter(img => !logoRefs.has(img))
+            .slice(0, 3);
+    }
+
     // Injeção Contextual de App Screenshot
     const appScreenshotUrl = context.brandKit?.appScreenshotUrl || context.appScreenshotUrl;
     if (appScreenshotUrl && promptMentionsPhoneScreen(finalPrompt)) {
@@ -196,6 +211,10 @@ export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingS
                 .replace(/Color:\s*Dark Gray\s*\([^)]*\)[.,]?\s*/gi, '')
                 .trim();
             finalPrompt = `[CRITICAL INSTRUCTION: Generate ONLY the photographic scene. DO NOT render any text, letters, words, headlines, typography, or UI elements on the image. The image must contain NO readable characters whatsoever.]\n\n${finalPrompt}`;
+
+            if (enhancedReferenceImages.length > 0) {
+                finalPrompt = `[STYLE REFERENCE]: Match the photographic style, lighting, color grade and overall mood of the attached reference image(s). Do NOT copy their subject or composition, and NEVER reproduce any logo, watermark or text visible in them.\n\n${finalPrompt}`;
+            }
         }
 
         finalPrompt = stripSocialHashtags(finalPrompt);
@@ -423,6 +442,15 @@ export async function generateCarousel(promptsOrDescription, aspectRatio = '1:1'
             console.warn(`⚠️ OpenAI gerou apenas ${individualPrompts.length} prompts ao invés de ${count}`);
         }
 
+        // No modo premium (backgrounds crus, sem overlay), o 1º slide vira âncora de estilo
+        // dos seguintes — mesma luz, mesmo color grade, mesma "fotografia" no carrossel inteiro.
+        const isPremiumFlow = Boolean(
+            context.isPremiumCarousel ||
+            context.overlayMode === 'premium' ||
+            context.skipLegacyOverlayComposition
+        );
+        let styleAnchorImage = null;
+
         const allImages = [];
         for (let i = 0; i < individualPrompts.length; i++) {
             const currentPrompt = individualPrompts[i];
@@ -431,8 +459,13 @@ export async function generateCarousel(promptsOrDescription, aspectRatio = '1:1'
             const safePrompt = String(currentPrompt || '');
             console.log(`📡 Prompt ${i + 1} type: ${typeof safePrompt}`);
 
-            const imageUrl = await generateSingleImage(safePrompt, aspectRatio, brandingStyle, false, context, null, model, businessProfileId);
+            const slideReference = isPremiumFlow && styleAnchorImage ? [styleAnchorImage] : null;
+            const imageUrl = await generateSingleImage(safePrompt, aspectRatio, brandingStyle, false, context, slideReference, model, businessProfileId);
             allImages.push(imageUrl);
+
+            if (isPremiumFlow && !styleAnchorImage && imageUrl) {
+                styleAnchorImage = imageUrl;
+            }
 
             console.log(`✅ Card ${i + 1} gerado com sucesso!`);
         }

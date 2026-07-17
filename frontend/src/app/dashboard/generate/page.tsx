@@ -1029,7 +1029,7 @@ export default function GeneratePage() {
         }
     };
 
-    const handleGenerateImageForCard = async (cardIndex: number, retryCount: number = 0, cardsState?: CarouselCard[]) => {
+    const handleGenerateImageForCard = async (cardIndex: number, retryCount: number = 0, cardsState?: CarouselCard[], styleAnchorOverride?: string | null): Promise<string | undefined> => {
         const currentCards = cardsState || carouselCards;
         const card = currentCards[cardIndex];
         if (!card || (card.image && !cardsState)) return;
@@ -1088,6 +1088,12 @@ export default function GeneratePage() {
             }
             const profileContext = buildSelectedProfileContext();
 
+            // Âncora de estilo: o primeiro background já gerado do carrossel vira referência
+            // visual dos demais slides — mesma luz, mesmo color grade, mesma "fotografia".
+            const styleAnchorImage = generationMode === 'premium'
+                ? styleAnchorOverride ?? (currentCards.find((c, idx) => idx !== cardIndex && c.premiumBaseImage)?.premiumBaseImage || null)
+                : null;
+
             const response = await api.post('/api/ai/generate-single-image', {
                 prompt: enhancedPrompt,
                 aspectRatio,
@@ -1104,7 +1110,10 @@ export default function GeneratePage() {
                     overlayMode: generationMode === 'premium' ? 'premium' : undefined,
                     skipLegacyOverlayComposition: generationMode === 'premium'
                 },
-                referenceImage: getProfileReferenceImages({ premiumOnly: generationMode === 'premium' })
+                referenceImage: [
+                    ...(styleAnchorImage ? [styleAnchorImage] : []),
+                    ...getProfileReferenceImages({ premiumOnly: generationMode === 'premium' })
+                ]
             }, { timeout: 120000 });
 
             if (response.data.success) {
@@ -1160,13 +1169,14 @@ export default function GeneratePage() {
                 } else {
                     toast.success(`✅ Imagem do card ${cardIndex + 1} gerada!`);
                 }
+                return baseImage;
             }
         } catch (error: unknown) {
             console.error(`Error generating image for card ${cardIndex + 1}:`, error);
             if (retryCount < 2) {
                 const delay = Math.pow(2, retryCount) * 1000;
                 toast.error(`⚠️ Erro no card ${cardIndex + 1}, tentando novamente em ${delay / 1000}s...`);
-                setTimeout(() => handleGenerateImageForCard(cardIndex, retryCount + 1), delay);
+                setTimeout(() => handleGenerateImageForCard(cardIndex, retryCount + 1, undefined, styleAnchorOverride), delay);
             } else {
                 setCarouselCards(prev => {
                     const newCards = [...prev];
@@ -1195,8 +1205,17 @@ export default function GeneratePage() {
             return;
         }
 
-        toast.loading(`🎨 Gerando ${indicesToGenerate.length} imagens em paralelo...`, { id: 'bulk-generation' });
-        await Promise.allSettled(indicesToGenerate.map(i => handleGenerateImageForCard(i)));
+        if (generationMode === 'premium' && indicesToGenerate.length > 1) {
+            // Premium: gera o 1º slide como âncora de estilo e os demais em paralelo com essa referência
+            const [firstIndex, ...restIndices] = indicesToGenerate;
+            toast.loading(`🎨 Gerando slide âncora de estilo...`, { id: 'bulk-generation' });
+            const anchorImage = await handleGenerateImageForCard(firstIndex);
+            toast.loading(`🎨 Gerando ${restIndices.length} imagens com estilo consistente...`, { id: 'bulk-generation' });
+            await Promise.allSettled(restIndices.map(i => handleGenerateImageForCard(i, 0, undefined, anchorImage || null)));
+        } else {
+            toast.loading(`🎨 Gerando ${indicesToGenerate.length} imagens em paralelo...`, { id: 'bulk-generation' });
+            await Promise.allSettled(indicesToGenerate.map(i => handleGenerateImageForCard(i)));
+        }
         toast.success(`✅ Todas as imagens foram geradas!`, { id: 'bulk-generation' });
     };
 

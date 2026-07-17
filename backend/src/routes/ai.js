@@ -4,7 +4,10 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { generateImages, generateCarousel, generateCarouselPrompts, generateContentPlan, generateImageCaption, generateCaptionFromBrief, generatePostIdeas, extractStyleFromPrompt, generateVariations, generateImagePrompt, generateRelatedIdeas, generateHtmlCarousel, generateTemplateVariations } from '../services/aiService.js';
 import { createScientificComposition } from '../services/scientificCompositionService.js';
-import { getBusinessProfile } from '../services/businessProfileService.js';
+import { getOwnedBusinessProfile } from '../services/businessProfileService.js';
+import { recordGenerationRun } from '../services/generationRunsService.js';
+
+const FORBIDDEN_PROFILE_MSG = 'Perfil de negócio não pertence ao usuário autenticado';
 import { getBrandReferenceImages } from '../utils/brandProfiles.js';
 import { db } from '../config/firebase.js';
 
@@ -248,7 +251,7 @@ router.post('/generate-content-plan', async (req, res) => {
 
         let resolvedContext = context && typeof context === 'object' ? context : {};
         if (businessProfileId) {
-            const profile = await getBusinessProfile(businessProfileId);
+            const profile = await getOwnedBusinessProfile(businessProfileId, req.userId);
             if (!profile) {
                 return res.status(404).json({ error: 'Perfil de negócio não encontrado.' });
             }
@@ -271,8 +274,20 @@ router.post('/generate-content-plan', async (req, res) => {
             qa: qa !== false
         });
 
+        recordGenerationRun({
+            kind: 'content-plan',
+            source: 'manual',
+            businessProfileId,
+            outcome: 'ok',
+            usedContentPlan: true,
+            qaWarnings: warnings
+        });
+
         res.json({ success: true, plan, warnings });
     } catch (error) {
+        if (error.statusCode === 403) {
+            return res.status(403).json({ error: FORBIDDEN_PROFILE_MSG });
+        }
         console.error('❌ Erro ao gerar plano de conteúdo:', error);
         res.status(500).json({
             error: 'Erro ao gerar plano de conteúdo',
@@ -437,8 +452,11 @@ router.post('/generate-single-image', async (req, res) => {
         let profile = null;
         if (businessProfileId) {
             try {
-                profile = await getBusinessProfile(businessProfileId);
+                profile = await getOwnedBusinessProfile(businessProfileId, req.userId);
             } catch (err) {
+                if (err.statusCode === 403) {
+                    return res.status(403).json({ error: FORBIDDEN_PROFILE_MSG });
+                }
                 console.warn('⚠️ Could not load profile context:', err.message);
             }
         }
@@ -507,8 +525,11 @@ router.post('/composite-scientific', async (req, res) => {
         let profile = null;
         if (businessProfileId) {
             try {
-                profile = await getBusinessProfile(businessProfileId);
+                profile = await getOwnedBusinessProfile(businessProfileId, req.userId);
             } catch (err) {
+                if (err.statusCode === 403) {
+                    return res.status(403).json({ error: FORBIDDEN_PROFILE_MSG });
+                }
                 console.warn('⚠️ Could not load profile context for composite-scientific:', err.message);
             }
         }
@@ -559,7 +580,7 @@ router.post('/generate-caption', async (req, res) => {
 
         let context = {};
         if (businessProfileId) {
-            const profile = await getBusinessProfile(businessProfileId);
+            const profile = await getOwnedBusinessProfile(businessProfileId, req.userId);
             if (!profile) {
                 return res.status(404).json({ error: 'Perfil de negócio não encontrado.' });
             }
@@ -716,7 +737,7 @@ router.post('/generate-html-carousel', async (req, res) => {
         // Auto-load business profile context and library images when businessProfileId is provided
         if (businessProfileId) {
             try {
-                const profile = await getBusinessProfile(businessProfileId);
+                const profile = await getOwnedBusinessProfile(businessProfileId, req.userId);
                 if (profile) {
                     profileContext = { ...profile, ...profileContext };
                 }

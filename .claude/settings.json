@@ -1,7 +1,36 @@
 {
   "permissions": {
     "allow": [
-      "Read(//private/tmp/**)"
+      "Read(//private/tmp/**)",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:3011/health)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s http://localhost:3011/api/business-profiles -H \"Authorization: Bearer test\")",
+      "Bash(ls /Users/victoralmeidaj16/Downloads/Insta-Automation/*.log /Users/victoralmeidaj16/Downloads/Insta-Automation/.*.log)",
+      "Bash(ls /tmp/*.log)",
+      "Bash(kill 96308 44123 44317)",
+      "Bash(node --watch src/server.js)",
+      "Bash(echo \"Backend reiniciado. PID: $!\")",
+      "Bash(pkill -f \"node.*server.js\")",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(> /Users/victoralmeidaj16/Downloads/Insta-Automation/.backend.log)",
+      "Bash(> /tmp/frontend.log)",
+      "Bash(echo \"Backend PID: $!\")",
+      "Bash(echo \"Frontend PID: $!\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('✅ Backend:', d['status']\\)\")",
+      "Bash(wc -l /Users/victoralmeidaj16/Downloads/Insta-Automation/backend/src/templates/elevepic/*.html)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3011/api/ai/template-preview/editorial)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3011/api/ai/template-preview/editorial-sci)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3011/api/ai/template-preview/moodboard)",
+      "Bash(curl -sI http://localhost:3011/api/ai/template-preview/editorial)",
+      "Bash(curl -s https://api.upload-post.com/api/uploadposts/schedule -H 'Authorization: Apikey eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZpY3Rvci5hbG1laWRhLmplcmVtaWFzQGdtYWlsLmNvbSIsImV4cCI6NDkzMDk4NTg0MywianRpIjoiY2NkZDcxNzAtMDdkNC00N2JhLWI3YWYtZjJlOTk4MzA4ZGMyIn0.HO4lgWjTRWVuwbrb2_JY205xcZul_cpeLy8AykgQ0J8')",
+      "Bash(curl -sv https://api.upload-post.com/api/accounts -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZpY3Rvci5hbG1laWRhLmplcmVtaWFzQGdtYWlsLmNvbSIsImV4cCI6NDkzMDk4NTg0MywianRpIjoiY2NkZDcxNzAtMDdkNC00N2JhLWI3YWYtZjJlOTk4MzA4ZGMyIn0.HO4lgWjTRWVuwbrb2_JY205xcZul_cpeLy8AykgQ0J8')",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('backend ok'\\)\")",
+      "Read(//Users/virginalmeidaj16/Downloads/Insta-Automation/backend/src/services/carousel/**)",
+      "WebFetch(domain:docs.upload-post.com)",
+      "WebFetch(domain:www.upload-post.com)",
+      "Bash(node --check src/services/postService.js)",
+      "Bash(node -e ' *)"
     ]
   }
 }

@@ -35,9 +35,10 @@ export async function createBusinessProfile(userId, profileData) {
             contentStrategy: normalizedProfile.contentStrategy || '',
             targetAudience: normalizedProfile.targetAudience || '',
             productService: normalizedProfile.productService || '',
+            // Senha do Instagram NÃO é armazenada no perfil: a collection `accounts`
+            // guarda credenciais criptografadas (accountService) e é a única fonte.
             instagram: {
-                username: instagram?.username || '',
-                password: instagram?.password || '' // TODO: Encrypt password before storing
+                username: instagram?.username || ''
             },
             branding: {
                 primaryColor: branding?.primaryColor || '#8e44ad',
@@ -83,6 +84,18 @@ export async function createBusinessProfile(userId, profileData) {
 }
 
 /**
+ * Remove segredos legados do documento antes de servir/usar o perfil.
+ * Docs antigos podem conter instagram.password em texto puro — nunca deve sair do banco.
+ */
+function sanitizeProfileSecrets(profile) {
+    if (profile?.instagram && 'password' in profile.instagram) {
+        const { password, ...instagram } = profile.instagram;
+        return { ...profile, instagram };
+    }
+    return profile;
+}
+
+/**
  * Get all business profiles for a user
  * @param {string} userId - User ID
  * @returns {Promise<Array>} List of business profiles
@@ -95,10 +108,10 @@ export async function getBusinessProfiles(userId) {
 
         const profiles = [];
         snapshot.forEach(doc => {
-            profiles.push(mergeBrandProfileDefaults({
+            profiles.push(sanitizeProfileSecrets(mergeBrandProfileDefaults({
                 id: doc.id,
                 ...doc.data()
-            }));
+            })));
         });
 
         // Sort in JavaScript instead of Firestore
@@ -128,14 +141,28 @@ export async function getBusinessProfile(profileId) {
             throw new Error('Business profile not found');
         }
 
-        return mergeBrandProfileDefaults({
+        return sanitizeProfileSecrets(mergeBrandProfileDefaults({
             id: doc.id,
             ...doc.data()
-        });
+        }));
     } catch (error) {
         console.error('❌ Error fetching business profile:', error);
         throw error;
     }
+}
+
+/**
+ * Carrega um perfil garantindo que ele pertence ao usuário autenticado.
+ * Lança erro com statusCode 403 quando o perfil é de outro usuário.
+ */
+export async function getOwnedBusinessProfile(profileId, userId) {
+    const profile = await getBusinessProfile(profileId);
+    if (userId && profile.userId && profile.userId !== userId) {
+        const error = new Error('Business profile does not belong to the authenticated user');
+        error.statusCode = 403;
+        throw error;
+    }
+    return profile;
 }
 
 /**
@@ -150,10 +177,10 @@ export async function getRawBusinessProfile(profileId) {
             throw new Error('Business profile not found');
         }
 
-        return {
+        return sanitizeProfileSecrets({
             id: doc.id,
             ...doc.data()
-        };
+        });
     } catch (error) {
         console.error('❌ Error fetching raw business profile:', error);
         throw error;

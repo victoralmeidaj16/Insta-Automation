@@ -178,7 +178,8 @@ router.post('/single', async (req, res) => {
             pillarId,
             format || 'static',
             scheduledFor ? new Date(scheduledFor) : null,
-            accountId || null
+            accountId || null,
+            { source: 'manual' }
         );
 
         res.json({ success: true, post });

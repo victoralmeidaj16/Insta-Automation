@@ -33,3 +33,18 @@ yarn-error.log*
 # Debug scripts
 backend/debug-*.js
 backend/test-*.js
+
+# Runtime artifacts (nunca versionar)
+*.pid
+*.pid*
+*.log
+.dev-*
+**/.dev-*
+backend/data/
+backend/test-output/
+
+# Segredos locais
+FIREBASE_CONFIG.txt
+
+# Projeto avulso (não faz parte do app)
+elevepic-node/

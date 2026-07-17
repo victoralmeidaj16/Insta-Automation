@@ -21,6 +21,7 @@ import {
 } from '../domain/formatRules.js';
 import { mergeBrandProfileDefaults } from '../utils/brandProfiles.js';
 import { createPremiumComposition } from './premiumCompositionService.js';
+import { recordGenerationRun } from './generationRunsService.js';
 import { uploadImage } from './historyService.js';
 
 const FORMAT_SLIDE_LIMITS = {
@@ -737,6 +738,38 @@ async function generateElevepicMoodboardHtml(topic, profile) {
  * Gera um post rascunho para o pilar e formato indicados
  */
 export async function generateDraftPost(businessProfileId, pillarId, format, scheduledFor, accountId, options = {}) {
+    const startedAt = Date.now();
+    const telemetry = { usedContentPlan: undefined, qaWarnings: [] };
+    const resolvedFormat = normalizeFormat(format, 'static');
+
+    try {
+        const post = await generateDraftPostInternal(businessProfileId, pillarId, format, scheduledFor, accountId, options, telemetry);
+        recordGenerationRun({
+            kind: 'draft-post',
+            source: options.source || 'manual',
+            businessProfileId,
+            format: resolvedFormat,
+            outcome: resolvedFormat === 'carousel-premium' && telemetry.usedContentPlan === false ? 'fallback' : 'ok',
+            usedContentPlan: telemetry.usedContentPlan,
+            qaWarnings: telemetry.qaWarnings,
+            durationMs: Date.now() - startedAt
+        });
+        return post;
+    } catch (error) {
+        recordGenerationRun({
+            kind: 'draft-post',
+            source: options.source || 'manual',
+            businessProfileId,
+            format: resolvedFormat,
+            outcome: 'error',
+            error: error.message,
+            durationMs: Date.now() - startedAt
+        });
+        throw error;
+    }
+}
+
+async function generateDraftPostInternal(businessProfileId, pillarId, format, scheduledFor, accountId, options = {}, telemetry = {}) {
     const profile = await getBusinessProfile(businessProfileId);
     const merged = mergeBrandProfileDefaults(profile);
     const resolvedProfile = applyGenerationContextOverrides(merged, options.generationContextOverrides || {});
@@ -771,6 +804,7 @@ export async function generateDraftPost(businessProfileId, pillarId, format, sch
     let overlayData = null;
     let premiumOverlayBakedAt = null;
     let libraryItemId = null;
+    let qaWarnings = [];
 
     if (isHtmlFormat(resolvedFormat)) {
         // HTML/CSS carousel — gera HTML puro, sem imagens
@@ -905,12 +939,16 @@ export async function generateDraftPost(businessProfileId, pillarId, format, sch
             });
             planTagPrompts = plan.slides.map(slide => serializeSlideToTagPrompt(slide, { premium: true }));
             caption = [plan.caption, (plan.hashtags || []).join(' ')].filter(Boolean).join('\n\n');
-            if (warnings?.length) {
-                console.warn(`⚠️ [Autopilot] QA do plano retornou ${warnings.length} warning(s):`, warnings.map(w => w.rule || w.detail).join(' | '));
+            qaWarnings = Array.isArray(warnings) ? warnings : [];
+            if (qaWarnings.length) {
+                console.warn(`⚠️ [Autopilot] QA do plano retornou ${qaWarnings.length} warning(s):`, qaWarnings.map(w => w.rule || w.detail).join(' | '));
             }
         } catch (planErr) {
             console.warn('⚠️ [Autopilot] Content plan falhou; usando geração legada de prompts:', planErr.message);
         }
+
+        telemetry.usedContentPlan = Boolean(planTagPrompts);
+        telemetry.qaWarnings = qaWarnings;
 
         const result = await generateCarousel(
             planTagPrompts || description,
@@ -1024,6 +1062,7 @@ export async function generateDraftPost(businessProfileId, pillarId, format, sch
                 premiumLayouts,
                 overlayData,
                 premiumOverlayBakedAt,
+                qaWarnings: qaWarnings.length > 0 ? qaWarnings : null,
                 generationInput: {
                     customTopic: options.customTopic || '',
                     customBriefing: options.customBriefing || '',
@@ -1061,6 +1100,7 @@ export async function generateDraftPost(businessProfileId, pillarId, format, sch
                 premiumLayouts,
                 overlayData,
                 premiumOverlayBakedAt,
+                qaWarnings: qaWarnings.length > 0 ? qaWarnings : null,
                 generationInput: {
                     customTopic: options.customTopic || '',
                     customBriefing: options.customBriefing || '',
@@ -1092,6 +1132,7 @@ export async function generateDraftPost(businessProfileId, pillarId, format, sch
                 premiumLayouts,
                 overlayData,
                 premiumOverlayBakedAt,
+                qaWarnings: qaWarnings.length > 0 ? qaWarnings : null,
                 generationInput: {
                     customTopic: options.customTopic || '',
                     customBriefing: options.customBriefing || '',
@@ -1317,7 +1358,8 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
                     customTopic: slotItem.customTopic || '',
                     customBriefing: slotItem.customBriefing || '',
                     slideCount,
-                    generationContextOverrides
+                    generationContextOverrides,
+                    source: 'manual'
                 });
                 results.push(post);
                 completedItems.push({ index: i, title, format, status: 'done' });
@@ -1331,6 +1373,14 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
         }
 
         console.log(`✅ Plano personalizado concluído: ${results.length} gerados, ${errors.length} erros`);
+        recordGenerationRun({
+            kind: 'weekly-plan',
+            source: 'manual',
+            businessProfileId,
+            profileName: merged.name,
+            outcome: errors.length > 0 && results.length === 0 ? 'error' : 'ok',
+            stats: { generated: results.length, failed: errors.length, errors: errors.slice(0, 10) }
+        });
         return { generated: results.length, failed: errors.length, posts: results, errors, week: weekStartDate.toISOString() };
     }
 
@@ -1386,7 +1436,8 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
             if (!post) {
                 post = await generateDraftPost(businessProfileId, pillar.id, format, slot.date, accountId, {
                     slideCount: getReviewModeSlideCount(format),
-                    generationContextOverrides
+                    generationContextOverrides,
+                    source: 'autopilot'
                 });
             }
 
@@ -1407,6 +1458,15 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
     }
 
     console.log(`✅ Plano semanal concluído: ${results.length} gerados, ${errors.length} erros`);
+
+    recordGenerationRun({
+        kind: 'weekly-plan',
+        source: 'autopilot',
+        businessProfileId,
+        profileName: merged.name,
+        outcome: errors.length > 0 && results.length === 0 ? 'error' : 'ok',
+        stats: { generated: results.length, failed: errors.length, errors: errors.slice(0, 10) }
+    });
 
     return {
         generated: results.length,

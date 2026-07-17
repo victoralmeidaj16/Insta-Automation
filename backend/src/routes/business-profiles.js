@@ -343,11 +343,11 @@ router.post('/:id/connect', async (req, res) => {
         const result = await verifyAccount(accountId);
 
         if (result.success) {
-            // Only update profile credentials on success to keep them in sync
+            // Só o username fica no perfil; a senha vive criptografada na collection `accounts`.
+            // Reescrever o mapa `instagram` também remove senhas legadas em texto puro do doc.
             await updateBusinessProfile(id, {
                 instagram: {
-                    username,
-                    password: password // In a real app, store this more securely or rely solely on accountService
+                    username
                 }
             });
 

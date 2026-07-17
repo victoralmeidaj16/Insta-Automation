@@ -1,7 +1,0 @@
-Starting debug with Gemini KEY: YES
-🤖 Gerando imagem com Gemini (Imagen 3)... Ratio: 3:4
-📎 Anexando 1 imagens de referência ao prompt Gemini para edição Image-to-Image...
-🌐 Fetching image for base64 conversion: https://images.unsplash.com/photo-1549692520-acc66...
-📝 Prompt final enviado ao Gemini: mudar a cor de fundo para vermelho neon
-✅ Imagem extraída do Gemini (image/jpeg, len: 804968)
-SUCCESS

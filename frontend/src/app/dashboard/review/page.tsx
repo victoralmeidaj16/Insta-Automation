@@ -156,6 +156,21 @@ interface DraftPost {
     duration?: number | null;
     theme?: string | null;
     exportStatus?: string | null;
+    qaWarnings?: QaWarning[] | null;
+    extra?: { qaWarnings?: QaWarning[] | null } | null;
+}
+
+interface QaWarning {
+    target?: string;
+    index?: number | null;
+    rule?: string;
+    detail?: string;
+}
+
+// Warnings do QA de marca ficam no topo do doc (drafts sem conta) ou em extra (createPost)
+function getDraftQaWarnings(draft: DraftPost): QaWarning[] {
+    const warnings = draft.qaWarnings || draft.extra?.qaWarnings;
+    return Array.isArray(warnings) ? warnings : [];
 }
 
 type ApprovalDestination = 'schedule' | 'library';
@@ -2439,6 +2454,14 @@ export default function ReviewPage() {
                                                     <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(96,165,250,0.12)', color: '#93c5fd' }}>
                                                         🎯 {getCampaignLabel(draft.scheduledFor)}
                                                     </span>
+                                                    {getDraftQaWarnings(draft).length > 0 && (
+                                                        <span
+                                                            title={getDraftQaWarnings(draft).map(w => `• ${w.rule || 'regra'}: ${w.detail || ''}`).join('\n')}
+                                                            style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', color: '#fbbf24', cursor: 'help' }}
+                                                        >
+                                                            ⚠️ {getDraftQaWarnings(draft).length} aviso{getDraftQaWarnings(draft).length > 1 ? 's' : ''} de marca
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.75rem', color: '#71717a' }}>
