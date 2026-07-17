@@ -120,8 +120,10 @@ async function runWeeklyAutoGeneration() {
             if (alreadyGeneratedThisWeek) continue;
 
             try {
-                console.log(`🚀 [auto-generate] Gerando plano para "${profile.name}" (${doc.id}) em ${todayName} ${currentTime}`);
-                const result = await generateWeeklyPlan(doc.id);
+                // Desloca o início da geração semanal automática em 7 dias para programar a próxima semana (1 semana de antecedência)
+                const nextWeekStartDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                console.log(`🚀 [auto-generate] Gerando plano adiantado para "${profile.name}" (${doc.id}) a partir de: ${nextWeekStartDate.toLocaleDateString('pt-BR')}`);
+                const result = await generateWeeklyPlan(doc.id, nextWeekStartDate);
                 await db.collection('businessProfiles').doc(doc.id).update({
                     contentSchedule: {
                         ...schedule,
