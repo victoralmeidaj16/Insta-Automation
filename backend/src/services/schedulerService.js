@@ -62,6 +62,16 @@ export function startScheduler() {
 
             await runWeeklyAutoGeneration();
 
+            // Executar auto-aprovação de segurança a cada 15 minutos
+            if (new Date().getMinutes() % 15 === 0) {
+                try {
+                    const { runAutoApprover } = await import('../cron/autoApprover.js');
+                    await runAutoApprover();
+                } catch (approveErr) {
+                    console.error('❌ Erro ao rodar auto-aprovação no scheduler:', approveErr);
+                }
+            }
+
         } catch (error) {
             console.error('❌ Erro no scheduler:', error);
         } finally {

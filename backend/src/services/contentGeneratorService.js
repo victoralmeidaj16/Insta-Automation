@@ -1362,6 +1362,18 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
                     source: 'manual'
                 });
                 results.push(post);
+
+                if (schedule.autonomyMode === 'auto') {
+                    try {
+                        console.log(`🤖 [auto-generate] Autopilot ativo (plano customizado): auto-aprovando e agendando post ${post.id}`);
+                        const { scheduleApprovedPost } = await import('./postService.js');
+                        await approveDraftPost(post.id, accountId, { destination: 'schedule' });
+                        await scheduleApprovedPost(post.id, accountId);
+                    } catch (approveErr) {
+                        console.error(`⚠️ [auto-generate] Falha ao auto-aprovar/agendar post customizado ${post.id}:`, approveErr.message);
+                    }
+                }
+
                 completedItems.push({ index: i, title, format, status: 'done' });
                 onProgress?.({ completedItems: [...completedItems] });
             } catch (err) {
@@ -1442,6 +1454,17 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
             }
 
             results.push(post);
+
+            if (schedule.autonomyMode === 'auto') {
+                try {
+                    console.log(`🤖 [auto-generate] Autopilot ativo: auto-aprovando e agendando post ${post.id}`);
+                    const { scheduleApprovedPost } = await import('./postService.js');
+                    await approveDraftPost(post.id, accountId, { destination: 'schedule' });
+                    await scheduleApprovedPost(post.id, accountId);
+                } catch (approveErr) {
+                    console.error(`⚠️ [auto-generate] Falha ao auto-aprovar/agendar post ${post.id}:`, approveErr.message);
+                }
+            }
 
             completedItems.push({ index: i, title, format: actFormat, status: 'done' });
             onProgress?.({ completedItems: [...completedItems] });
