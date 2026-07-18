@@ -11,6 +11,7 @@ import {
     unlinkAccountFromProfile,
     getAccountsByProfile
 } from '../services/businessProfileService.js';
+import { upsertUploadPostAccount } from '../services/accountService.js';
 import {
     addAccount,
     getAccounts,
@@ -286,6 +287,38 @@ router.get('/:id/accounts', async (req, res) => {
             success: false,
             error: error.message
         });
+    }
+});
+
+/**
+ * Cria/atualiza o vínculo formal da conta já conectada no Upload-Post.
+ * Nenhuma senha é armazenada: a conexão OAuth é gerida pelo provedor.
+ */
+router.post('/:id/link-upload-post', async (req, res) => {
+    try {
+        const profile = await getBusinessProfile(req.params.id);
+        if (profile.userId !== req.userId) {
+            return res.status(403).json({ success: false, error: 'Acesso negado.' });
+        }
+
+        const profileUsername = profile.instagram?.username?.trim();
+        const instagramHandle = req.body?.instagramHandle?.trim() || '';
+        if (!profileUsername || !profile.instagram?.uploadPostApiKey) {
+            return res.status(400).json({
+                success: false,
+                error: 'Configure o username e a API key do Upload-Post antes de vincular a conta.'
+            });
+        }
+
+        const account = await upsertUploadPostAccount(req.userId, {
+            businessProfileId: profile.id,
+            profileUsername,
+            instagramHandle
+        });
+        res.json({ success: true, account });
+    } catch (error) {
+        console.error('Erro ao vincular conta Upload-Post:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

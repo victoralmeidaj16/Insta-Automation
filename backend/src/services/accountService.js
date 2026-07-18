@@ -99,7 +99,7 @@ export async function getAccount(accountId) {
             userId: data.userId,
             username: data.username,
             email: data.email ? decrypt(data.email) : null,
-            password: decrypt(data.password),
+            password: data.password ? decrypt(data.password) : null,
             sessionState: data.sessionState ? decrypt(data.sessionState) : null, // Descriptografar sessão
             status: data.status,
             stayLoggedIn: data.stayLoggedIn,
@@ -111,6 +111,53 @@ export async function getAccount(accountId) {
         console.error('❌ Erro ao buscar conta:', error);
         throw error;
     }
+}
+
+/**
+ * Registra uma conta já conectada pelo Upload-Post. Não armazena senha local:
+ * o vínculo OAuth e as credenciais permanecem no provedor.
+ */
+export async function upsertUploadPostAccount(userId, {
+    businessProfileId,
+    profileUsername,
+    instagramHandle = ''
+}) {
+    if (!userId || !businessProfileId || !profileUsername) {
+        throw new Error('Usuário, perfil de negócio e username do Upload-Post são obrigatórios.');
+    }
+
+    const snapshot = await db.collection('accounts')
+        .where('userId', '==', userId)
+        .get();
+    const existing = snapshot.docs.find(doc => doc.data().businessProfileId === businessProfileId
+        && doc.data().connectionType === 'upload-post');
+    const now = new Date();
+    const data = {
+        username: profileUsername,
+        instagramHandle,
+        businessProfileId,
+        connectionType: 'upload-post',
+        platform: 'instagram',
+        status: 'active',
+        isActive: true,
+        lastVerified: now,
+        updatedAt: now
+    };
+
+    if (existing) {
+        await existing.ref.update(data);
+        return { id: existing.id, ...data };
+    }
+
+    const ref = await db.collection('accounts').add({
+        userId,
+        ...data,
+        email: null,
+        password: null,
+        stayLoggedIn: true,
+        createdAt: now
+    });
+    return { id: ref.id, userId, ...data };
 }
 
 /**

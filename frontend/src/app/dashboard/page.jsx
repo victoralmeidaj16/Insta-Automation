@@ -12,6 +12,7 @@ import PageHeader from '@/components/PageHeader';
 import ProfileSwitcher from '@/components/ProfileSwitcher';
 import PostsStatusWidget from '@/components/PostsStatusWidget';
 import FailedPostsAlert from '@/components/FailedPostsAlert';
+import OperationalAlerts from '@/components/OperationalAlerts';
 
 export default function DashboardPage() {
     const [stats, setStats] = useState({ accounts: 0, posts: 0, pending: 0 });
@@ -80,6 +81,7 @@ export default function DashboardPage() {
                 </div>
 
                 <FailedPostsAlert />
+                <OperationalAlerts profileId={selectedProfile?.id || null} />
 
                 {/* Stats Cards */}
                 <div className={selectedProfile ? "grid grid-3 mb-lg" : "grid grid-4 mb-lg"}>

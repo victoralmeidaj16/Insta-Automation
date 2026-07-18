@@ -11,6 +11,7 @@ import historyRouter from './routes/history.js';
 import businessProfilesRouter from './routes/business-profiles.js';
 import libraryRouter from './routes/library.js';
 import autoGenerateRouter from './routes/auto-generate.js';
+import alertsRouter from './routes/alerts.js';
 import { getQueueStats } from './queues/postQueue.js';
 
 dotenv.config();
@@ -128,6 +129,7 @@ export function createApp() {
     app.use('/api/business-profiles', authenticate, businessProfilesRouter);
     app.use('/api/library', authenticate, libraryRouter);
     app.use('/api/auto-generate', authenticate, autoGenerateRouter);
+    app.use('/api/alerts', authenticate, alertsRouter);
 
     app.use((req, res) => {
         res.status(404).json({
