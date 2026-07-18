@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "drafts:expire": "node scripts/expire-overdue-drafts.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

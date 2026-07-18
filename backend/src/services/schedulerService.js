@@ -1,27 +1,67 @@
 import cron from 'node-cron';
 import { db } from '../config/firebase.js';
+import {
+    getNextWeekStart,
+    getScheduleClock,
+    getScheduleWeekKey,
+    normalizeScheduleConfig
+} from '../utils/scheduleConfig.js';
 
 let schedulerStarted = false;
 let schedulerTickRunning = false;
 let autoGenerationTickRunning = false;
 
-const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+const WEEKLY_RUN_LEASE_MS = 2 * 60 * 60 * 1000;
 
-function getCurrentDayName(now = new Date()) {
-    return DAY_NAMES[now.getDay()];
+async function claimWeeklyRun(profileId, weekKey, now) {
+    const runId = `weekly_${profileId}_${weekKey}`;
+    const ref = db.collection('schedulerRuns').doc(runId);
+
+    const claimed = await db.runTransaction(async transaction => {
+        const snapshot = await transaction.get(ref);
+        const current = snapshot.exists ? snapshot.data() : null;
+        const leaseUntil = current?.leaseUntil?.toDate?.() || null;
+
+        if (['completed', 'partial'].includes(current?.status)) return false;
+        if (current?.status === 'running' && leaseUntil && leaseUntil > now) return false;
+
+        transaction.set(ref, {
+            kind: 'weekly-generation',
+            profileId,
+            weekKey,
+            status: 'running',
+            startedAt: now,
+            updatedAt: now,
+            leaseUntil: new Date(now.getTime() + WEEKLY_RUN_LEASE_MS),
+            attempt: (current?.attempt || 0) + 1
+        }, { merge: true });
+        return true;
+    });
+
+    return claimed ? { id: runId, ref } : null;
 }
 
-function getCurrentTimeHHMM(now = new Date()) {
-    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+async function finishWeeklyRun(run, result) {
+    const failed = Number(result?.failed || 0);
+    await run.ref.set({
+        status: failed > 0 ? 'partial' : 'completed',
+        generated: Number(result?.generated || 0),
+        failed,
+        errors: Array.isArray(result?.errors) ? result.errors.slice(0, 20) : [],
+        finishedAt: new Date(),
+        updatedAt: new Date(),
+        leaseUntil: null
+    }, { merge: true });
 }
 
-function getWeekKey(now = new Date()) {
-    const date = new Date(now);
-    const day = date.getDay();
-    const diffToMonday = day === 0 ? -6 : 1 - day;
-    date.setDate(date.getDate() + diffToMonday);
-    date.setHours(0, 0, 0, 0);
-    return date.toISOString().slice(0, 10);
+async function failWeeklyRun(run, error) {
+    await run.ref.set({
+        status: 'failed',
+        error: error.message,
+        failedAt: new Date(),
+        updatedAt: new Date(),
+        leaseUntil: null
+    }, { merge: true });
 }
 
 /**
@@ -60,23 +100,18 @@ export function startScheduler() {
                 }
             }
 
-            await runWeeklyAutoGeneration();
-
-            // Executar auto-aprovação de segurança a cada 15 minutos
-            if (new Date().getMinutes() % 15 === 0) {
-                try {
-                    const { runAutoApprover } = await import('../cron/autoApprover.js');
-                    await runAutoApprover();
-                } catch (approveErr) {
-                    console.error('❌ Erro ao rodar auto-aprovação no scheduler:', approveErr);
-                }
-            }
-
         } catch (error) {
             console.error('❌ Erro no scheduler:', error);
         } finally {
             schedulerTickRunning = false;
         }
+    });
+
+    // A geração de IA não bloqueia a sincronização/publicação que roda acima.
+    cron.schedule('* * * * *', () => {
+        runWeeklyAutoGeneration().catch(error => {
+            console.error('❌ Erro no gerador semanal:', error);
+        });
     });
 }
 
@@ -95,14 +130,10 @@ async function runWeeklyAutoGeneration() {
 
     try {
         const now = new Date();
-        const todayName = getCurrentDayName(now);
-        const currentTime = getCurrentTimeHHMM(now);
-        const currentWeekKey = getWeekKey(now);
 
-        // Busca todos os perfis que têm autoGenerate ativo
-        const snapshot = await db.collection('businessProfiles')
-            .where('contentSchedule.autonomyMode', '==', 'auto')
-            .get();
+        // Busca todos para manter compatibilidade com perfis que ainda não têm
+        // autoGenerationEnabled persistido. A normalização traduz o modo legado.
+        const snapshot = await db.collection('businessProfiles').get();
 
         if (snapshot.empty) {
             return;
@@ -110,7 +141,11 @@ async function runWeeklyAutoGeneration() {
 
         for (const doc of snapshot.docs) {
             const profile = { id: doc.id, ...doc.data() };
-            const schedule = profile.contentSchedule || {};
+            const schedule = normalizeScheduleConfig(profile.contentSchedule || {});
+            if (!schedule.autoGenerationEnabled) continue;
+
+            const { dayName: todayName, time: currentTime } = getScheduleClock(now, schedule.timezone);
+            const currentWeekKey = getScheduleWeekKey(now, schedule.timezone);
             const autoDay = schedule.autoGenerateDay || 'sunday';
             const autoTime = schedule.autoGenerateTime || '20:00';
             const alreadyGeneratedThisWeek = schedule.lastAutoGeneratedWeek === currentWeekKey;
@@ -119,21 +154,29 @@ async function runWeeklyAutoGeneration() {
             if (currentTime < autoTime) continue;
             if (alreadyGeneratedThisWeek) continue;
 
+            const run = await claimWeeklyRun(doc.id, currentWeekKey, now);
+            if (!run) continue;
+
             try {
-                // Desloca o início da geração semanal automática em 7 dias para programar a próxima semana (1 semana de antecedência)
-                const nextWeekStartDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+                const nextWeekStartDate = getNextWeekStart(now, schedule.timezone);
                 console.log(`🚀 [auto-generate] Gerando plano adiantado para "${profile.name}" (${doc.id}) a partir de: ${nextWeekStartDate.toLocaleDateString('pt-BR')}`);
-                const result = await generateWeeklyPlan(doc.id, nextWeekStartDate);
+                const result = await generateWeeklyPlan(doc.id, nextWeekStartDate, null, {}, null, {
+                    generationRunId: run.id
+                });
+                await finishWeeklyRun(run, result);
                 await db.collection('businessProfiles').doc(doc.id).update({
-                    contentSchedule: {
-                        ...schedule,
-                        lastAutoGeneratedAt: now,
-                        lastAutoGeneratedWeek: currentWeekKey
+                    'contentSchedule.lastAutoGeneratedAt': now,
+                    'contentSchedule.lastAutoGeneratedWeek': currentWeekKey,
+                    'contentSchedule.lastAutoGenerationStatus': result.failed > 0 ? 'partial' : 'completed',
+                    'contentSchedule.lastAutoGenerationStats': {
+                        generated: result.generated,
+                        failed: result.failed
                     },
                     updatedAt: now
                 });
                 console.log(`✅ [auto-generate] "${profile.name}": ${result.generated} gerados, ${result.failed} erros`);
             } catch (err) {
+                await failWeeklyRun(run, err);
                 console.error(`❌ [auto-generate] Erro em "${profile.name}": ${err.message}`);
             }
         }

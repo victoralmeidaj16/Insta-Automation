@@ -1,7 +1,8 @@
 import { db } from '../config/firebase.js';
 import { approveDraftPost } from '../services/contentGeneratorService.js';
 import { scheduleApprovedPost } from '../services/postService.js';
-import { getAccountsByProfile } from '../services/contentGeneratorService.js';
+import { getAccountsByProfile, getBusinessProfile } from '../services/businessProfileService.js';
+import { normalizeScheduleConfig } from '../utils/scheduleConfig.js';
 
 /**
  * Script para aprovar automaticamente rascunhos cuja data agendada 
@@ -22,12 +23,35 @@ export async function runAutoApprover() {
             .get();
 
         let approvedCount = 0;
+        let skippedCount = 0;
+        const scheduleCache = new Map();
 
         for (const doc of snapshot.docs) {
             const draft = doc.data();
             const scheduledFor = draft.scheduledFor?.toDate?.() || new Date(draft.scheduledFor);
 
-            if (!isNaN(scheduledFor.getTime()) && scheduledFor <= thresholdDate) {
+            if (!draft.businessProfileId) {
+                skippedCount++;
+                continue;
+            }
+
+            let schedule = scheduleCache.get(draft.businessProfileId);
+            if (!schedule) {
+                const profile = await getBusinessProfile(draft.businessProfileId);
+                schedule = normalizeScheduleConfig(profile.contentSchedule || {});
+                scheduleCache.set(draft.businessProfileId, schedule);
+            }
+
+            // Opt-in explícito. Revisão nunca pode publicar sem uma ação humana.
+            const fallbackEnabled = schedule.publishingMode === 'auto'
+                && schedule.autoApproveFallbackEnabled === true;
+            if (!fallbackEnabled) {
+                skippedCount++;
+                continue;
+            }
+
+            // Nunca autoaprovar conteúdo vencido.
+            if (!isNaN(scheduledFor.getTime()) && scheduledFor > now && scheduledFor <= thresholdDate) {
                 console.log(`\n⏳ Auto-aprovando rascunho ${doc.id} ("${draft.pillarName}") agendado para ${scheduledFor.toLocaleString('pt-BR')}...`);
                 
                 try {
@@ -62,7 +86,7 @@ export async function runAutoApprover() {
             }
         }
 
-        console.log(`\n🏁 Verificação concluída. ${approvedCount} posts foram auto-aprovados.`);
+        console.log(`\n🏁 Verificação concluída. ${approvedCount} auto-aprovados; ${skippedCount} protegidos/ignorados.`);
 
     } catch (error) {
         console.error('❌ Falha geral no autoApprover:', error);

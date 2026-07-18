@@ -23,6 +23,11 @@ import { mergeBrandProfileDefaults } from '../utils/brandProfiles.js';
 import { createPremiumComposition } from './premiumCompositionService.js';
 import { recordGenerationRun } from './generationRunsService.js';
 import { uploadImage } from './historyService.js';
+import {
+    addDaysInTimeZone,
+    getZonedDateParts,
+    normalizeScheduleConfig
+} from '../utils/scheduleConfig.js';
 
 const FORMAT_SLIDE_LIMITS = {
     carousel: { min: 4, max: 10, fallback: 5 },
@@ -494,11 +499,9 @@ function supportsSlotKind(pillar, slotKind) {
 }
 
 /**
- * Retorna os próximos N slots futuros baseados em contentSchedule.
- * Varre os próximos 14 dias para garantir que sempre haja slots disponíveis,
- * independente de quantos dias da semana atual já passaram.
+ * Retorna slots dentro de uma única janela semanal no fuso do perfil.
  */
-function buildSlots({ days, times, count, startDate, slotKind, lookaheadDays = 14 }) {
+function buildSlots({ days, times, count, weekStartDate, slotKind, timeZone, now = new Date() }) {
     const normalizedDays = (Array.isArray(days) && days.length > 0 ? days : ALL_DAYS)
         .filter(day => day in DAY_MAP);
     const normalizedTimes = (Array.isArray(times) && times.length > 0 ? times : ['09:00'])
@@ -506,19 +509,15 @@ function buildSlots({ days, times, count, startDate, slotKind, lookaheadDays = 1
         .filter(Boolean);
 
     const slots = [];
-    for (let daysAhead = 0; daysAhead <= lookaheadDays && slots.length < count; daysAhead++) {
-        const candidate = new Date(startDate);
-        candidate.setDate(startDate.getDate() + daysAhead);
-
-        const dayName = ALL_DAYS[candidate.getDay()];
+    for (let daysAhead = 0; daysAhead < 7 && slots.length < count; daysAhead++) {
+        const candidate = addDaysInTimeZone(weekStartDate, daysAhead, timeZone);
+        const dayName = getZonedDateParts(candidate, timeZone).dayName;
         if (!normalizedDays.includes(dayName)) continue;
 
         for (const time of normalizedTimes) {
             if (slots.length >= count) break;
-            const [h, m] = time.split(':').map(Number);
-            const slot = new Date(candidate);
-            slot.setHours(h, m, 0, 0);
-            if (slot >= startDate) {
+            const slot = addDaysInTimeZone(weekStartDate, daysAhead, timeZone, time);
+            if (slot >= now) {
                 slots.push({ date: slot, kind: slotKind });
             }
         }
@@ -529,28 +528,33 @@ function buildSlots({ days, times, count, startDate, slotKind, lookaheadDays = 1
 
 function getWeeklySlots(contentSchedule, weekStartDate = new Date()) {
     const now = new Date();
-    const startDate = weekStartDate > now ? new Date(weekStartDate) : now;
-    const preferredDays = contentSchedule.preferredDays || ['tuesday', 'thursday', 'saturday'];
-    const preferredTimes = contentSchedule.preferredTimes || ['09:00', '18:00'];
-    const storyPreferredDays = contentSchedule.storyPreferredDays || ALL_DAYS;
-    const storyPreferredTimes = contentSchedule.storyPreferredTimes || [preferredTimes[0] || '12:00'];
-    const postsPerWeek = Math.max(0, Number(contentSchedule.postsPerWeek || 0));
-    const storiesPerWeek = Math.max(0, Number(contentSchedule.storiesPerWeek || 0));
+    const schedule = normalizeScheduleConfig(contentSchedule);
+    const startDate = new Date(weekStartDate);
+    const preferredDays = schedule.preferredDays || ['tuesday', 'thursday', 'saturday'];
+    const preferredTimes = schedule.preferredTimes || ['09:00', '18:00'];
+    const storyPreferredDays = schedule.storyPreferredDays || ALL_DAYS;
+    const storyPreferredTimes = schedule.storyPreferredTimes || [preferredTimes[0] || '12:00'];
+    const postsPerWeek = Math.max(0, Number(schedule.postsPerWeek || 0));
+    const storiesPerWeek = Math.max(0, Number(schedule.storiesPerWeek || 0));
 
     const postSlots = buildSlots({
         days: preferredDays,
         times: preferredTimes,
         count: postsPerWeek,
-        startDate,
-        slotKind: 'post'
+        weekStartDate: startDate,
+        slotKind: 'post',
+        timeZone: schedule.timezone,
+        now
     });
 
     const storySlots = buildSlots({
         days: storyPreferredDays,
         times: storyPreferredTimes,
         count: storiesPerWeek,
-        startDate,
-        slotKind: 'story'
+        weekStartDate: startDate,
+        slotKind: 'story',
+        timeZone: schedule.timezone,
+        now
     });
 
     return [...postSlots, ...storySlots].sort((a, b) => a.date - b.date);
@@ -1053,6 +1057,8 @@ async function generateDraftPostInternal(businessProfileId, pillarId, format, sc
             caption: caption || '',
             tag: 'auto',
             extra: {
+                generationRunId: options.generationRunId || null,
+                generationSlotKey: options.generationSlotKey || null,
                 slideCount: generatedSlideCount,
                 pillarId: pillar.id,
                 pillarName: pillar.name,
@@ -1094,6 +1100,8 @@ async function generateDraftPostInternal(businessProfileId, pillarId, format, sc
             generationPrompt,
             libraryItemId,
             extra: {
+                generationRunId: options.generationRunId || null,
+                generationSlotKey: options.generationSlotKey || null,
                 slideCount: generatedSlideCount,
                 sourceMediaUrls,
                 premiumLayout,
@@ -1126,6 +1134,8 @@ async function generateDraftPostInternal(businessProfileId, pillarId, format, sc
             needsAccount: true,
             format: resolvedFormat,
             extra: {
+                generationRunId: options.generationRunId || null,
+                generationSlotKey: options.generationSlotKey || null,
                 slideCount: generatedSlideCount,
                 sourceMediaUrls,
                 premiumLayout,
@@ -1170,8 +1180,13 @@ export async function previewWeeklyPlan(businessProfileId, weekStartDate = new D
     const merged = mergeBrandProfileDefaults(profile);
 
     const pillars = merged.editorialPillars || [];
-    const schedule = merged.contentSchedule || {};
+    const schedule = normalizeScheduleConfig(merged.contentSchedule || {});
     const accounts = await getAccountsByProfile(businessProfileId);
+
+    const postCapacity = new Set(schedule.preferredDays || []).size
+        * new Set(schedule.preferredTimes || []).size;
+    const storyCapacity = new Set(schedule.storyPreferredDays || []).size
+        * new Set(schedule.storyPreferredTimes || []).size;
 
     // Health checks
     const checks = {
@@ -1179,7 +1194,12 @@ export async function previewWeeklyPlan(businessProfileId, weekStartDate = new D
         hasAccount: accounts.length > 0,
         hasSchedule: ((schedule.postsPerWeek || 0) + (schedule.storiesPerWeek || 0)) > 0,
         pillarWeightOk: pillars.reduce((s, p) => s + (p.weight || 0), 0) === 100,
-        autonomyMode: schedule.autonomyMode || 'manual'
+        hasEnoughPostSlots: Number(schedule.postsPerWeek || 0) <= postCapacity,
+        hasEnoughStorySlots: Number(schedule.storiesPerWeek || 0) <= storyCapacity,
+        autoGenerationEnabled: schedule.autoGenerationEnabled,
+        publishingMode: schedule.publishingMode,
+        autonomyMode: schedule.autonomyMode,
+        timezone: schedule.timezone
     };
 
     const slots = getWeeklySlots(schedule, weekStartDate);
@@ -1313,22 +1333,49 @@ Retorne SOMENTE um JSON válido com a chave "topics" contendo um array de ${plan
 // Geração do plano semanal completo
 // ---------------------------------------------------------------------------
 
+async function findGeneratedSlot(generationSlotKey) {
+    if (!generationSlotKey) return null;
+    const snapshot = await db.collection('posts')
+        .where('generationSlotKey', '==', generationSlotKey)
+        .limit(1)
+        .get();
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() };
+}
+
+async function tagGeneratedSlot(post, generationRunId, generationSlotKey) {
+    if (!post?.id || !generationSlotKey) return post;
+    await db.collection('posts').doc(post.id).set({
+        generationRunId,
+        generationSlotKey,
+        updatedAt: new Date()
+    }, { merge: true });
+    return { ...post, generationRunId, generationSlotKey };
+}
+
 /**
  * Gera todos os posts rascunho da semana para um perfil de negócio
  */
-export async function generateWeeklyPlan(businessProfileId, weekStartDate = new Date(), customPlan = null, generationContextOverrides = {}, onProgress = null) {
+export async function generateWeeklyPlan(businessProfileId, weekStartDate = new Date(), customPlan = null, generationContextOverrides = {}, onProgress = null, runOptions = {}) {
     const profile = await getBusinessProfile(businessProfileId);
     const merged = mergeBrandProfileDefaults(profile);
 
     const pillars = merged.editorialPillars || [];
-    const schedule = merged.contentSchedule || {};
+    const schedule = normalizeScheduleConfig(merged.contentSchedule || {});
+    const generationRunId = runOptions.generationRunId || null;
 
     if (pillars.length === 0) {
         throw new Error('Nenhum pilar editorial configurado para este perfil.');
     }
 
     const accounts = await getAccountsByProfile(businessProfileId);
-    const accountId = accounts.length > 0 ? accounts[0].id : null;
+    const activeAccount = accounts.find(account => account.status === 'active' && account.isActive !== false) || null;
+    const accountId = (activeAccount || accounts[0])?.id || null;
+
+    if (schedule.publishingMode === 'auto' && !activeAccount) {
+        throw new Error('Modo de publicação automática exige uma conta Instagram vinculada e ativa.');
+    }
 
     const recentActivity = await analyzeRecentPosts(businessProfileId, 7);
 
@@ -1349,21 +1396,33 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
             const format = slotItem.format;
             const slideCount = getReviewModeSlideCount(format, slotItem.slideCount);
             const title = slotItem.customTopic || pillar.name;
+            const generationSlotKey = generationRunId ? `${generationRunId}_${i}` : null;
 
             onProgress?.({ currentIndex: i, currentPostTitle: title });
 
             try {
+                const existingPost = await findGeneratedSlot(generationSlotKey);
+                if (existingPost) {
+                    results.push(existingPost);
+                    completedItems.push({ index: i, title, format, status: 'skipped' });
+                    onProgress?.({ completedItems: [...completedItems] });
+                    continue;
+                }
+
                 console.log(`  [${i + 1}/${customPlan.length}] Pilar: "${pillar.name}" | Formato: ${format} | Slot: ${slotDate.toLocaleString('pt-BR')}`);
-                const post = await generateDraftPost(businessProfileId, pillar.id, format, slotDate, accountId, {
+                let post = await generateDraftPost(businessProfileId, pillar.id, format, slotDate, accountId, {
                     customTopic: slotItem.customTopic || '',
                     customBriefing: slotItem.customBriefing || '',
                     slideCount,
                     generationContextOverrides,
+                    generationRunId,
+                    generationSlotKey,
                     source: 'manual'
                 });
+                post = await tagGeneratedSlot(post, generationRunId, generationSlotKey);
                 results.push(post);
 
-                if (schedule.autonomyMode === 'auto') {
+                if (schedule.publishingMode === 'auto') {
                     try {
                         console.log(`🤖 [auto-generate] Autopilot ativo (plano customizado): auto-aprovando e agendando post ${post.id}`);
                         const { scheduleApprovedPost } = await import('./postService.js');
@@ -1371,6 +1430,10 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
                         await scheduleApprovedPost(post.id, accountId);
                     } catch (approveErr) {
                         console.error(`⚠️ [auto-generate] Falha ao auto-aprovar/agendar post customizado ${post.id}:`, approveErr.message);
+                        errors.push({ slot: slotDate.toISOString(), stage: 'scheduling', error: approveErr.message });
+                        completedItems.push({ index: i, title, format, status: 'error' });
+                        onProgress?.({ completedItems: [...completedItems] });
+                        continue;
                     }
                 }
 
@@ -1420,6 +1483,15 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
         let actFormat = 'static';
 
         try {
+            const generationSlotKey = generationRunId ? `${generationRunId}_${i}` : null;
+            const existingPost = await findGeneratedSlot(generationSlotKey);
+            if (existingPost) {
+                results.push(existingPost);
+                completedItems.push({ index: i, title: existingPost.pillarName || title, format: existingPost.format || actFormat, status: 'skipped' });
+                onProgress?.({ completedItems: [...completedItems] });
+                continue;
+            }
+
             const totalTarget = slot.kind === 'story' ? totalStorySlots : totalPostSlots;
             const pillar = choosePillar(pillars, recentActivity, totalTarget || slots.length, slot.kind);
             if (!pillar) break;
@@ -1449,13 +1521,17 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
                 post = await generateDraftPost(businessProfileId, pillar.id, format, slot.date, accountId, {
                     slideCount: getReviewModeSlideCount(format),
                     generationContextOverrides,
+                    generationRunId,
+                    generationSlotKey,
                     source: 'autopilot'
                 });
             }
 
+            post = await tagGeneratedSlot(post, generationRunId, generationSlotKey);
+
             results.push(post);
 
-            if (schedule.autonomyMode === 'auto') {
+            if (schedule.publishingMode === 'auto') {
                 try {
                     console.log(`🤖 [auto-generate] Autopilot ativo: auto-aprovando e agendando post ${post.id}`);
                     const { scheduleApprovedPost } = await import('./postService.js');
@@ -1463,6 +1539,10 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
                     await scheduleApprovedPost(post.id, accountId);
                 } catch (approveErr) {
                     console.error(`⚠️ [auto-generate] Falha ao auto-aprovar/agendar post ${post.id}:`, approveErr.message);
+                    errors.push({ slot: slot.date.toISOString(), stage: 'scheduling', error: approveErr.message });
+                    completedItems.push({ index: i, title, format: actFormat, status: 'error' });
+                    onProgress?.({ completedItems: [...completedItems] });
+                    continue;
                 }
             }
 

@@ -341,7 +341,12 @@ export async function updatePostStatus(postId, status, errorMessage = null, post
     try {
         const postSnapshot = await db.collection('posts').doc(postId).get();
         const postData = postSnapshot.exists ? postSnapshot.data() : null;
-        const updateData = { status };
+        const updateData = { status, updatedAt: new Date() };
+
+        if (['success', 'posted', 'error', 'failed', 'rejected', 'scheduled'].includes(status)) {
+            updateData.executionLeaseUntil = null;
+            updateData.executionWorker = null;
+        }
 
         if (errorMessage) {
             updateData.errorMessage = errorMessage;
@@ -361,6 +366,41 @@ export async function updatePostStatus(postId, status, errorMessage = null, post
         console.error('❌ Erro ao atualizar status:', error);
         throw error;
     }
+}
+
+async function claimPostExecution(postId) {
+    const ref = db.collection('posts').doc(postId);
+    const now = new Date();
+    const leaseUntil = new Date(now.getTime() + 15 * 60 * 1000);
+    const worker = process.env.RENDER_INSTANCE_ID || `pid-${process.pid}`;
+
+    return db.runTransaction(async transaction => {
+        const snapshot = await transaction.get(ref);
+        if (!snapshot.exists) throw new Error('Post não encontrado.');
+
+        const post = { id: snapshot.id, ...snapshot.data() };
+        if (post.externalScheduler && post.externalJobId) {
+            return { claimed: false, reason: 'external-scheduler', post };
+        }
+
+        if (!['pending', 'processing'].includes(post.status) || post.isDraft === true) {
+            return { claimed: false, reason: `status-${post.status}`, post };
+        }
+
+        const currentLease = post.executionLeaseUntil?.toDate?.() || null;
+        if (currentLease && currentLease > now) {
+            return { claimed: false, reason: 'leased', post };
+        }
+
+        transaction.update(ref, {
+            status: 'processing',
+            executionLeaseUntil: leaseUntil,
+            executionWorker: worker,
+            executionAttempt: Number(post.executionAttempt || 0) + 1,
+            updatedAt: now
+        });
+        return { claimed: true, post: { ...post, status: 'processing' } };
+    });
 }
 
 /**
@@ -431,7 +471,12 @@ export async function executePost(postId) {
     console.log(`🚀 Executando post ${postId}...`);
 
     try {
-        const post = await getPost(postId);
+        const claim = await claimPostExecution(postId);
+        if (!claim.claimed) {
+            console.log(`⏭️ Post ${postId} não executado: ${claim.reason}.`);
+            return { success: true, skipped: true, reason: claim.reason };
+        }
+        const post = claim.post;
 
         // Resolve account — fall back to Business Profile if no direct account linked
         let account;
@@ -457,9 +502,6 @@ export async function executePost(postId) {
             console.log(`⏭️ Post ${postId} já está programado no Upload-Post (job ${post.externalJobId}). Ignorando execução local.`);
             return { success: true, message: 'Post scheduled via Upload-Post' };
         }
-
-        // Atualizar status para "processando"
-        await updatePostStatus(postId, 'processing');
 
         // Validar mídias
         if (!post.mediaUrls || post.mediaUrls.length === 0) {

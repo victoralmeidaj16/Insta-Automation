@@ -1,3 +1,5 @@
+import { normalizeScheduleConfig } from './scheduleConfig.js';
+
 const FITSWAP_REFERENCE_PROMPTS = [
     // 1. Decision relief — woman in kitchen with app
     `Create a premium, cinematic editorial advertisement image for the Fitswap app, focused on instant clarity and relief around food decisions. FORMAT: Vertical 4:5 (1080×1350), single-frame, strong negative space for typography, high-end wellness-tech aesthetic. SCENE: Bright, clean, modern kitchen flooded with soft natural daylight. White and neutral tones dominate. Environment feels calm, organized, resolved. SUBJECT: A modern woman (25–35), realistic, not influencer. Standing naturally at the kitchen counter. One hand holding a smartphone at chest height, the other resting near a finished, healthy, real-life meal. Expression shows relief and control — decision already made. No smile. Calm confidence only. SMARTPHONE: Subtle Neon Lime glow (#A6F000) from the screen, suggesting Fitswap interface (abstract UI, no readable text). Glow is refined, minimal, intelligent — never flashy. FOOD: Balanced, appetizing, realistic meal. Fresh, simple, achievable. Not gourmet, not staged. STYLE: Ultra-realistic photography, soft grain, gentle bloom on phone glow, natural shadows, shallow depth of field. RULES: No smiling, no fitness clichés, no calorie numbers, no influencer poses, no cartoon style.`,
@@ -858,10 +860,10 @@ export function mergeBrandProfileDefaults(profile = {}) {
         : (preset.editorialPillars || []);
 
     // contentSchedule: merge profile over preset
-    const contentSchedule = {
+    const contentSchedule = normalizeScheduleConfig({
         ...(preset.contentSchedule || {}),
         ...(profile.contentSchedule || {})
-    };
+    });
 
     return {
         ...preset,
