@@ -5,6 +5,10 @@ import { uploadPhotos, uploadVideo, cancelScheduledPost } from './uploadPostServ
 import { createScheduledPostRecord, normalizeStoredPostRecord } from '../domain/contentModels.js';
 import { getCreatablePostTypes, isReelFormat, isStoryFormat, normalizeFormat } from '../domain/formatRules.js';
 
+export function shouldPreserveReusableMedia(post = {}) {
+    return Boolean(post.libraryItemId && isStoryFormat(post.format || post.type));
+}
+
 
 /**
  * Cria um novo post (imediato ou agendado)
@@ -307,6 +311,9 @@ async function syncLibraryItemFromPostStatus(postId, status, postData = null, po
         updateData.status = 'scheduled';
         updateData.scheduledPostId = postId;
         updateData.scheduledFor = postData?.scheduledFor || null;
+        if (shouldPreserveReusableMedia(postData)) {
+            updateData.lastScheduledAt = new Date();
+        }
     }
 
     if (status === 'error' || status === 'failed' || status === 'rejected') {
@@ -320,9 +327,13 @@ async function syncLibraryItemFromPostStatus(postId, status, postData = null, po
     if (status === 'success' || status === 'posted') {
         updateData.isPosted = true;
         updateData.isScheduled = false;
-        updateData.status = 'posted';
-        updateData.tag = 'postado';
+        updateData.status = shouldPreserveReusableMedia(postData) ? 'pronto' : 'posted';
+        updateData.tag = shouldPreserveReusableMedia(postData) ? 'story-reutilizavel' : 'postado';
         updateData.scheduledFor = null;
+        updateData.scheduledPostId = null;
+        if (shouldPreserveReusableMedia(postData)) {
+            updateData.lastPublishedAt = postedAt || new Date();
+        }
     }
 
     if (Object.keys(updateData).length === 1) {
@@ -425,8 +436,8 @@ export async function deletePost(postId) {
             await cancelScheduledPost(post.externalJobId, apiKey);
         }
 
-        // Deletar mídias do Storage
-        if (post.mediaUrls && post.mediaUrls.length > 0) {
+        // Stories vinculados à biblioteca preservam a mídia para republicação.
+        if (!shouldPreserveReusableMedia(post) && post.mediaUrls && post.mediaUrls.length > 0) {
             for (const url of post.mediaUrls) {
                 try {
                     // Extrair caminho do arquivo da URL
@@ -566,23 +577,23 @@ export async function executePost(postId) {
                 await updatePostStatus(postId, 'success', null, new Date());
             }
 
-            // Deletar mídias do Storage após sucesso (apensar se for síncrono ou se confiarmos no worker)
-            // Se for assíncrono, talvez devêssemos manter até o worker terminar? 
-            // Mas o Upload-Post já baixou as mídias (conforme logs "Downloading photo 1/1").
-            // Então podemos deletar.
-            for (const url of post.mediaUrls) {
-                try {
-                    if (url.includes('/o/')) {
-                        const filePath = url.split('/o/')[1]?.split('?')[0];
-                        if (filePath) {
-                            const decodedPath = decodeURIComponent(filePath);
-                            await storage.file(decodedPath).delete();
-                            console.log(`🗑️ Mídia deletada do Storage: ${decodedPath}`);
+            if (!shouldPreserveReusableMedia(post)) {
+                for (const url of post.mediaUrls) {
+                    try {
+                        if (url.includes('/o/')) {
+                            const filePath = url.split('/o/')[1]?.split('?')[0];
+                            if (filePath) {
+                                const decodedPath = decodeURIComponent(filePath);
+                                await storage.file(decodedPath).delete();
+                                console.log(`🗑️ Mídia deletada do Storage: ${decodedPath}`);
+                            }
                         }
+                    } catch (e) {
+                        console.warn('⚠️ Erro ao deletar mídia:', e.message);
                     }
-                } catch (e) {
-                    console.warn('⚠️ Erro ao deletar mídia:', e.message);
                 }
+            } else {
+                console.log(`♻️ Mídia do story ${postId} preservada para republicação.`);
             }
 
             // Keep the library card marked as in-flight while the worker finishes.
@@ -643,7 +654,8 @@ export async function scheduleApprovedPost(postId, accountId = null) {
         }
     }
 
-    const scheduledDate = post.scheduledFor ? new Date(post.scheduledFor) : null;
+    const scheduledDate = post.scheduledFor?.toDate?.()
+        || (post.scheduledFor ? new Date(post.scheduledFor) : null);
     const now = new Date();
     const shouldScheduleForFuture = scheduledDate && !isNaN(scheduledDate.getTime()) && scheduledDate > now;
 
@@ -874,8 +886,8 @@ export async function syncScheduledPosts() {
                     // Mark as success locally
                     await updatePostStatus(post.id, 'success', null, jobStatus.last_update ? new Date(jobStatus.last_update.$date || jobStatus.last_update) : new Date());
 
-                    // Delete media from storage since it's published
-                    if (post.mediaUrls && post.mediaUrls.length > 0) {
+                    // Stories da biblioteca permanecem no Storage para reutilização.
+                    if (!shouldPreserveReusableMedia(post) && post.mediaUrls && post.mediaUrls.length > 0) {
                         for (const url of post.mediaUrls) {
                             try {
                                 if (url.includes('/o/')) {
@@ -890,6 +902,8 @@ export async function syncScheduledPosts() {
                                 console.warn('⚠️ Erro ao deletar mídia no Sync:', e.message);
                             }
                         }
+                    } else if (shouldPreserveReusableMedia(post)) {
+                        console.log(`♻️ Mídia do story ${post.id} preservada para republicação.`);
                     }
 
                 } else if (jobStatus && jobStatus.status === 'failed') {

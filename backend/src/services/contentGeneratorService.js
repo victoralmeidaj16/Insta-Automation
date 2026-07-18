@@ -1507,9 +1507,11 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
 
             let post;
 
-            // Stories: try to reuse an eligible library item first (cooldown: 2 days)
-            if (slot.kind === 'story') {
-                const libraryStory = await selectStoryFromLibrary(businessProfileId, usedStoryLibraryIds, 2);
+            // Stories: prioriza a biblioteca e só gera uma nova peça quando
+            // não houver item elegível após o cooldown configurado.
+            if (slot.kind === 'story' && schedule.reuseStories !== false) {
+                const cooldownDays = Math.max(1, Number(schedule.storyReuseCooldownDays || 14));
+                const libraryStory = await selectStoryFromLibrary(businessProfileId, usedStoryLibraryIds, cooldownDays);
                 if (libraryStory) {
                     usedStoryLibraryIds.push(libraryStory.id);
                     console.log(`    ♻️ Reutilizando story da biblioteca: ${libraryStory.id}`);
@@ -1803,6 +1805,7 @@ function buildLibraryUpdateFromDraft(data = {}, {
         isScheduled: isScheduledDestination ? true : (isLibraryDestination ? false : undefined),
         scheduledPostId: isScheduledDestination ? postId : (isLibraryDestination ? null : undefined),
         scheduledFor: isScheduledDestination ? scheduledFor : (isLibraryDestination ? null : undefined),
+        lastScheduledAt: isStoryDraft && isScheduledDestination ? new Date() : undefined,
         updatedAt: new Date()
     };
 

@@ -135,4 +135,44 @@ describe('critical post flow', () => {
         expect(checkJobStatusMock).toHaveBeenCalledWith('job-123', undefined);
         expect(firebase.deletedFiles).toEqual(['media/sync-post.jpg']);
     });
+
+    it('preserves a published story media and returns its library item to reusable state', async () => {
+        const { syncScheduledPosts } = await import('../src/services/postService.js');
+        const mediaUrl = 'https://firebasestorage.googleapis.com/v0/b/test/o/media%2Freusable-story.jpg?alt=media';
+        const libraryRef = await firebase.db.collection('library_items').add({
+            userId: 'A9NJto9KIOSgYJg8uRj8u5xAvAg1',
+            businessProfileId: 'profile-1',
+            type: 'story',
+            format: 'story',
+            mediaUrls: [mediaUrl],
+            status: 'scheduled',
+            isScheduled: true,
+            isPosted: false,
+        });
+        const postRef = await firebase.db.collection('posts').add({
+            userId: 'A9NJto9KIOSgYJg8uRj8u5xAvAg1',
+            accountId: 'account-1',
+            businessProfileId: 'profile-1',
+            type: 'story',
+            format: 'story',
+            mediaUrls: [mediaUrl],
+            scheduledFor: new Date('2026-04-09T12:00:00.000Z'),
+            status: 'scheduled',
+            externalScheduler: 'upload-post',
+            externalJobId: 'story-job-123',
+            libraryItemId: libraryRef.id,
+        });
+
+        await syncScheduledPosts();
+
+        const savedPost = firebase.getCollection('posts').get(postRef.id);
+        const savedLibraryItem = firebase.getCollection('library_items').get(libraryRef.id);
+        expect(savedPost.status).toBe('success');
+        expect(savedLibraryItem.status).toBe('pronto');
+        expect(savedLibraryItem.tag).toBe('story-reutilizavel');
+        expect(savedLibraryItem.isPosted).toBe(true);
+        expect(savedLibraryItem.isScheduled).toBe(false);
+        expect(savedLibraryItem.lastPublishedAt).toBeInstanceOf(Date);
+        expect(firebase.deletedFiles).toEqual([]);
+    });
 });
