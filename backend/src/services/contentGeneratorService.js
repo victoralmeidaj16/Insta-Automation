@@ -668,7 +668,7 @@ Rules:
 - Tone: premium, sophisticated, authoritative (elevepic brand voice)
 - Write in Portuguese (Brazil)`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
     const response = await axios.post(url, {
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: 'user', parts: [{ text: `Create moodboard carousel content for: "${topic}"` }] }],
