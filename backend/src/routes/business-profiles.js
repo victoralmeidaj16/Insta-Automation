@@ -9,9 +9,10 @@ import {
     deleteBusinessProfile,
     linkAccountToProfile,
     unlinkAccountFromProfile,
-    getAccountsByProfile
+    getAccountsByProfile,
+    sanitizeProfileForClient
 } from '../services/businessProfileService.js';
-import { upsertUploadPostAccount } from '../services/accountService.js';
+import { getOwnedAccount, upsertUploadPostAccount } from '../services/accountService.js';
 import {
     addAccount,
     getAccounts,
@@ -66,7 +67,7 @@ router.post('/', async (req, res) => {
 
         res.json({
             success: true,
-            profile
+            profile: sanitizeProfileForClient(profile)
         });
     } catch (error) {
         console.error('Error creating business profile:', error);
@@ -115,7 +116,7 @@ router.get('/:id', async (req, res) => {
 
         res.json({
             success: true,
-            profile
+            profile: sanitizeProfileForClient(profile)
         });
     } catch (error) {
         console.error('Error fetching business profile:', error);
@@ -142,7 +143,6 @@ router.put('/:id', async (req, res) => {
             });
         }
 
-        console.log('🔄 [DEBUG] PUT /:id - Body:', JSON.stringify(req.body, null, 2));
         const updates = buildBusinessProfileUpdates(profile, req.body);
 
         await updateBusinessProfile(id, updates);
@@ -215,6 +215,8 @@ router.post('/:id/link-account', async (req, res) => {
             });
         }
 
+        await getOwnedAccount(accountId, req.userId);
+
         await linkAccountToProfile(accountId, id);
 
         res.json({
@@ -243,6 +245,9 @@ router.post('/unlink-account', async (req, res) => {
                 error: 'Account ID is required'
             });
         }
+
+
+        await getOwnedAccount(accountId, req.userId);
 
         await unlinkAccountFromProfile(accountId);
 
@@ -355,7 +360,7 @@ router.post('/:id/connect', async (req, res) => {
                 password,
                 businessProfileId: id, // Ensure it's linked to this profile
                 updatedAt: new Date()
-            });
+            }, req.userId);
             accountId = account.id;
         } else {
             // Create new account
@@ -373,7 +378,7 @@ router.post('/:id/connect', async (req, res) => {
 
         // 3. Verify Login
         console.log(`🔐 Verificando login para conta: ${accountId}`);
-        const result = await verifyAccount(accountId);
+        const result = await verifyAccount(accountId, req.userId);
 
         if (result.success) {
             // Só o username fica no perfil; a senha vive criptografada na collection `accounts`.

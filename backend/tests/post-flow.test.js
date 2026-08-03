@@ -5,6 +5,7 @@ import { createInMemoryFirebase } from './helpers/inMemoryFirebase.js';
 
 let firebase;
 let getAccountMock;
+let getOwnedAccountMock;
 let getAccountsByProfileMock;
 let getBusinessProfileMock;
 let uploadPhotosMock;
@@ -39,6 +40,12 @@ beforeEach(() => {
         username: 'perfil_principal',
         businessProfileId: 'profile-1',
     });
+    getOwnedAccountMock = vi.fn().mockResolvedValue({
+        id: 'account-1',
+        userId: 'urL2RUboHscN40FGOwXtt0vYfdt1',
+        username: 'perfil_principal',
+        businessProfileId: 'profile-1',
+    });
     getAccountsByProfileMock = vi.fn().mockResolvedValue([]);
     getBusinessProfileMock = vi.fn().mockResolvedValue({
         id: 'profile-1',
@@ -59,17 +66,24 @@ beforeEach(() => {
     vi.doMock('../src/config/firebase.js', () => ({
         db: firebase.db,
         storage: firebase.storage,
-        auth: {},
+        auth: {
+            verifyIdToken: vi.fn().mockResolvedValue({
+                uid: 'urL2RUboHscN40FGOwXtt0vYfdt1',
+                email: '123indiozinhos@gmail.com',
+            }),
+        },
         default: {},
     }));
 
     vi.doMock('../src/services/accountService.js', () => ({
         getAccount: getAccountMock,
+        getOwnedAccount: getOwnedAccountMock,
     }));
 
     vi.doMock('../src/services/businessProfileService.js', () => ({
         getAccountsByProfile: getAccountsByProfileMock,
         getBusinessProfile: getBusinessProfileMock,
+        getOwnedBusinessProfile: getBusinessProfileMock,
     }));
 
     vi.doMock('../src/services/uploadPostService.js', () => ({
@@ -87,6 +101,7 @@ describe('critical post flow', () => {
 
         const response = await request(app)
             .post('/api/posts')
+            .set('Authorization', 'Bearer valid-test-token')
             .send({
                 accountId: 'account-1',
                 type: 'static',

@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
+const AUTHORIZED_EMAIL = process.env.NEXT_PUBLIC_AUTHORIZED_EMAIL || '123indiozinhos@gmail.com';
+
 export default function HomePage() {
     const { user, loading, login } = useAuth();
     const router = useRouter();
@@ -14,7 +16,7 @@ export default function HomePage() {
 
     useEffect(() => {
         // Se o usuário já estiver logado e for o autorizado, envia direto para o dashboard
-        if (!loading && user && user.email === '123indiozinhos@gmail.com') {
+        if (!loading && user && user.email?.toLowerCase() === AUTHORIZED_EMAIL.toLowerCase()) {
             router.push('/dashboard');
         }
     }, [user, loading, router]);
@@ -22,7 +24,7 @@ export default function HomePage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (email.trim().toLowerCase() !== '123indiozinhos@gmail.com') {
+        if (email.trim().toLowerCase() !== AUTHORIZED_EMAIL.toLowerCase()) {
             toast.error('Acesso restrito. E-mail não autorizado.');
             return;
         }
@@ -39,7 +41,10 @@ export default function HomePage() {
             toast.success('Acesso autorizado!');
             router.push('/dashboard');
         } catch (loginErr) {
-            toast.error(loginErr.message || 'E-mail ou senha incorretos.');
+            const message = loginErr.code === 'auth/invalid-credential'
+                ? 'E-mail ou senha incorretos.'
+                : loginErr.message;
+            toast.error(message || 'E-mail ou senha incorretos.');
         } finally {
             setAuthLoading(false);
         }

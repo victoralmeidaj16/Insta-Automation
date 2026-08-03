@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "drafts:expire": "node scripts/expire-overdue-drafts.js",
+    "migrate:primary-owner": "node scripts/migrate-primary-owner.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

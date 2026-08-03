@@ -42,6 +42,7 @@ backend/test-*.js
 **/.dev-*
 backend/data/
 backend/test-output/
+backend/backups/
 
 # Segredos locais
 FIREBASE_CONFIG.txt

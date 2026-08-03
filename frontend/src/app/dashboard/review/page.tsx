@@ -1014,7 +1014,10 @@ export default function ReviewPage() {
 
         if (destination === 'schedule') {
             const now = new Date();
-            const invalidDrafts = drafts.filter(d => postIds.includes(d.id) && (!d.scheduledFor || new Date(d.scheduledFor) <= now));
+            const invalidDrafts = drafts.filter(d => {
+                const scheduledFor = toDate(d.scheduledFor);
+                return postIds.includes(d.id) && (!scheduledFor || scheduledFor <= now);
+            });
             if (invalidDrafts.length > 0) {
                 toast.error(`Existem ${invalidDrafts.length} posts com data de agendamento no passado ou sem data. Ajuste a data para o futuro antes de agendar.`);
                 return;

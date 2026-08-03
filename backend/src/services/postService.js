@@ -1,6 +1,6 @@
 import { db, storage } from '../config/firebase.js';
-import { getAccount } from './accountService.js';
-import { getAccountsByProfile, getBusinessProfile } from './businessProfileService.js';
+import { getAccount, getOwnedAccount } from './accountService.js';
+import { getAccountsByProfile, getBusinessProfile, getOwnedBusinessProfile } from './businessProfileService.js';
 import { uploadPhotos, uploadVideo, cancelScheduledPost } from './uploadPostService.js';
 import { createScheduledPostRecord, normalizeStoredPostRecord } from '../domain/contentModels.js';
 import { getCreatablePostTypes, isReelFormat, isStoryFormat, normalizeFormat } from '../domain/formatRules.js';
@@ -42,19 +42,22 @@ export async function createPost(userId, accountId, postData) {
         let account;
         let businessProfileFallback = null;
         try {
-            account = await getAccount(resolvedAccountId);
+            account = await getOwnedAccount(resolvedAccountId, userId, { includeSecrets: true });
         } catch (error) {
+            if (error.statusCode === 403) throw error;
             console.log(`⚠️ Account ${resolvedAccountId} not found directly. Checking if it is a Business Profile ID...`);
+            const ownedProfile = await getOwnedBusinessProfile(resolvedAccountId, userId);
             const linkedAccounts = await getAccountsByProfile(resolvedAccountId);
+            const ownedLinkedAccounts = linkedAccounts.filter(candidate => candidate.userId === userId);
 
-            if (linkedAccounts && linkedAccounts.length > 0) {
-                resolvedAccountId = linkedAccounts[0].id;
-                account = await getAccount(resolvedAccountId);
+            if (ownedLinkedAccounts.length > 0) {
+                resolvedAccountId = ownedLinkedAccounts[0].id;
+                account = await getOwnedAccount(resolvedAccountId, userId, { includeSecrets: true });
                 console.log(`✅ Resolved Profile ID ${accountId} to Account ID ${resolvedAccountId}`);
             } else {
                 // Fallback: try using the Business Profile's instagram settings directly
                 try {
-                    const bp = await getBusinessProfile(resolvedAccountId);
+                    const bp = ownedProfile;
                     if (bp && bp.instagram?.username) {
                         console.log(`📤 No linked accounts found. Using Business Profile "${bp.name}" username as virtual account.`);
                         businessProfileFallback = bp;
@@ -99,6 +102,7 @@ export async function createPost(userId, accountId, postData) {
         const shouldUseUploadPostScheduler = Boolean(scheduledDate) && !postData.isDraft;
 
         let externalScheduleInfo = null;
+        let externalScheduleError = null;
         if (shouldUseUploadPostScheduler && !isWaitingForHtmlExport) {
             try {
                 externalScheduleInfo = await scheduleWithUploadPost({
@@ -111,8 +115,8 @@ export async function createPost(userId, accountId, postData) {
                     uploadUsername: businessProfile?.instagram?.username || account.username
                 });
             } catch (apiError) {
-                console.warn(`⚠️ Falha ao agendar via API externa (fallback para local): ${apiError.message}`);
-                // externalScheduleInfo permanece null, o que fará o status ser 'pending' (agendamento local)
+                externalScheduleError = apiError.message;
+                console.warn(`⚠️ Falha ao agendar via API externa: ${apiError.message}`);
             }
         }
 
@@ -130,7 +134,7 @@ export async function createPost(userId, accountId, postData) {
             status: isDraft
                 ? 'draft'
                 : scheduledDate
-                    ? (hasValidExternalSchedule ? 'scheduled' : 'pending')
+                    ? (hasValidExternalSchedule ? 'scheduled' : 'schedule_error')
                     : 'processing',
             libraryItemId: postData.libraryItemId || null,
             htmlContent: postData.htmlContent || postData.htmlCode || null,
@@ -144,6 +148,9 @@ export async function createPost(userId, accountId, postData) {
             extra: {
                 isDraft,
                 isWaitingForHtmlExport,
+                schedulingError: externalScheduleError || (!hasValidExternalSchedule && shouldUseUploadPostScheduler
+                    ? 'Upload-Post não retornou um job_id válido.'
+                    : null),
                 ...(postData.extra || {})
             }
         });
@@ -675,11 +682,8 @@ export async function scheduleApprovedPost(postId, accountId = null) {
     }
 
     if (shouldScheduleForFuture) {
-        // Mesmo fallback do createPost: se a API externa falhar, o post fica
-        // 'pending' e o scheduler local publica no horário. Propagar o erro
-        // aqui deixaria o post preso em 'scheduled' sem job externo (o sync
-        // ignora posts sem externalJobId).
         let externalScheduleInfo = null;
+        let schedulingError = null;
         try {
             externalScheduleInfo = await scheduleWithUploadPost({
                 account,
@@ -691,21 +695,23 @@ export async function scheduleApprovedPost(postId, accountId = null) {
                 uploadUsername: businessProfile?.instagram?.username || account.username
             });
         } catch (apiError) {
-            console.warn(`⚠️ Falha ao agendar via Upload-Post (fallback para agendamento local): ${apiError.message}`);
+            schedulingError = apiError.message;
+            console.warn(`⚠️ Falha ao agendar via Upload-Post: ${apiError.message}`);
         }
 
         const hasValidJobId = Boolean(externalScheduleInfo?.jobId);
 
         await db.collection('posts').doc(postId).update({
-            status: hasValidJobId ? 'scheduled' : 'pending',
+            status: hasValidJobId ? 'scheduled' : 'schedule_error',
             externalScheduler: hasValidJobId ? 'upload-post' : null,
             externalJobId: externalScheduleInfo?.jobId || null,
             externalPayload: externalScheduleInfo?.payload || null,
+            schedulingError: hasValidJobId ? null : (schedulingError || 'Upload-Post não retornou um job_id válido.'),
             updatedAt: new Date()
         });
 
         return {
-            status: hasValidJobId ? 'scheduled' : 'pending',
+            status: hasValidJobId ? 'scheduled' : 'schedule_error',
             scheduledFor: scheduledDate,
             accountId: resolvedAccountId,
             externalJobId: externalScheduleInfo?.jobId || null

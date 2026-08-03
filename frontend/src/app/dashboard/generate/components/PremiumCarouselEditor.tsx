@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { PremiumLayout } from '../types';
+import { auth } from '@/lib/firebase';
 
 const premiumBackgroundCache = new Map<string, Promise<string>>();
 
@@ -200,7 +201,10 @@ async function fetchImageAsDataUrl(url: string, apiBaseUrl?: string): Promise<st
     const proxyUrl = apiBaseUrl
         ? `${apiBaseUrl}/api/proxy-download?url=${encodeURIComponent(url)}&filename=img.png`
         : url;
-    const response = await fetch(proxyUrl);
+    const token = apiBaseUrl ? await auth.currentUser?.getIdToken() : null;
+    const response = await fetch(proxyUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
     if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
     return blobToDataUrl(await response.blob());
 }
@@ -485,7 +489,10 @@ export async function resolvePremiumBackgroundDataUrl(imageUrl: string, apiBaseU
     }
 
     const request = (async () => {
-        const response = await fetch(getBackgroundProxyUrl(imageUrl, apiBaseUrl));
+        const token = await auth.currentUser?.getIdToken();
+        const response = await fetch(getBackgroundProxyUrl(imageUrl, apiBaseUrl), {
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (!response.ok) {
             throw new Error(`Falha ao carregar imagem premium: ${response.statusText}`);
         }

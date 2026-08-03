@@ -66,7 +66,8 @@ export async function getAccounts(userId) {
                 id: doc.id,
                 userId: data.userId,
                 username: data.username,
-                email: data.email ? decrypt(data.email) : null,
+                hasEmail: Boolean(data.email),
+                hasPassword: Boolean(data.password),
                 status: data.status,
                 stayLoggedIn: data.stayLoggedIn,
                 businessProfileId: data.businessProfileId || null,
@@ -80,6 +81,28 @@ export async function getAccounts(userId) {
         console.error('❌ Erro ao listar contas:', error);
         throw error;
     }
+}
+
+export async function getOwnedAccount(accountId, userId, { includeSecrets = false } = {}) {
+    const account = await getAccount(accountId);
+    if (account.userId !== userId) {
+        const error = new Error('Conta não pertence ao usuário autenticado.');
+        error.statusCode = 403;
+        throw error;
+    }
+    if (includeSecrets) return account;
+    return {
+        id: account.id,
+        userId: account.userId,
+        username: account.username,
+        status: account.status,
+        stayLoggedIn: account.stayLoggedIn,
+        businessProfileId: account.businessProfileId,
+        lastVerified: account.lastVerified,
+        createdAt: account.createdAt,
+        hasEmail: Boolean(account.email),
+        hasPassword: Boolean(account.password),
+    };
 }
 
 /**
@@ -163,9 +186,11 @@ export async function upsertUploadPostAccount(userId, {
 /**
  * Atualiza dados de uma conta
  */
-export async function updateAccount(accountId, updates) {
+export async function updateAccount(accountId, updates, userId = null) {
     try {
+        if (userId) await getOwnedAccount(accountId, userId);
         const updateData = { ...updates };
+        delete updateData.userId;
 
         // Criptografar se houver alteração de credenciais
         if (updates.email) {
@@ -191,8 +216,9 @@ export async function updateAccount(accountId, updates) {
 /**
  * Remove uma conta
  */
-export async function deleteAccount(accountId) {
+export async function deleteAccount(accountId, userId = null) {
     try {
+        if (userId) await getOwnedAccount(accountId, userId);
         // Deletar cookies salvos
         // deleteCookies(accountId);
 
@@ -210,9 +236,11 @@ export async function deleteAccount(accountId) {
 /**
  * Verifica login de uma conta
  */
-export async function verifyAccount(accountId) {
+export async function verifyAccount(accountId, userId = null) {
     try {
-        const account = await getAccount(accountId);
+        const account = userId
+            ? await getOwnedAccount(accountId, userId, { includeSecrets: true })
+            : await getAccount(accountId);
 
         console.log(`🔍 Verificando login da conta @${account.username}...`);
 

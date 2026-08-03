@@ -1,6 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 const AuthContext = createContext({});
 
@@ -12,60 +14,22 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        let active = true;
-
-        async function restoreSession() {
-            try {
-                const response = await fetch('/api/auth/session', { cache: 'no-store' });
-                const data = await response.json();
-                if (active && response.ok && data.user) {
-                    setUser(data.user);
-                }
-            } finally {
-                if (active) setLoading(false);
-            }
-        }
-
-        restoreSession();
-
-        return () => {
-            active = false;
-        };
-    }, []);
+    useEffect(() => onAuthStateChanged(auth, nextUser => {
+        setUser(nextUser);
+        setLoading(false);
+    }), []);
 
     const login = async (email, password) => {
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-            const error = new Error(data.error || 'Não foi possível autenticar.');
-            error.code = data.code || 'auth/login-failed';
-            throw error;
-        }
-
-        setUser(data.user);
-        return data.user;
+        const credential = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+        return credential.user;
     };
 
     const logout = async () => {
-        await fetch('/api/auth/logout', { method: 'POST' });
-        setUser(null);
-    };
-
-    const value = {
-        user,
-        loading,
-        login,
-        logout,
+        await signOut(auth);
     };
 
     return (
-        <AuthContext.Provider value={value}>
+        <AuthContext.Provider value={{ user, loading, login, logout }}>
             {children}
         </AuthContext.Provider>
     );

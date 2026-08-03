@@ -4,11 +4,13 @@ const nextConfig = {
         unoptimized: true, // Necessário para exportação estática
         domains: ['storage.googleapis.com', 'firebasestorage.googleapis.com'],
     },
-    eslint: {
-        ignoreDuringBuilds: true,
-    },
+  eslint: {
+    // Type checking is enforced below. The existing lint backlog is tracked
+    // separately so it does not block the recovery deployment.
+    ignoreDuringBuilds: true,
+  },
     typescript: {
-        ignoreBuildErrors: true,
+        ignoreBuildErrors: false,
     },
 };
 

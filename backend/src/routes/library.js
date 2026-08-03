@@ -7,8 +7,30 @@ import { uploadImage } from '../services/historyService.js';
 import { generateImages } from '../services/aiService.js';
 import { createLibraryItemRecord } from '../domain/contentModels.js';
 import { inferLibraryType, isHtmlFormat, isStoryFormat, normalizeFormat } from '../domain/formatRules.js';
+import { getOwnedBusinessProfile } from '../services/businessProfileService.js';
 
 const router = express.Router();
+
+async function requireOwnedLibraryItem(id, userId) {
+    const doc = await db.collection('library_items').doc(id).get();
+    if (!doc.exists) {
+        const error = new Error('Item não encontrado.');
+        error.statusCode = 404;
+        throw error;
+    }
+    const item = { id: doc.id, ...doc.data() };
+    if (item.userId !== userId) {
+        const error = new Error('Acesso negado.');
+        error.statusCode = 403;
+        throw error;
+    }
+    return { doc, item };
+}
+
+function sendLibraryError(error, res) {
+    const status = error.statusCode || 500;
+    return res.status(status).json({ error: status === 500 ? error.message : error.message });
+}
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
@@ -58,6 +80,8 @@ router.post('/upload', upload.array('files', 50), async (req, res) => {
                 error: 'businessProfileId e files são obrigatórios'
             });
         }
+
+        await getOwnedBusinessProfile(businessProfileId, req.userId);
 
         // Upload files to Firebase Storage
         const mediaUrls = [];
@@ -196,6 +220,9 @@ router.post('/upload-files', upload.array('files', 50), async (req, res) => {
             });
         }
 
+
+        await getOwnedBusinessProfile(businessProfileId, req.userId);
+
         const mediaUrls = [];
         const fileHashes = [];
         const originalNames = [];
@@ -246,6 +273,9 @@ router.post('/', async (req, res) => {
                 error: 'businessProfileId é obrigatório'
             });
         }
+
+
+        await getOwnedBusinessProfile(businessProfileId, req.userId);
         
         const resolvedType = inferLibraryType({ type: normalizeFormat(type || '', ''), mediaUrls, htmlCode });
 
@@ -300,6 +330,9 @@ router.get('/', async (req, res) => {
                 error: 'businessProfileId é obrigatório'
             });
         }
+
+
+        await getOwnedBusinessProfile(businessProfileId, req.userId);
 
         const hasTypeFilter = Boolean(type && type !== 'all');
         const normalizedTypeFilter = type === 'stories' ? 'story' : normalizeFormat(type, type);
@@ -398,6 +431,9 @@ router.post('/check-duplicates', async (req, res) => {
             return res.status(400).json({ error: 'businessProfileId e files (array) são obrigatórios' });
         }
 
+
+        await getOwnedBusinessProfile(businessProfileId, req.userId);
+
         const duplicates = [];
 
         for (const fileItem of files) {
@@ -443,12 +479,7 @@ router.post('/:id/format', async (req, res) => {
         const { id } = req.params;
 
         // Load the library item
-        const doc = await db.collection('library_items').doc(id).get();
-        if (!doc.exists) {
-            return res.status(404).json({ error: 'Item n\u00e3o encontrado' });
-        }
-
-        const item = { id: doc.id, ...doc.data() };
+        const { item } = await requireOwnedLibraryItem(id, req.userId);
         const imageUrl = item.mediaUrls?.[0];
 
         if (!imageUrl) {
@@ -517,7 +548,7 @@ Simply adapt the image to fill ${targetRatio} while keeping 100% of the original
 
     } catch (error) {
         console.error('\u274c Erro ao formatar imagem:', error);
-        res.status(500).json({ error: error.message });
+        sendLibraryError(error, res);
     }
 });
 
@@ -527,6 +558,7 @@ Simply adapt the image to fill ${targetRatio} while keeping 100% of the original
 router.post('/:id/export', async (req, res) => {
     try {
         const { id } = req.params;
+        await requireOwnedLibraryItem(id, req.userId);
         const { exportLibraryHtmlToImages } = await import('../services/htmlExportService.js');
         
         console.log(`📤 Triggering server-side export for library item: ${id}`);
@@ -538,7 +570,7 @@ router.post('/:id/export', async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Erro ao exportar carrossel HTML:', error);
-        res.status(500).json({ error: error.message });
+        sendLibraryError(error, res);
     }
 });
 
@@ -549,11 +581,7 @@ router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const updates = req.body;
-        const existingDoc = await db.collection('library_items').doc(id).get();
-        if (!existingDoc.exists) {
-            return res.status(404).json({ error: 'Item não encontrado' });
-        }
-        const existingItem = existingDoc.data() || {};
+        const { item: existingItem } = await requireOwnedLibraryItem(id, req.userId);
         const nextFormat = normalizeFormat(updates.format || updates.type || existingItem.format || existingItem.type, existingItem.format || existingItem.type || 'static');
         const shouldBlankCaption = isStoryFormat(nextFormat);
 
@@ -605,7 +633,7 @@ router.put('/:id', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Erro ao atualizar library item:', error);
-        res.status(500).json({ error: error.message });
+        sendLibraryError(error, res);
     }
 });
 
@@ -615,6 +643,8 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
+
+        await requireOwnedLibraryItem(id, req.userId);
 
         await db.collection('library_items').doc(id).delete();
 
@@ -626,7 +656,7 @@ router.delete('/:id', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Erro ao deletar library item:', error);
-        res.status(500).json({ error: error.message });
+        sendLibraryError(error, res);
     }
 });
 

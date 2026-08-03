@@ -13,8 +13,8 @@ let autoGenerationTickRunning = false;
 
 const WEEKLY_RUN_LEASE_MS = 2 * 60 * 60 * 1000;
 
-async function claimWeeklyRun(profileId, weekKey, now) {
-    const runId = `weekly_${profileId}_${weekKey}`;
+async function claimWeeklyRun(profileId, targetWeekKey, now) {
+    const runId = `weekly_${profileId}_${targetWeekKey}`;
     const ref = db.collection('schedulerRuns').doc(runId);
 
     const claimed = await db.runTransaction(async transaction => {
@@ -22,13 +22,13 @@ async function claimWeeklyRun(profileId, weekKey, now) {
         const current = snapshot.exists ? snapshot.data() : null;
         const leaseUntil = current?.leaseUntil?.toDate?.() || null;
 
-        if (['completed', 'partial'].includes(current?.status)) return false;
+        if (['completed', 'partial', 'recovered'].includes(current?.status)) return false;
         if (current?.status === 'running' && leaseUntil && leaseUntil > now) return false;
 
         transaction.set(ref, {
             kind: 'weekly-generation',
             profileId,
-            weekKey,
+            targetWeekKey,
             status: 'running',
             startedAt: now,
             updatedAt: now,
@@ -69,6 +69,10 @@ async function failWeeklyRun(run, error) {
  * e disparar geração automática semanal de conteúdo.
  */
 export function startScheduler() {
+    if (process.env.ENABLE_IN_PROCESS_SCHEDULER !== 'true') {
+        console.log('ℹ️ Scheduler interno desativado; aguardando gatilho externo protegido.');
+        return;
+    }
     if (schedulerStarted) {
         console.log('ℹ️ Scheduler já estava iniciado. Ignorando nova inicialização.');
         return;
@@ -86,20 +90,8 @@ export function startScheduler() {
 
         schedulerTickRunning = true;
         try {
-            // Sync posts agendados externamente
-            const { syncScheduledPosts, getReadyPosts, executePost } = await import('./postService.js');
+            const { syncScheduledPosts } = await import('./postService.js');
             await syncScheduledPosts();
-
-            // Processar posts pendentes locais
-            const readyPosts = await getReadyPosts();
-            if (readyPosts.length > 0) {
-                console.log(`⚡ Encontrados ${readyPosts.length} posts pendentes para publicar localmente!`);
-                for (const post of readyPosts) {
-                    console.log(`▶️ Iniciando post pendente ${post.id}`);
-                    await executePost(post.id);
-                }
-            }
-
         } catch (error) {
             console.error('❌ Erro no scheduler:', error);
         } finally {
@@ -118,7 +110,7 @@ export function startScheduler() {
 /**
  * Busca todos os perfis com autoGenerate habilitado e gera o plano da semana
  */
-async function runWeeklyAutoGeneration() {
+export async function runWeeklyAutoGeneration() {
     if (autoGenerationTickRunning) {
         return;
     }
@@ -154,14 +146,21 @@ async function runWeeklyAutoGeneration() {
             if (currentTime < autoTime) continue;
             if (alreadyGeneratedThisWeek) continue;
 
-            const run = await claimWeeklyRun(doc.id, currentWeekKey, now);
-            if (!run) continue;
-
             try {
                 const nextWeekStartDate = getNextWeekStart(now, schedule.timezone);
+                const targetWeekKey = getScheduleWeekKey(nextWeekStartDate, schedule.timezone);
+                const run = await claimWeeklyRun(doc.id, targetWeekKey, now);
+                if (!run) continue;
                 console.log(`🚀 [auto-generate] Gerando plano adiantado para "${profile.name}" (${doc.id}) a partir de: ${nextWeekStartDate.toLocaleDateString('pt-BR')}`);
-                const result = await generateWeeklyPlan(doc.id, nextWeekStartDate, null, {}, null, {
-                    generationRunId: run.id
+                const result = await generateWeeklyPlan(doc.id, nextWeekStartDate, null, {}, progress => {
+                    run.ref.set({
+                        heartbeatAt: new Date(),
+                        progress,
+                        updatedAt: new Date(),
+                    }, { merge: true }).catch(error => console.warn('⚠️ Falha ao atualizar heartbeat:', error.message));
+                }, {
+                    generationRunId: run.id,
+                    targetWeekKey,
                 });
                 await finishWeeklyRun(run, result);
                 await db.collection('businessProfiles').doc(doc.id).update({
@@ -176,11 +175,69 @@ async function runWeeklyAutoGeneration() {
                 });
                 console.log(`✅ [auto-generate] "${profile.name}": ${result.generated} gerados, ${result.failed} erros`);
             } catch (err) {
-                await failWeeklyRun(run, err);
+                const targetWeekKey = getScheduleWeekKey(getNextWeekStart(now, schedule.timezone), schedule.timezone);
+                const runRef = db.collection('schedulerRuns').doc(`weekly_${doc.id}_${targetWeekKey}`);
+                await failWeeklyRun({ ref: runRef }, err);
                 console.error(`❌ [auto-generate] Erro em "${profile.name}": ${err.message}`);
             }
         }
     } finally {
         autoGenerationTickRunning = false;
     }
+}
+
+const EXTERNAL_TICK_LEASE_MS = 4 * 60 * 1000;
+
+async function claimExternalTick(now = new Date()) {
+    const ref = db.collection('schedulerRuns').doc('uptimerobot_tick');
+    return db.runTransaction(async transaction => {
+        const snapshot = await transaction.get(ref);
+        const current = snapshot.exists ? snapshot.data() : {};
+        const leaseUntil = current.leaseUntil?.toDate?.() || null;
+        if (current.status === 'running' && leaseUntil && leaseUntil > now) return false;
+        transaction.set(ref, {
+            kind: 'external-tick',
+            status: 'running',
+            startedAt: now,
+            heartbeatAt: now,
+            updatedAt: now,
+            leaseUntil: new Date(now.getTime() + EXTERNAL_TICK_LEASE_MS),
+            attempt: Number(current.attempt || 0) + 1,
+        }, { merge: true });
+        return true;
+    });
+}
+
+async function executeExternalTick() {
+    const ref = db.collection('schedulerRuns').doc('uptimerobot_tick');
+    try {
+        const { syncScheduledPosts } = await import('./postService.js');
+        await syncScheduledPosts();
+        await ref.set({ heartbeatAt: new Date(), updatedAt: new Date() }, { merge: true });
+        await runWeeklyAutoGeneration();
+        await ref.set({
+            status: 'completed',
+            finishedAt: new Date(),
+            heartbeatAt: new Date(),
+            updatedAt: new Date(),
+            leaseUntil: null,
+            error: null,
+        }, { merge: true });
+    } catch (error) {
+        await ref.set({
+            status: 'failed',
+            error: error.message,
+            failedAt: new Date(),
+            updatedAt: new Date(),
+            leaseUntil: null,
+        }, { merge: true }).catch(() => {});
+        console.error('❌ Tick externo falhou:', error);
+    }
+}
+
+export async function dispatchExternalSchedulerTick() {
+    const claimed = await claimExternalTick();
+    if (!claimed) return { accepted: false, reason: 'tick-already-running' };
+    setImmediate(() => executeExternalTick());
+    return { accepted: true, runId: 'uptimerobot_tick' };
 }

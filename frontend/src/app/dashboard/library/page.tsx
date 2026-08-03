@@ -34,6 +34,21 @@ function getApiErrorMessage(error: unknown, fallback: string): string {
     return fallback;
 }
 
+async function downloadRemoteMedia(url: string, filename: string) {
+    const response = await api.get('/api/proxy-download', {
+        params: { url, filename },
+        responseType: 'blob',
+    });
+    const blobUrl = window.URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+}
+
 function normalizeLibraryTag(tag: unknown): string {
     const normalized = String(tag || '').trim().toLowerCase();
 
@@ -448,12 +463,7 @@ export default function LibraryPage() {
                             const url = urls[i];
                             const filename = `Slide_${i + 1}.jpg`;
                             
-                            const downloadUrl = `${api.defaults.baseURL || 'http://localhost:3001'}/api/proxy-download?url=${encodeURIComponent(url)}&filename=${filename}`;
-                            const link = document.createElement('a');
-                            link.href = downloadUrl;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
+                            await downloadRemoteMedia(url, filename);
                             await new Promise(resolve => setTimeout(resolve, 800));
                         }
                         toast.success('Pronto! Slides baixados.', { id: 'download-loading' });
@@ -480,18 +490,16 @@ export default function LibraryPage() {
                 const filename = `${postToDownload.type}_${i + 1}`;
 
                 // If URL is base64, download directly. Otherwise use proxy.
-                const downloadUrl = url.startsWith('data:')
-                    ? url
-                    : `${api.defaults.baseURL || 'http://localhost:3001'}/api/proxy-download?url=${encodeURIComponent(url)}&filename=${filename}`;
-
-                const link = document.createElement('a');
-                link.href = downloadUrl;
                 if (url.startsWith('data:')) {
+                    const link = document.createElement('a');
+                    link.href = url;
                     link.download = `${filename}.${url.split(';')[0].split('/')[1] || 'jpg'}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    await downloadRemoteMedia(url, filename);
                 }
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
 
                 // Small delay between downloads if multiple files
                 if (i < mediaUrls.length - 1) {
@@ -566,23 +574,21 @@ export default function LibraryPage() {
         void pollStatus();
     };
 
-    const handleLightboxDownload = (url, index) => {
+    const handleLightboxDownload = async (url, index) => {
         try {
             const filename = `image_${index + 1}`;
 
             // If URL is base64, download directly. Otherwise use proxy.
-            const downloadUrl = url.startsWith('data:')
-                ? url
-                : `${api.defaults.baseURL || 'http://localhost:3001'}/api/proxy-download?url=${encodeURIComponent(url)}&filename=${filename}`;
-
-            const link = document.createElement('a');
-            link.href = downloadUrl;
             if (url.startsWith('data:')) {
+                const link = document.createElement('a');
+                link.href = url;
                 link.download = `${filename}.${url.split(';')[0].split('/')[1] || 'jpg'}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                await downloadRemoteMedia(url, filename);
             }
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
 
             toast.success('Download iniciado!');
         } catch (error) {

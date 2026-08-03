@@ -1344,14 +1344,15 @@ async function findGeneratedSlot(generationSlotKey) {
     return { id: doc.id, ...doc.data() };
 }
 
-async function tagGeneratedSlot(post, generationRunId, generationSlotKey) {
+async function tagGeneratedSlot(post, generationRunId, generationSlotKey, targetWeekKey = null) {
     if (!post?.id || !generationSlotKey) return post;
     await db.collection('posts').doc(post.id).set({
         generationRunId,
         generationSlotKey,
+        targetWeekKey,
         updatedAt: new Date()
     }, { merge: true });
-    return { ...post, generationRunId, generationSlotKey };
+    return { ...post, generationRunId, generationSlotKey, targetWeekKey };
 }
 
 /**
@@ -1364,6 +1365,7 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
     const pillars = merged.editorialPillars || [];
     const schedule = normalizeScheduleConfig(merged.contentSchedule || {});
     const generationRunId = runOptions.generationRunId || null;
+    const targetWeekKey = runOptions.targetWeekKey || null;
 
     if (pillars.length === 0) {
         throw new Error('Nenhum pilar editorial configurado para este perfil.');
@@ -1419,7 +1421,7 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
                     generationSlotKey,
                     source: 'manual'
                 });
-                post = await tagGeneratedSlot(post, generationRunId, generationSlotKey);
+                post = await tagGeneratedSlot(post, generationRunId, generationSlotKey, targetWeekKey);
                 results.push(post);
 
                 if (schedule.publishingMode === 'auto') {
@@ -1529,7 +1531,7 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
                 });
             }
 
-            post = await tagGeneratedSlot(post, generationRunId, generationSlotKey);
+            post = await tagGeneratedSlot(post, generationRunId, generationSlotKey, targetWeekKey);
 
             results.push(post);
 

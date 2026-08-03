@@ -96,6 +96,19 @@ function sanitizeProfileSecrets(profile) {
     return profile;
 }
 
+export function sanitizeProfileForClient(profile) {
+    const sanitized = sanitizeProfileSecrets(profile);
+    if (!sanitized?.instagram) return sanitized;
+    const { uploadPostApiKey, ...instagram } = sanitized.instagram;
+    return {
+        ...sanitized,
+        instagram: {
+            ...instagram,
+            hasUploadPostApiKey: Boolean(uploadPostApiKey),
+        },
+    };
+}
+
 /**
  * Get all business profiles for a user
  * @param {string} userId - User ID
@@ -109,7 +122,7 @@ export async function getBusinessProfiles(userId) {
 
         const profiles = [];
         snapshot.forEach(doc => {
-            profiles.push(sanitizeProfileSecrets(mergeBrandProfileDefaults({
+            profiles.push(sanitizeProfileForClient(mergeBrandProfileDefaults({
                 id: doc.id,
                 ...doc.data()
             })));
@@ -327,9 +340,20 @@ export async function getAccountsByProfile(profileId) {
 
         const accounts = [];
         snapshot.forEach(doc => {
+            const data = doc.data();
             accounts.push({
                 id: doc.id,
-                ...doc.data()
+                userId: data.userId,
+                username: data.username,
+                instagramHandle: data.instagramHandle || '',
+                businessProfileId: data.businessProfileId || null,
+                connectionType: data.connectionType || null,
+                platform: data.platform || 'instagram',
+                status: data.status,
+                isActive: data.isActive !== false,
+                lastVerified: data.lastVerified || null,
+                hasEmail: Boolean(data.email),
+                hasPassword: Boolean(data.password),
             });
         });
 
