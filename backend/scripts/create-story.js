@@ -1,74 +1,51 @@
-import { db, storage } from './src/config/firebase.js';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { db, storage } from '../src/config/firebase.js';
+import { createPost } from '../src/services/postService.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const userId = process.env.TARGET_USER_ID;
+const accountId = process.env.TARGET_ACCOUNT_ID;
+const imagePath = process.argv[2];
 
-async function createStoryPost() {
-    try {
-        const userId = 'A9NJto9KIOSgYJg8uRj8u5xAvAg1';
-        const accountId = 'GGpUHF7XgkuBOW89C2w8';
-
-        // Caminho da imagem fornecido pelo usuário
-        const imagePath = process.argv[2] || '/Users/victoralmeidaj16/Downloads/Falas citaçoes da aula (Post para Instagram..png';
-
-        if (!fs.existsSync(imagePath)) {
-            console.error(`❌ Imagem não encontrada no caminho: ${imagePath}`);
-            console.log('\nUso: node create-story.js "/caminho/para/imagem.png"');
-            process.exit(1);
-        }
-
-        console.log(`📸 Fazendo upload da imagem: ${path.basename(imagePath)}...`);
-
-        // Upload para Firebase Storage
-        const fileName = `posts/${userId}/${Date.now()}_${path.basename(imagePath)}`;
-
-        await storage.upload(imagePath, {
-            destination: fileName,
-            metadata: {
-                contentType: 'image/png',
-            },
-        });
-
-        // Gerar URL pública
-        const file = storage.file(fileName);
-        const [url] = await file.getSignedUrl({
-            action: 'read',
-            expires: '03-01-2500', // URL válida por muito tempo
-        });
-
-        console.log('✅ Upload concluído!');
-        console.log(`   URL: ${url.substring(0, 50)}...`);
-
-        // Criar post no Firestore
-        const postData = {
-            userId,
-            accountId,
-            type: 'story',
-            mediaUrls: [url],
-            caption: '',
-            scheduledFor: null,
-            status: 'processing', // Processar imediatamente
-            errorMessage: null,
-            postedAt: null,
-            createdAt: new Date(),
-        };
-
-        const postRef = await db.collection('posts').add(postData);
-
-        console.log('\n✅ Post de Story criado com sucesso!');
-        console.log(`   Post ID: ${postRef.id}`);
-        console.log(`   Conta: @viverpsicologiastreaming`);
-        console.log(`   Status: ${postData.status} (será processado automaticamente)`);
-        console.log(`\n📝 Acompanhe o processamento na plataforma em http://localhost:3000`);
-
-        process.exit(0);
-    } catch (error) {
-        console.error('❌ Erro ao criar Story:', error);
-        process.exit(1);
-    }
+if (!userId || !accountId || !imagePath) {
+    console.error('Uso: TARGET_USER_ID=... TARGET_ACCOUNT_ID=... node scripts/create-story.js "/caminho/imagem.png"');
+    process.exit(1);
 }
 
-createStoryPost();
+if (!fs.existsSync(imagePath)) {
+    console.error(`Imagem não encontrada: ${imagePath}`);
+    process.exit(1);
+}
+
+try {
+    const account = await db.collection('accounts').doc(accountId).get();
+    if (!account.exists || account.data().userId !== userId) {
+        throw new Error('A conta informada não pertence ao TARGET_USER_ID.');
+    }
+
+    const fileName = `posts/${userId}/${Date.now()}_${path.basename(imagePath)}`;
+    await storage.upload(imagePath, {
+        destination: fileName,
+        metadata: { contentType: 'image/png' },
+    });
+
+    const [url] = await storage.file(fileName).getSignedUrl({
+        action: 'read',
+        expires: '03-01-2500',
+    });
+
+    const post = await createPost(userId, accountId, {
+        type: 'story',
+        format: 'story',
+        mediaUrls: [url],
+        caption: '',
+        scheduledFor: null,
+        isDraft: true,
+    });
+
+    console.log(`Story criado como rascunho para revisão: ${post.id}`);
+    process.exit(0);
+} catch (error) {
+    console.error('Erro ao criar Story:', error.message);
+    process.exit(1);
+}

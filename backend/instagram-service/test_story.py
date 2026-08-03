@@ -1,31 +1,32 @@
+import os
 import requests
-import json
 
-# Configurações
-API_URL = 'http://localhost:5001/story'
-IMAGE_URL = 'https://firebasestorage.googleapis.com/v0/b/studyy-8312b.firebasestorage.app/o/posts%2F1733433318285_Falas%20cita%C3%A7oes%20da%20aula%20(Post%20para%20Instagram..png?alt=media&token=e9377484-9169-424a-939e-43642398555e'
-
-payload = {
-    "account_id": "GGpUHF7XgkuBOW89C2w8",
-    "username": "viverpsicologiastreaming",
-    "password": "Viverstreming2024",
-    "image_url": IMAGE_URL,
-    "caption": "Teste automático via Instagrapi 🚀"
+API_URL = os.getenv("INSTAGRAM_SERVICE_URL", "http://localhost:5001/story")
+required = {
+    "account_id": os.getenv("TARGET_ACCOUNT_ID"),
+    "username": os.getenv("INSTAGRAM_USERNAME"),
+    "password": os.getenv("INSTAGRAM_PASSWORD"),
+    "image_url": os.getenv("STORY_IMAGE_URL"),
 }
 
-print(f"🚀 Enviando requisição para {API_URL}...")
-print(f"📦 Payload: {json.dumps(payload, indent=2)}")
+missing = [key for key, value in required.items() if not value]
+if missing:
+    raise SystemExit(
+        "Variáveis obrigatórias ausentes: " + ", ".join(missing)
+        + ". Nunca grave credenciais ou URLs assinadas neste arquivo."
+    )
+
+payload = {
+    **required,
+    "caption": os.getenv("STORY_CAPTION", ""),
+}
+
+print(f"Enviando Story para {API_URL} com a conta {required['account_id']}...")
 
 try:
-    response = requests.post(API_URL, json=payload)
-    print(f"📡 Status Code: {response.status_code}")
-    
-    if response.status_code == 200:
-        print("✅ Sucesso!")
-        print(json.dumps(response.json(), indent=2))
-    else:
-        print("❌ Erro:")
-        print(response.text)
-        
-except Exception as e:
-    print(f"❌ Erro de conexão: {str(e)}")
+    response = requests.post(API_URL, json=payload, timeout=60)
+    print(f"Status Code: {response.status_code}")
+    response.raise_for_status()
+    print("Story enviado com sucesso.")
+except requests.RequestException as error:
+    raise SystemExit(f"Falha ao enviar Story: {error}") from error

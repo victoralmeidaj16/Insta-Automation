@@ -40,7 +40,8 @@ export default function PostsStatusWidget() {
                     if (!p.scheduledFor) return false;
                     const postDate = new Date(p.scheduledFor);
                     postDate.setHours(0, 0, 0, 0);
-                    return postDate.getTime() === today.getTime() && (p.status === 'scheduled' || p.status === 'pending');
+                    return postDate.getTime() === today.getTime()
+                        && ['scheduled', 'pending', 'schedule_error'].includes(p.status);
                 }).length;
 
                 const todayPublished = posts.filter(p => {
@@ -52,7 +53,9 @@ export default function PostsStatusWidget() {
                 }).length;
 
                 const futurePosts = posts
-                    .filter(p => p.scheduledFor && new Date(p.scheduledFor) > new Date() && (p.status === 'scheduled' || p.status === 'pending'))
+                    .filter(p => p.scheduledFor
+                        && new Date(p.scheduledFor) > new Date()
+                        && ['scheduled', 'pending'].includes(p.status))
                     .sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime());
 
                 const nextPostTime = futurePosts.length > 0
@@ -66,7 +69,7 @@ export default function PostsStatusWidget() {
                     todayScheduled,
                     todayPublished,
                     nextPostTime,
-                    totalPending: posts.filter(p => p.status === 'scheduled' || p.status === 'pending').length
+                    totalPending: posts.filter(p => ['scheduled', 'pending', 'schedule_error'].includes(p.status)).length
                 });
             } catch (error) {
                 console.error('Error loading stats:', error);

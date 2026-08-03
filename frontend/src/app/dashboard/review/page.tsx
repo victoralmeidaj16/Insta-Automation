@@ -846,7 +846,7 @@ export default function ReviewPage() {
                 params: businessProfileId ? { businessProfileId } : undefined
             });
             const posts = (res.data.posts || []).filter((post: DraftPost) =>
-                ['scheduled', 'processing', 'success', 'posted', 'pending'].includes(post.status)
+                ['scheduled', 'processing', 'success', 'posted', 'pending', 'schedule_error'].includes(post.status)
             );
             setScheduledPosts(posts);
         } catch {
@@ -1136,7 +1136,7 @@ export default function ReviewPage() {
                 slides.map((imgUrl, index) => renderPremiumPostToDataUrl({
                     layout: slideLayouts[index] || firstLayout,
                     backgroundImage: imgUrl,
-                    apiBaseUrl: api.defaults.baseURL || 'http://localhost:3001'
+                    apiBaseUrl: api.defaults.baseURL || 'http://localhost:3011'
                 }))
             );
 
@@ -2281,7 +2281,7 @@ export default function ReviewPage() {
                                                         <PremiumCanvasPreview
                                                             backgroundImage={draft.mediaUrls[idx]}
                                                             layout={buildPremiumLayoutFromDraft(draft, idx)}
-                                                            apiBaseUrl={api.defaults.baseURL || 'http://localhost:3001'}
+                                                            apiBaseUrl={api.defaults.baseURL || 'http://localhost:3011'}
                                                         />
                                                     ) : (
                                                         <img src={currentMediaUrl} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -2365,7 +2365,7 @@ export default function ReviewPage() {
                                                                 <PremiumCanvasPreview
                                                                     backgroundImage={imgUrl}
                                                                     layout={thumbLayout}
-                                                                    apiBaseUrl={api.defaults.baseURL || 'http://localhost:3001'}
+                                                                    apiBaseUrl={api.defaults.baseURL || 'http://localhost:3011'}
                                                                 />
                                                                 <span style={{
                                                                     position: 'absolute',
@@ -2984,7 +2984,7 @@ export default function ReviewPage() {
                     premiumEditorLayout
                     && Number(premiumEditorLayout.slideIndex || 0) < Math.max(0, Number(premiumEditorLayout.slideCount || 1) - 1)
                 )}
-                apiBaseUrl={api.defaults.baseURL || 'http://localhost:3001'}
+                apiBaseUrl={api.defaults.baseURL || 'http://localhost:3011'}
             />
             {renderApprovalSelectionModal()}
             {renderConfirmModal()}

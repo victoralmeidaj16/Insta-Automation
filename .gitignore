@@ -23,6 +23,7 @@ yarn-error.log*
 # Environment
 .env
 .env.local
+.env.vercel.*
 
 # IDE
 .vscode/

@@ -23,9 +23,9 @@ def post_story():
     
     Body esperado:
     {
-        "account_id": "GGpUHF7XgkuBOW89C2w8",
-        "username": "viverpsicologiastreaming",
-        "password": "Viverstreming2024",
+        "account_id": "<account-id>",
+        "username": "<instagram-username>",
+        "password": "<fornecida-em-runtime>",
         "image_url": "https://storage.googleapis.com/...",
         "caption": "Texto opcional"
     }

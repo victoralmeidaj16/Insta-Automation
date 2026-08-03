@@ -210,7 +210,7 @@ async function fetchImageAsDataUrl(url: string, apiBaseUrl?: string): Promise<st
 }
 
 function getBackgroundProxyUrl(imageUrl: string, apiBaseUrl?: string) {
-    const baseUrl = apiBaseUrl || 'http://localhost:3001';
+    const baseUrl = apiBaseUrl || 'http://localhost:3011';
     return `${baseUrl}/api/proxy-download?url=${encodeURIComponent(imageUrl)}&filename=premium-background.jpg`;
 }
 
@@ -481,7 +481,7 @@ export function isPremiumPrompt(prompt: string) {
 export async function resolvePremiumBackgroundDataUrl(imageUrl: string, apiBaseUrl?: string) {
     if (!imageUrl) return '';
     if (imageUrl.startsWith('data:')) return imageUrl;
-    const cacheKey = `${apiBaseUrl || 'http://localhost:3001'}::${imageUrl}`;
+    const cacheKey = `${apiBaseUrl || 'http://localhost:3011'}::${imageUrl}`;
 
     const cached = premiumBackgroundCache.get(cacheKey);
     if (cached) {
@@ -1325,7 +1325,7 @@ export function PremiumCanvasPreview({ layout, backgroundImage, apiBaseUrl }: {
     React.useEffect(() => {
         let cancelled = false;
         setLoading(true);
-        renderPremiumPostToDataUrl({ layout, backgroundImage, apiBaseUrl: apiBaseUrl || 'http://localhost:3001' })
+        renderPremiumPostToDataUrl({ layout, backgroundImage, apiBaseUrl: apiBaseUrl || 'http://localhost:3011' })
             .then(url => { if (!cancelled) { setDataUrl(url); setLoading(false); } })
             .catch(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };

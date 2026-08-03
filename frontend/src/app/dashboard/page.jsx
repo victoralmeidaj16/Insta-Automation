@@ -47,7 +47,7 @@ export default function DashboardPage() {
                 fetchedDrafts = fetchedDrafts.filter(d => d.businessProfileId === selectedProfile.id);
             }
 
-            const pending = posts.filter(p => p.status === 'pending').length;
+            const pending = posts.filter(p => ['pending', 'schedule_error'].includes(p.status)).length;
 
             setDrafts(fetchedDrafts);
             setStats({

@@ -1,186 +1,94 @@
-# 🚀 Guia de Início Rápido - InstaBot
+# Início rápido — Insta-Automation
 
-## ✅ Passo a Passo para Começar
+## 1. Instalar dependências
 
-### 1. Instalação das Dependências
-
-As dependências estão sendo instaladas automaticamente. Aguarde a conclusão de:
-- ✅ Backend (Node.js packages)
-- ✅ Frontend (Next.js packages)
-
-### 2. Verificar Firebase
-
-O Firebase já está configurado com suas credenciais:
-- ✅ Project ID: `studyy-8312b`
-- ✅ Backend: Configurado em `backend/.env`
-- ✅ Frontend: Configurado em `frontend/.env.local`
-
-**Importante**: Certifique-se de que no [Firebase Console](https://console.firebase.google.com/project/studyy-8312b) você habilitou:
-1. **Authentication** → Método "Email/Password"
-2. **Firestore Database** → Criar database (modo teste ou produção)
-3. **Storage** → Criar bucket
-
-### 3. Instalar Redis (obrigatório para o sistema de filas)
-
-**Mac (Homebrew):**
 ```bash
-brew install redis
-brew services start redis
+cd backend
+npm install
+
+cd ../frontend
+npm install
 ```
 
-**Verificar se está rodando:**
+## 2. Configurar ambientes locais
+
 ```bash
-redis-cli ping
-# Deve retornar: PONG
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
 ```
 
-### 4. Executar a Aplicação
+Preencha as credenciais Firebase sem versionar esses arquivos. O aplicativo usa:
 
-Após a conclusão da instalação das dependências, abra 2 terminais:
+- frontend: `http://localhost:3000`
+- backend: `http://localhost:3011`
+- projeto Firebase: `studyy-8312b`
+- único administrador: `123indiozinhos@gmail.com`
 
-**Terminal 1 - Backend:**
+No Firebase Auth, o método Email/Password precisa estar habilitado.
+
+## 3. Executar
+
+Terminal do backend:
+
 ```bash
-cd /Users/victoralmeidaj16/.gemini/antigravity/scratch/instagram-automation/backend
+cd backend
 npm run dev
 ```
 
-Você deve ver:
-```
-============================================================
-🚀 Servidor rodando na porta 3001
-📍 http://localhost:3001
-🌍 Ambiente: development
-============================================================
+Terminal do frontend:
 
-⏰ Scheduler iniciado - verificando posts a cada minuto
-✅ Scheduler de posts iniciado
-```
-
-**Terminal 2 - Frontend:**
 ```bash
-cd /Users/victoralmeidaj16/.gemini/antigravity/scratch/instagram-automation/frontend
+cd frontend
 npm run dev
 ```
 
-Você deve ver:
-```
-  ▲ Next.js 14.0.4
-  - Local:        http://localhost:3000
-  
-✓ Ready in 2.5s
-```
+Acesse `http://localhost:3000` e faça login com a conta administrativa existente. A aplicação não oferece cadastro público.
 
-### 5. Acessar a Aplicação
+## 4. Agendamento
 
-Abra seu navegador em: **http://localhost:3000**
+Em desenvolvimento, mantenha:
 
-### 6. Primeiro Uso
-
-1. **Criar conta no sistema:**
-   - Email: seu@email.com
-   - Senha: suasenha123
-   - Clique em "Criar Conta"
-
-2. **Adicionar conta Instagram:**
-   - Vá para "Contas"
-   - Clique em "+ Adicionar Conta"
-   - Preencha:
-     - Username: seu_usuario_instagram (sem @)
-     - Email: email_do_instagram@exemplo.com
-     - Senha: senha_do_instagram
-   - Clique em "Adicionar"
-
-3. **Verificar login:**
-   - Clique em "Verificar" na conta adicionada
-   - **IMPORTANTE**: Um navegador abrirá (modo visível em desenvolvimento)
-   - Se aparecer 2FA, responda manualmente
-   - Aguarde o login completar
-   - Os cookies serão salvos automaticamente
-
-4. **Criar primeiro post:**
-   - Vá para "+ Novo Post"
-   - Selecione a conta
-   - Escolha "Post Estático"
-   - Faça upload de uma imagem
-   - Escreva uma legenda
-   - Opções:
-     - **Postar Agora**: Executa imediatamente
-     - **Agendar**: Escolha data/hora futura
-
-5. **Acompanhar execução:**
-   - Vá para "Posts"
-   - Veja o status:
-     - 🟣 **Pending**: Agendado, aguardando horário
-     - 🟠 **Processing**: Em execução agora
-     - 🟢 **Success**: Publicado com sucesso
-     - 🔴 **Error**: Falha (veja mensagem de erro)
-
-### 7. Comportamento Humanizado
-
-Durante a execução, você verá nos logs do backend:
-
-```
-🎭 Iniciando simulação de comportamento humano...
-🎭 Comportamento humano: Rolando o feed...
-✅ Rolou o feed 3 vezes
-🎭 Comportamento humano: Curtindo posts aleatórios...
-✅ Curtiu 2 posts
-🎭 Comportamento humano: Pausando em um post...
-✅ Pausou por 5.2s
-✅ Comportamento humano simulado com sucesso!
-
-📸 Criando post estático...
-➕ Abrindo modal de criação...
-📤 Fazendo upload da imagem...
-⏭️ Avançando...
-✍️ Adicionando legenda...
-🚀 Compartilhando post...
-✅ Post publicado com sucesso!
+```env
+ENABLE_IN_PROCESS_SCHEDULER=false
 ```
 
-## 🔧 Troubleshooting Rápido
+Em produção, o UptimeRobot chama o endpoint protegido do Render a cada cinco minutos:
 
-### Redis não conecta
+```text
+https://insta-automation-backend-by1w.onrender.com/internal/cron/tick
+```
+
+Use HTTP Basic com os mesmos valores de `CRON_USERNAME` e `CRON_PASSWORD` configurados no Render. O método HEAD do plano gratuito é aceito.
+
+## 5. Fluxo de conteúdo
+
+1. Selecione o perfil de negócio.
+2. Gere ou envie mídia.
+3. Revise os drafts.
+4. Aprove somente o conteúdo desejado.
+5. O Upload-Post agenda a publicação e retorna `job_id`.
+
+Fitswap permanece em `publishingMode: review`; drafts nunca são publicados automaticamente.
+
+## Verificações
+
 ```bash
-# Verificar se Redis está rodando
-brew services list | grep redis
-
-# Iniciar Redis
-brew services start redis
+cd backend && npm test -- --run
+cd ../frontend && npm test -- --run
+npx tsc --noEmit
+npm run build
 ```
 
-### Backend dá erro de Firebase
-- Verifique se criou Firestore Database e Storage no Firebase Console
-- Verifique se as credenciais estão corretas em `backend/.env`
+Respostas esperadas em produção:
 
-### Login do Instagram falha
-- Tente desabilitar 2FA temporariamente (para testes)
-- Use conta de teste, não sua conta principal
-- Verifique se Instagram não bloqueou temporariamente
+- `/health` sem token: `200`
+- `/api/accounts` sem token: `401`
+- `/internal/cron/tick` sem Basic Auth: `401`
+- cron autenticado: `200` ou `202`
 
-### Post fica em "processing" indefinidamente
-- Verifique logs do backend (Terminal 1)
-- Redis pode estar offline
-- Reinicie o backend
+## Segurança
 
-## ⚠️ Lembrete de Segurança
-
-> **IMPORTANTE**: Esta automação viola os Termos de Serviço do Instagram
-> - Use apenas para fins educacionais
-> - Teste com contas descartáveis
-> - Volume recomendado: **2-3 posts por dia**
-> - Intervalo mínimo: **4-6 horas entre posts**
-
-## 📊 Próximas Etapas
-
-Após testar localmente:
-1. Considere deploy no Render (veja README.md)
-2. Configure regras de segurança do Firebase
-3. Implemente monitoramento de logs
-4. Adicione mais contas gradualmente
-
----
-
-**Dúvidas?** Consulte o [README.md](./README.md) completo ou o [walkthrough.md](../brain/.../walkthrough.md)
-
-🎉 **Boa sorte e use com responsabilidade!**
+- Nunca versione `.env`, `.env.local` ou `.env.vercel.*`.
+- Nunca grave senhas em scripts.
+- Use chaves Upload-Post por perfil e rotacione-as quando houver suspeita de exposição.
+- Não use `npm audit fix --force` nesta recuperação.
