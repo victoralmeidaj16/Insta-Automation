@@ -112,7 +112,7 @@ export async function createPost(userId, accountId, postData) {
                     caption: sanitizedCaption,
                     scheduledDate,
                     apiKey: businessProfile?.instagram?.uploadPostApiKey,
-                    uploadUsername: businessProfile?.instagram?.username || account.username
+                    uploadUsername: businessProfile?.instagram?.uploadPostUsername || businessProfile?.instagram?.username || account.username
                 });
             } catch (apiError) {
                 externalScheduleError = apiError.message;
@@ -538,7 +538,7 @@ export async function executePost(postId) {
             }
         }
         const apiKey = businessProfile?.instagram?.uploadPostApiKey;
-        const uploadUsername = businessProfile?.instagram?.username || account.username;
+        const uploadUsername = businessProfile?.instagram?.uploadPostUsername || businessProfile?.instagram?.username || account.username;
 
         // Executar automação baseado no tipo
         const postFormat = post.format || post.type;
@@ -692,7 +692,7 @@ export async function scheduleApprovedPost(postId, accountId = null) {
                 caption: post.caption,
                 scheduledDate,
                 apiKey: businessProfile?.instagram?.uploadPostApiKey,
-                uploadUsername: businessProfile?.instagram?.username || account.username
+                uploadUsername: businessProfile?.instagram?.uploadPostUsername || businessProfile?.instagram?.username || account.username
             });
         } catch (apiError) {
             schedulingError = apiError.message;
