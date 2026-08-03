@@ -306,7 +306,7 @@ router.post('/:id/link-upload-post', async (req, res) => {
             return res.status(403).json({ success: false, error: 'Acesso negado.' });
         }
 
-        const profileUsername = profile.instagram?.username?.trim();
+        const profileUsername = (profile.instagram?.uploadPostUsername || profile.instagram?.username)?.trim();
         const instagramHandle = req.body?.instagramHandle?.trim() || '';
         if (!profileUsername || !profile.instagram?.uploadPostApiKey) {
             return res.status(400).json({
@@ -480,7 +480,11 @@ router.post('/:id/test-instagram', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Nenhuma API key configurada para este perfil.' });
         }
 
-        const configuredUsername = (req.body?.username?.trim()) || profile?.instagram?.username || '';
+        const configuredUsername = (req.body?.uploadPostUsername?.trim())
+            || profile?.instagram?.uploadPostUsername
+            || (req.body?.username?.trim())
+            || profile?.instagram?.username
+            || '';
         const axios = (await import('axios')).default;
 
         // Verify key is valid — use schedule endpoint as health check

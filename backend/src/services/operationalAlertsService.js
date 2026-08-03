@@ -9,7 +9,7 @@ function asDate(value) {
 
 async function getUploadPostProfile(profile, cache) {
     const apiKey = profile.instagram?.uploadPostApiKey?.trim();
-    const username = profile.instagram?.username?.trim();
+    const username = (profile.instagram?.uploadPostUsername || profile.instagram?.username)?.trim();
     if (!apiKey || !username) return { connected: false, reason: 'missing-configuration' };
 
     const cacheKey = `${apiKey}:${username}`;

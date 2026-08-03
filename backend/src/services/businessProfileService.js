@@ -39,7 +39,8 @@ export async function createBusinessProfile(userId, profileData) {
             // Senha do Instagram NÃO é armazenada no perfil: a collection `accounts`
             // guarda credenciais criptografadas (accountService) e é a única fonte.
             instagram: {
-                username: instagram?.username || ''
+                username: instagram?.username || '',
+                uploadPostUsername: instagram?.uploadPostUsername || ''
             },
             branding: {
                 primaryColor: branding?.primaryColor || '#8e44ad',
