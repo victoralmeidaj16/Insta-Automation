@@ -41,9 +41,10 @@ async function getUploadPostProfile(profile, cache) {
 }
 
 export async function getOperationalAlerts(userId, profileId = null) {
-    const [profilesSnapshot, postsSnapshot] = await Promise.all([
+    const [profilesSnapshot, postsSnapshot, cronSnapshot] = await Promise.all([
         db.collection('businessProfiles').where('userId', '==', userId).get(),
-        db.collection('posts').where('userId', '==', userId).get()
+        db.collection('posts').where('userId', '==', userId).get(),
+        db.collection('schedulerRuns').doc('uptimerobot_tick').get(),
     ]);
 
     const profiles = profilesSnapshot.docs
@@ -71,8 +72,53 @@ export async function getOperationalAlerts(userId, profileId = null) {
     }
 
     const now = Date.now();
+    const cronHeartbeat = cronSnapshot.exists ? asDate(cronSnapshot.data().heartbeatAt) : null;
+    if (!cronHeartbeat || now - cronHeartbeat.getTime() > 15 * 60 * 1000) {
+        alerts.push({
+            id: 'cron-heartbeat-stale',
+            kind: 'cron_heartbeat_stale',
+            severity: 'critical',
+            title: 'Scheduler sem heartbeat',
+            message: cronHeartbeat
+                ? `O último tick externo ocorreu há ${Math.floor((now - cronHeartbeat.getTime()) / 60000)} min.`
+                : 'O UptimeRobot ainda não registrou nenhum tick protegido.',
+            action: 'Verificar UptimeRobot'
+        });
+    }
+
     postsSnapshot.docs.forEach(doc => {
         const post = { id: doc.id, ...doc.data() };
+        if (post.status === 'schedule_error' && (!profileId || post.businessProfileId === profileId)) {
+            const profile = profiles.find(item => item.id === post.businessProfileId);
+            alerts.push({
+                id: `schedule-error:${post.id}`,
+                kind: 'schedule_error',
+                severity: 'critical',
+                profileId: post.businessProfileId || null,
+                profileName: profile?.name || 'Perfil não identificado',
+                postId: post.id,
+                title: 'Falha no agendamento externo',
+                message: post.schedulingError || 'O Upload-Post não confirmou o agendamento.',
+                action: 'Reagendar publicação'
+            });
+        }
+
+        if (post.status === 'draft' && (!profileId || post.businessProfileId === profileId)) {
+            const scheduledFor = asDate(post.scheduledFor);
+            if (scheduledFor && scheduledFor.getTime() > now && scheduledFor.getTime() - now <= 24 * 60 * 60 * 1000) {
+                alerts.push({
+                    id: `draft-near-deadline:${post.id}`,
+                    kind: 'draft_near_deadline',
+                    severity: 'warning',
+                    profileId: post.businessProfileId || null,
+                    postId: post.id,
+                    title: 'Rascunho próximo do horário',
+                    message: 'Este conteúdo ainda precisa de revisão e aprovação.',
+                    action: 'Revisar conteúdo'
+                });
+            }
+        }
+
         if (post.status !== 'processing') return;
         if (profileId && post.businessProfileId !== profileId) return;
         const startedAt = asDate(post.processingStartedAt)

@@ -8,6 +8,8 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { BusinessProfileProvider } from '@/contexts/BusinessProfileContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
+const AUTHORIZED_EMAIL = process.env.NEXT_PUBLIC_AUTHORIZED_EMAIL || '123indiozinhos@gmail.com';
+
 function DashboardGuard({ children }) {
     const { user, loading, logout } = useAuth();
     const router = useRouter();
@@ -16,7 +18,7 @@ function DashboardGuard({ children }) {
         if (!loading) {
             if (!user) {
                 router.push('/');
-            } else if (user.email !== '123indiozinhos@gmail.com') {
+            } else if (user.email?.toLowerCase() !== AUTHORIZED_EMAIL.toLowerCase()) {
                 logout().then(() => {
                     router.push('/');
                 });
@@ -24,7 +26,7 @@ function DashboardGuard({ children }) {
         }
     }, [user, loading, router, logout]);
 
-    if (loading || !user || user.email !== '123indiozinhos@gmail.com') {
+    if (loading || !user || user.email?.toLowerCase() !== AUTHORIZED_EMAIL.toLowerCase()) {
         return (
             <div className="flex-center" style={{ minHeight: '100vh', padding: '2rem', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
                 <div className="card-glass fade-in" style={{ maxWidth: '450px', width: '100%', padding: '2.5rem', textAlign: 'center' }}>

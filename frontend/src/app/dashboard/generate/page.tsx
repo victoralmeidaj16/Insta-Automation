@@ -1370,10 +1370,11 @@ export default function GeneratePage() {
                     : new TextEncoder().encode(decodeURIComponent(data));
                 blob = new Blob([bytes], { type: mime });
             } else {
-                const proxyUrl = `${api.defaults.baseURL || 'http://localhost:3001'}/api/proxy-download?url=${encodeURIComponent(finalImageUrl)}&filename=post-${cardIndex + 1}.jpg`;
-                const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error(`Fetch via proxy falhou: ${response.statusText}`);
-                blob = await response.blob();
+                const response = await api.get('/api/proxy-download', {
+                    params: { url: finalImageUrl, filename: `post-${cardIndex + 1}.jpg` },
+                    responseType: 'blob',
+                });
+                blob = response.data;
             }
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');

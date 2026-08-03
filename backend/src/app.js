@@ -12,28 +12,34 @@ import businessProfilesRouter from './routes/business-profiles.js';
 import libraryRouter from './routes/library.js';
 import autoGenerateRouter from './routes/auto-generate.js';
 import alertsRouter from './routes/alerts.js';
+import internalCronRouter from './routes/internalCron.js';
 import { getQueueStats } from './queues/postQueue.js';
+import { URL } from 'url';
 
 dotenv.config();
 
 export function createApp() {
     const app = express();
 
+    const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
+        .split(',')
+        .map(origin => origin.trim())
+        .filter(Boolean);
+    const allowedOrigins = new Set([
+        process.env.FRONTEND_URL,
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3002',
+        'https://insta-automation-sooty.vercel.app',
+        'https://insta-automation-victoralmeidaj16s-projects.vercel.app',
+        ...configuredOrigins,
+    ].filter(Boolean));
+
     app.use(loggingMiddleware);
     app.use(cors({
-        origin: function (origin, callback) {
-            const allowedOrigins = [
-                process.env.FRONTEND_URL || 'http://localhost:3000',
-                'http://localhost:3001',
-                'http://localhost:3002'
-            ];
-
-            if (!origin) return callback(null, true);
-            if (allowedOrigins.indexOf(origin) === -1) {
-                return callback(null, true);
-            }
-
-            return callback(null, true);
+        origin(origin, callback) {
+            if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+            return callback(new Error('Origem não permitida pelo CORS.'));
         },
         credentials: true,
     }));
@@ -52,7 +58,7 @@ export function createApp() {
         });
     });
 
-    app.get('/api/stats', async (req, res) => {
+    app.get('/api/stats', authenticate, async (req, res) => {
         try {
             const stats = await getQueueStats();
             res.json(stats);
@@ -61,7 +67,25 @@ export function createApp() {
         }
     });
 
-    app.get('/api/proxy-download', async (req, res) => {
+    const allowedMediaHosts = new Set([
+        'storage.googleapis.com',
+        'firebasestorage.googleapis.com',
+        'replicate.delivery',
+        'pbxt.replicate.delivery',
+    ]);
+
+    function resolveSafeMediaUrl(rawUrl) {
+        if (typeof rawUrl !== 'string' || !rawUrl.trim()) {
+            throw new Error('URL de mídia obrigatória.');
+        }
+        const parsed = new URL(rawUrl);
+        if (parsed.protocol !== 'https:' || !allowedMediaHosts.has(parsed.hostname.toLowerCase())) {
+            throw new Error('Host de mídia não autorizado.');
+        }
+        return parsed.toString();
+    }
+
+    app.get('/api/proxy-download', authenticate, async (req, res) => {
         const { url, filename } = req.query;
 
         if (!url) {
@@ -71,7 +95,7 @@ export function createApp() {
         console.log(`📥 Proxy download request for: ${url}`);
 
         try {
-            const response = await fetch(url);
+            const response = await fetch(resolveSafeMediaUrl(url), { redirect: 'error' });
 
             if (!response.ok) {
                 console.error(`❌ Proxy fetch failed (${response.status} ${response.statusText}) for URL: ${url}`);
@@ -99,18 +123,12 @@ export function createApp() {
         }
     });
 
-    app.get('/api/proxy-image', async (req, res) => {
+    app.get('/api/proxy-image', authenticate, async (req, res) => {
         const { url } = req.query;
         if (!url) return res.status(400).send('Missing url parameter');
 
-        let fetchUrl = url;
-        if (url.startsWith('/')) {
-            const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3001}`;
-            fetchUrl = `${baseUrl}${url}`;
-        }
-
         try {
-            const response = await fetch(fetchUrl);
+            const response = await fetch(resolveSafeMediaUrl(url), { redirect: 'error' });
             if (!response.ok) {
                 return res.status(response.status).send('Failed to fetch image');
             }
@@ -124,6 +142,8 @@ export function createApp() {
             res.status(500).send('Error fetching proxy image');
         }
     });
+
+    app.use('/internal/cron', internalCronRouter);
 
     app.use('/api/accounts', authenticate, accountsRouter);
     app.use('/api/posts', authenticate, postsRouter);

@@ -5,6 +5,7 @@ import {
     getPost,
     deletePost,
     executePost,
+    scheduleApprovedPost,
 } from '../services/postService.js';
 import { getCreatablePostTypes, isStoryFormat, normalizeFormat } from '../domain/formatRules.js';
 // import { addToQueue, removeFromQueue } from '../queues/postQueue.js';
@@ -69,7 +70,9 @@ router.post('/', async (req, res) => {
         }
 
         res.status(201).json({
-            message: scheduledFor ? 'Post agendado com sucesso' : 'Post em processamento',
+            message: post.status === 'schedule_error'
+                ? 'Post salvo, mas o agendamento externo falhou.'
+                : scheduledFor ? 'Post agendado com sucesso' : 'Post em processamento',
             post,
         });
     } catch (error) {
@@ -100,6 +103,24 @@ router.get('/', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+router.post('/:id/retry-schedule', async (req, res) => {
+    try {
+        const post = await getPost(req.params.id);
+        if (post.userId !== req.userId) return res.status(403).json({ error: 'Acesso negado' });
+        if (post.status !== 'schedule_error') {
+            return res.status(400).json({ error: 'Somente posts com falha de agendamento podem ser reenviados.' });
+        }
+        const scheduledFor = post.scheduledFor?.toDate?.() || new Date(post.scheduledFor || 0);
+        if (Number.isNaN(scheduledFor.getTime()) || scheduledFor <= new Date()) {
+            return res.status(400).json({ error: 'Escolha uma nova data futura antes de reenviar o agendamento.' });
+        }
+        const result = await scheduleApprovedPost(post.id, post.accountId);
+        return res.json({ message: 'Agendamento reenviado.', result });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
     }
 });
 
@@ -146,7 +167,7 @@ router.put('/:id', async (req, res) => {
         }
 
         // Só permite atualizar posts pendentes
-        if (post.status !== 'pending') {
+        if (!['pending', 'schedule_error'].includes(post.status)) {
             return res.status(400).json({
                 error: 'Só é possível atualizar posts pendentes',
             });

@@ -61,6 +61,10 @@ vi.mock('@/components/ProfileSwitcher', () => ({
 vi.mock('@/components/PostsStatusWidget', () => ({
     default: () => <div>Posts Status Widget</div>,
 }));
+vi.mock('@/components/FailedPostsAlert', () => ({ default: () => null }));
+vi.mock('@/components/OperationalAlerts', () => ({ default: () => null }));
+vi.mock('@/components/AutopilotStatusBanner', () => ({ default: () => null }));
+vi.mock('@/components/NextWeekValidationWidget', () => ({ default: () => null }));
 
 describe('DashboardPage smoke', () => {
     beforeEach(() => {
@@ -82,7 +86,8 @@ describe('DashboardPage smoke', () => {
                         { id: 'post-2', businessProfileId: 'profile-2', status: 'success' },
                     ],
                 },
-            });
+            })
+            .mockResolvedValueOnce({ data: { drafts: [] } });
     });
 
     it('renders the dashboard with the selected profile filter applied', async () => {
@@ -92,8 +97,12 @@ describe('DashboardPage smoke', () => {
         expect(screen.getByText('Filtrado por: Perfil Principal')).toBeInTheDocument();
 
         await waitFor(() => {
-            expect(mocks.apiGet).toHaveBeenCalledTimes(2);
+            expect(mocks.apiGet).toHaveBeenCalledTimes(3);
         });
+
+        expect(mocks.apiGet).toHaveBeenCalledWith('/api/accounts');
+        expect(mocks.apiGet).toHaveBeenCalledWith('/api/posts');
+        expect(mocks.apiGet).toHaveBeenCalledWith('/api/auto-generate/drafts');
 
         expect(screen.getByText('Ações Rápidas')).toBeInTheDocument();
         expect(screen.getByText(/AI Generator/)).toBeInTheDocument();
