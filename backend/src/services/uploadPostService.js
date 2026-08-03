@@ -113,15 +113,25 @@ export async function uploadPhotos(username, platform, photoUrls, title, caption
         formData.append('user', username);  // Changed from 'username' to 'user'
         formData.append('platform[]', platform);  // Use platform[] for array
 
-        // For photos, download each file and add as buffer
+        // For carousel or single uploads (photos & video clips), download each file and add to form
         for (let i = 0; i < photoUrls.length; i++) {
             const url = photoUrls[i];
-            console.log(`📥 Downloading photo ${i + 1}/${photoUrls.length} from ${url.substring(0, 50)}...`);
-            const photoResponse = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000 });
+            console.log(`📥 Downloading media ${i + 1}/${photoUrls.length} from ${url.substring(0, 50)}...`);
+            const photoResponse = await axios.get(url, { responseType: 'arraybuffer', timeout: 60000 });
             let photoBuffer = Buffer.from(photoResponse.data);
 
-            // Detect original format from Content-Type header
-            const originalContentType = photoResponse.headers['content-type'] || 'image/jpeg';
+            const originalContentType = photoResponse.headers['content-type'] || '';
+            const isVideo = originalContentType.includes('video') || url.includes('.mp4') || url.includes('.mov');
+
+            if (isVideo) {
+                console.log(`📹 Media ${i + 1} is VIDEO (${originalContentType || 'video/mp4'}) — attaching to carousel...`);
+                const contentType = originalContentType.includes('video') ? originalContentType : 'video/mp4';
+                const filename = `carousel_video_${i}.mp4`;
+                formData.append('photos[]', photoBuffer, { filename, contentType });
+                continue;
+            }
+
+            // Detect original photo format from Content-Type header
             const isOriginallyPng = originalContentType.includes('png');
 
             // Format for upload-post.com with maximum quality preservation
@@ -142,8 +152,6 @@ export async function uploadPhotos(username, platform, photoUrls, title, caption
                     }
                 } else {
                     // Instagram feed posts: min 1080px, max 1350px wide.
-                    // Gemini/Imagen 3 can generate at ~1024px (3:4 internal mapping), which causes
-                    // visible quality loss on Instagram if not upscaled before upload.
                     const MIN_WIDTH = 1080;
                     const MAX_WIDTH = 1350;
                     if (metadata.width > MAX_WIDTH) {

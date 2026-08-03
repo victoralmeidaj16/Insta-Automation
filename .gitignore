@@ -48,3 +48,4 @@ FIREBASE_CONFIG.txt
 
 # Projeto avulso (não faz parte do app)
 elevepic-node/
+.vercel

@@ -13,9 +13,12 @@ import ProfileSwitcher from '@/components/ProfileSwitcher';
 import PostsStatusWidget from '@/components/PostsStatusWidget';
 import FailedPostsAlert from '@/components/FailedPostsAlert';
 import OperationalAlerts from '@/components/OperationalAlerts';
+import AutopilotStatusBanner from '@/components/AutopilotStatusBanner';
+import NextWeekValidationWidget from '@/components/NextWeekValidationWidget';
 
 export default function DashboardPage() {
     const [stats, setStats] = useState({ accounts: 0, posts: 0, pending: 0 });
+    const [drafts, setDrafts] = useState([]);
     const [loading, setLoading] = useState(true);
     const { user, logout } = useAuth();
     const { selectedProfile } = useBusinessProfile();
@@ -27,22 +30,26 @@ export default function DashboardPage() {
 
     const loadStats = async () => {
         try {
-            const [accountsRes, postsRes] = await Promise.all([
+            const [accountsRes, postsRes, draftsRes] = await Promise.all([
                 api.get('/api/accounts'),
                 api.get('/api/posts'),
+                api.get('/api/auto-generate/drafts').catch(() => ({ data: { drafts: [] } }))
             ]);
 
             // Filter by selected profile if one is active
             let accounts = accountsRes.data.accounts;
             let posts = postsRes.data.posts;
+            let fetchedDrafts = draftsRes.data?.drafts || [];
 
             if (selectedProfile) {
                 accounts = accounts.filter(a => a.businessProfileId === selectedProfile.id);
                 posts = posts.filter(p => p.businessProfileId === selectedProfile.id);
+                fetchedDrafts = fetchedDrafts.filter(d => d.businessProfileId === selectedProfile.id);
             }
 
             const pending = posts.filter(p => p.status === 'pending').length;
 
+            setDrafts(fetchedDrafts);
             setStats({
                 accounts: accounts.length,
                 posts: posts.length,
@@ -82,6 +89,16 @@ export default function DashboardPage() {
 
                 <FailedPostsAlert />
                 <OperationalAlerts profileId={selectedProfile?.id || null} />
+
+                {/* Status do Autopilot Banner */}
+                <AutopilotStatusBanner selectedProfile={selectedProfile} />
+
+                {/* Widget de Validação do Conteúdo da Próxima Semana */}
+                <NextWeekValidationWidget
+                    drafts={drafts}
+                    selectedProfile={selectedProfile}
+                    onRefresh={loadStats}
+                />
 
                 {/* Stats Cards */}
                 <div className={selectedProfile ? "grid grid-3 mb-lg" : "grid grid-4 mb-lg"}>

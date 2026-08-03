@@ -1,14 +1,6 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import {
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword,
-    signOut,
-    onAuthStateChanged,
-    sendPasswordResetEmail,
-} from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 
 const AuthContext = createContext({});
 
@@ -21,37 +13,55 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUser(user);
-            setLoading(false);
-        });
+        let active = true;
 
-        return () => unsubscribe();
+        async function restoreSession() {
+            try {
+                const response = await fetch('/api/auth/session', { cache: 'no-store' });
+                const data = await response.json();
+                if (active && response.ok && data.user) {
+                    setUser(data.user);
+                }
+            } finally {
+                if (active) setLoading(false);
+            }
+        }
+
+        restoreSession();
+
+        return () => {
+            active = false;
+        };
     }, []);
 
     const login = async (email, password) => {
-        return signInWithEmailAndPassword(auth, email, password);
-    };
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+        const data = await response.json();
 
-    const register = async (email, password) => {
-        return createUserWithEmailAndPassword(auth, email, password);
+        if (!response.ok) {
+            const error = new Error(data.error || 'Não foi possível autenticar.');
+            error.code = data.code || 'auth/login-failed';
+            throw error;
+        }
+
+        setUser(data.user);
+        return data.user;
     };
 
     const logout = async () => {
-        return signOut(auth);
-    };
-
-    const resetPassword = async (email) => {
-        return sendPasswordResetEmail(auth, email);
+        await fetch('/api/auth/logout', { method: 'POST' });
+        setUser(null);
     };
 
     const value = {
         user,
         loading,
         login,
-        register,
         logout,
-        resetPassword,
     };
 
     return (

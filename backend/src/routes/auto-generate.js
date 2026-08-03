@@ -239,6 +239,48 @@ router.post('/drafts/:postId/approve', async (req, res) => {
 });
 
 /**
+ * POST /api/auto-generate/drafts/approve-all-week
+ * Aprova em massa todos os rascunhos da próxima semana para um perfil
+ */
+router.post('/drafts/approve-all-week', async (req, res) => {
+    try {
+        const userId = req.user?.uid;
+        if (!userId) {
+            return res.status(401).json({ error: 'Não autenticado.' });
+        }
+
+        const { businessProfileId, accountId } = req.body;
+        if (!businessProfileId) {
+            return res.status(400).json({ error: 'businessProfileId é obrigatório.' });
+        }
+
+        await requireOwnedProfile(businessProfileId, userId);
+
+        const allDrafts = await getDraftPosts(userId);
+        const profileDrafts = allDrafts.filter(d => d.businessProfileId === businessProfileId);
+
+        let approvedCount = 0;
+        const errors = [];
+
+        for (const draft of profileDrafts) {
+            try {
+                const approval = await approveDraftPost(draft.id, accountId || draft.accountId || null, { destination: 'schedule' });
+                if (approval.destination !== 'library') {
+                    await scheduleApprovedPost(draft.id, approval.accountId);
+                }
+                approvedCount++;
+            } catch (err) {
+                errors.push({ postId: draft.id, error: err.message });
+            }
+        }
+
+        res.json({ success: true, approvedCount, totalCount: profileDrafts.length, errors });
+    } catch (error) {
+        sendAutoGenerateError('auto-generate/approve-all-week', error, res);
+    }
+});
+
+/**
  * POST /api/auto-generate/drafts/:postId/reject
  * Rejeita e arquiva um rascunho
  */
