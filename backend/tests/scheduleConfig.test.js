@@ -52,6 +52,33 @@ describe('schedule configuration', () => {
             .toBe('2026-07-20T03:00:00.000Z');
     });
 
+    it('keeps the auto approval fallback off unless the profile opts in', () => {
+        expect(normalizeScheduleConfig({})).toMatchObject({
+            autoApproveFallbackEnabled: false,
+            autoApproveLeadHours: 24
+        });
+        expect(normalizeScheduleConfig({ autoApproveFallbackEnabled: 'sim' }).autoApproveFallbackEnabled).toBe(false);
+    });
+
+    it('accepts an explicit fallback opt-in independently of the publishing mode', () => {
+        expect(normalizeScheduleConfig({
+            publishingMode: 'review',
+            autoApproveFallbackEnabled: true,
+            autoApproveLeadHours: 48
+        })).toMatchObject({
+            publishingMode: 'review',
+            autoApproveFallbackEnabled: true,
+            autoApproveLeadHours: 48
+        });
+    });
+
+    it('clamps invalid or excessive lead windows', () => {
+        expect(normalizeScheduleConfig({ autoApproveLeadHours: 0 }).autoApproveLeadHours).toBe(24);
+        expect(normalizeScheduleConfig({ autoApproveLeadHours: -5 }).autoApproveLeadHours).toBe(24);
+        expect(normalizeScheduleConfig({ autoApproveLeadHours: 'abc' }).autoApproveLeadHours).toBe(24);
+        expect(normalizeScheduleConfig({ autoApproveLeadHours: 999 }).autoApproveLeadHours).toBe(168);
+    });
+
     it('converts a local scheduled time to its UTC instant', () => {
         expect(zonedDateTimeToUtc({
             year: 2026,
