@@ -7,6 +7,7 @@ import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import BackButton from '@/components/BackButton';
 import PostsStatusWidget from '@/components/PostsStatusWidget';
+import BatchApproveModal from '@/components/BatchApproveModal';
 
 export default function CalendarPage() {
     const router = useRouter();
@@ -17,6 +18,8 @@ export default function CalendarPage() {
     // const [accounts, setAccounts] = useState([]); // Removed
     // const [selectedAccount, setSelectedAccount] = useState(''); // Removed
     const [posts, setPosts] = useState([]);
+    const [drafts, setDrafts] = useState([]);
+    const [showBatchModal, setShowBatchModal] = useState(false);
     const [mediaLibrary, setMediaLibrary] = useState([]);
     const [draggedItem, setDraggedItem] = useState(null);
     const [hoveredDate, setHoveredDate] = useState(null);
@@ -60,10 +63,12 @@ export default function CalendarPage() {
             // loadAccounts(); // No longer needed
             loadLibraryItems(); // Load "Pronto" items for this profile
             loadPosts(); // Load posts for this profile
+            loadDrafts(); // Load drafts for this profile
         } else {
             // Clear data if no profile selected
             // setAccounts([]);
             setPosts([]);
+            setDrafts([]);
             setMediaLibrary([]);
         }
     }, [selectedProfile]);
@@ -135,6 +140,17 @@ export default function CalendarPage() {
             setPosts(scheduledPosts);
         } catch (error) {
             console.error('❌ Erro ao carregar posts:', error);
+        }
+    };
+
+    const loadDrafts = async () => {
+        if (!selectedProfile) return;
+        try {
+            const res = await api.get('/api/auto-generate/drafts');
+            const profileDrafts = (res.data?.drafts || []).filter(d => d.businessProfileId === selectedProfile.id);
+            setDrafts(profileDrafts);
+        } catch (error) {
+            console.error('❌ Erro ao carregar rascunhos no calendário:', error);
         }
     };
 
@@ -536,6 +552,48 @@ export default function CalendarPage() {
                 </div>
 
                 <PostsStatusWidget />
+
+                {/* Banner de Rascunhos Pendentes para Aprovação em 1 Clique */}
+                {drafts.length > 0 && selectedProfile && (
+                    <div
+                        className="card-glass"
+                        style={{
+                            marginTop: '1rem',
+                            padding: '1rem 1.5rem',
+                            background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(109, 40, 217, 0.05) 100%)',
+                            borderLeft: '4px solid #7c3aed',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '1rem'
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontSize: '1.5rem' }}>📝</span>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#fff' }}>
+                                    Existem {drafts.length} rascunho(s) pendentes para {selectedProfile.name}
+                                </h4>
+                                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#a1a1aa' }}>
+                                    Aprove-os agora para que apareçam na grade do calendário.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowBatchModal(true)}
+                            className="btn btn-primary"
+                            style={{
+                                fontSize: '0.85rem',
+                                padding: '0.5rem 1rem',
+                                background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                                fontWeight: '700'
+                            }}
+                        >
+                            ⚡ Aprovar Todos em 1 Clique ({drafts.length})
+                        </button>
+                    </div>
+                )}
 
                 {/* ── Calendar ──────────────────────────────────────────────── */}
                 <div className="card-glass" style={{ padding: '2rem', marginTop: '1.5rem' }}>
@@ -1360,7 +1418,18 @@ export default function CalendarPage() {
                     </div>
                 </div>
             )}
-        </div >
 
+            <BatchApproveModal
+                isOpen={showBatchModal}
+                onClose={() => setShowBatchModal(false)}
+                profileName={selectedProfile?.name}
+                businessProfileId={selectedProfile?.id}
+                drafts={drafts}
+                onSuccess={() => {
+                    loadPosts();
+                    loadDrafts();
+                }}
+            />
+        </div>
     );
 }

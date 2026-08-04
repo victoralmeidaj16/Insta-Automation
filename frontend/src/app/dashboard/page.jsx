@@ -15,6 +15,7 @@ import FailedPostsAlert from '@/components/FailedPostsAlert';
 import OperationalAlerts from '@/components/OperationalAlerts';
 import AutopilotStatusBanner from '@/components/AutopilotStatusBanner';
 import NextWeekValidationWidget from '@/components/NextWeekValidationWidget';
+import ProfileControlMatrix from '@/components/ProfileControlMatrix';
 
 export default function DashboardPage() {
     const [stats, setStats] = useState({ accounts: 0, posts: 0, pending: 0 });
@@ -99,6 +100,9 @@ export default function DashboardPage() {
                     selectedProfile={selectedProfile}
                     onRefresh={loadStats}
                 />
+
+                {/* Matriz de Controle dos Perfis (Toggles Rápidos) */}
+                <ProfileControlMatrix onProfilesUpdated={loadStats} />
 
                 {/* Stats Cards */}
                 <div className={selectedProfile ? "grid grid-3 mb-lg" : "grid grid-4 mb-lg"}>

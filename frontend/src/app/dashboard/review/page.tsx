@@ -2036,7 +2036,20 @@ export default function ReviewPage() {
                         <button onClick={() => setStep('plan')} className="btn btn-secondary" style={{ fontSize: '0.875rem' }}>
                             ← Novo plano
                         </button>
-                        {visibleDrafts.length > 1 && (
+                        {drafts.length > 0 && (
+                            <button
+                                onClick={() => openBulkApprovalModal(drafts, 'todos os rascunhos da semana')}
+                                className="btn btn-primary"
+                                style={{
+                                    fontSize: '0.875rem',
+                                    background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                                    fontWeight: '700'
+                                }}
+                            >
+                                ⚡ Aprovar Fila da Semana ({drafts.length})
+                            </button>
+                        )}
+                        {visibleDrafts.length > 1 && visibleDrafts.length !== drafts.length && (
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button onClick={() => handleRejectAll(visibleDrafts)} className="btn btn-secondary" style={{ fontSize: '0.875rem', border: '1px solid #ef4444', color: '#ef4444' }}>
                                     🗑️ Rejeitar seção ({visibleDrafts.length})
