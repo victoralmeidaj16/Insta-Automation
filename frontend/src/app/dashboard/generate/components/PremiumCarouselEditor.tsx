@@ -446,12 +446,22 @@ export function buildPremiumLayoutFromPrompt(
     }
     highlightText = ensureHighlightText(title, highlightText);
 
+    const subheadlineMatch = prompt.match(/\[SUBHEADLINE:\s*(.*?)\]/i);
+    let subheadline = subheadlineMatch ? subheadlineMatch[1].trim() : '';
+
+    if (!subheadline && options.description) {
+        const conceptSubMatch = options.description.match(/\*\*SUBHEADLINE:\*\*\s*(.*)/i);
+        if (conceptSubMatch) {
+            subheadline = conceptSubMatch[1].trim().replace(/\*\*/g, '');
+        }
+    }
+
     return {
         brandName: options.brandName || 'Inner Boost',
         title: title || '',
         highlightText: highlightText,
-        description: '',
-        descriptionEnabled: false,
+        description: subheadline || '',
+        descriptionEnabled: Boolean(subheadline),
         descriptionColor: '#d1d5db',
         primaryColor: getReadablePremiumAccentColor(options),
         logoIcon: options.logoIcon || '🧠',
@@ -689,6 +699,24 @@ export async function renderPremiumPostToDataUrl({
         titleY += titleLineHeight;
     });
 
+    // ── Subheadline / Description ─────────────────────────────────────────────
+    if (layout.description && layout.descriptionEnabled !== false) {
+        const subFontSize = Math.min(34, Math.max(22, Math.round(titleFontSize * 0.38)));
+        context.font = `500 ${subFontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
+        context.fillStyle = layout.descriptionColor || (theme.text === '#ffffff' ? 'rgba(255,255,255,0.85)' : 'rgba(17,24,39,0.85)');
+        context.textAlign = 'center';
+        context.textBaseline = 'alphabetic';
+
+        const subLines = splitTitleLines(context, layout.description, CONTENT_W * 0.9);
+        let subY = titleY + subFontSize * 0.2;
+        subLines.forEach((subLine) => {
+            if (subY < canvas.height - 65) {
+                context.fillText(subLine, centerX, subY);
+                subY += subFontSize * 1.25;
+            }
+        });
+    }
+
     // ── Swipe dots ────────────────────────────────────────────────────────────
     const DOT_Y = canvas.height - 50;
     const DOT_R = 7;
@@ -843,15 +871,34 @@ export function PremiumPostPreview({ layout, backgroundImage, compact = false }:
                             padding: '4% 0',
                         }}
                     >
-                        <div>
-                            {titleFragments.map((fragment, index) => (
-                                <span
-                                    key={`${fragment.text}-${index}`}
-                                    style={{ color: fragment.highlighted ? accentColor : theme.text }}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem' }}>
+                            <div>
+                                {titleFragments.map((fragment, index) => (
+                                    <span
+                                        key={`${fragment.text}-${index}`}
+                                        style={{ color: fragment.highlighted ? accentColor : theme.text }}
+                                    >
+                                        {fragment.text}
+                                    </span>
+                                ))}
+                            </div>
+                            {layout.description && layout.descriptionEnabled !== false && (
+                                <div
+                                    style={{
+                                        fontSize: 'clamp(0.48rem, 3.4cqi, 1.05rem)',
+                                        fontWeight: 500,
+                                        color: layout.descriptionColor || (theme.text === '#ffffff' ? 'rgba(255,255,255,0.85)' : 'rgba(17,24,39,0.85)'),
+                                        fontFamily: "'Inter', -apple-system, sans-serif",
+                                        textTransform: 'none',
+                                        letterSpacing: 'normal',
+                                        lineHeight: 1.25,
+                                        marginTop: '0.2rem',
+                                        opacity: 0.9,
+                                    }}
                                 >
-                                    {fragment.text}
-                                </span>
-                            ))}
+                                    {layout.description}
+                                </div>
+                            )}
                         </div>
                     </div>
 
