@@ -964,38 +964,6 @@ export function PremiumEditorModal({
                         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
                     </div>
 
-                    {(slideLabel || onPreviousSlide || onNextSlide) && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-                            <button
-                                onClick={onPreviousSlide}
-                                disabled={!onPreviousSlide || !canGoPrevious}
-                                className="btn"
-                                style={{
-                                    minWidth: '88px',
-                                    opacity: !onPreviousSlide || !canGoPrevious ? 0.45 : 1,
-                                    cursor: !onPreviousSlide || !canGoPrevious ? 'default' : 'pointer'
-                                }}
-                            >
-                                ← Anterior
-                            </button>
-                            <span style={{ color: '#d4d4d8', fontSize: '0.9rem', fontWeight: 600 }}>
-                                {slideLabel || `Slide ${(layout.slideIndex || 0) + 1}`}
-                            </span>
-                            <button
-                                onClick={onNextSlide}
-                                disabled={!onNextSlide || !canGoNext}
-                                className="btn"
-                                style={{
-                                    minWidth: '88px',
-                                    opacity: !onNextSlide || !canGoNext ? 0.45 : 1,
-                                    cursor: !onNextSlide || !canGoNext ? 'default' : 'pointer'
-                                }}
-                            >
-                                Próximo →
-                            </button>
-                        </div>
-                    )}
-
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem', paddingBottom: '1rem', borderBottom: '1px solid #27272a' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>
                             <input type="checkbox" checked={Boolean(layout.hideOverlay)} onChange={event => onChange('hideOverlay', event.target.checked)} style={{ width: '1.1rem', height: '1.1rem' }} />
@@ -1181,6 +1149,62 @@ export function PremiumEditorModal({
                             canvasLoading={canvasLoading}
                         />
                     </div>
+
+                    {(slideLabel || onPreviousSlide || onNextSlide) && (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            width: 'min(100%, 420px)',
+                            gap: '0.75rem',
+                            padding: '0.5rem 0.75rem',
+                            background: 'rgba(24, 24, 27, 0.8)',
+                            borderRadius: '0.75rem',
+                            border: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={onPreviousSlide}
+                                disabled={!onPreviousSlide || !canGoPrevious}
+                                style={{
+                                    minWidth: '95px',
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '0.5rem',
+                                    background: 'rgba(255,255,255,0.08)',
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    fontSize: '0.85rem',
+                                    border: '1px solid rgba(255,255,255,0.15)',
+                                    opacity: !onPreviousSlide || !canGoPrevious ? 0.35 : 1,
+                                    cursor: !onPreviousSlide || !canGoPrevious ? 'default' : 'pointer'
+                                }}
+                            >
+                                ← Anterior
+                            </button>
+                            <span style={{ color: '#f4f4f5', fontSize: '0.9rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                                {slideLabel || `Slide ${(layout.slideIndex || 0) + 1}`}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={onNextSlide}
+                                disabled={!onNextSlide || !canGoNext}
+                                style={{
+                                    minWidth: '95px',
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '0.5rem',
+                                    background: 'rgba(255,255,255,0.08)',
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    fontSize: '0.85rem',
+                                    border: '1px solid rgba(255,255,255,0.15)',
+                                    opacity: !onNextSlide || !canGoNext ? 0.35 : 1,
+                                    cursor: !onNextSlide || !canGoNext ? 'default' : 'pointer'
+                                }}
+                            >
+                                Próximo →
+                            </button>
+                        </div>
+                    )}
 
                     {onSecondaryAction && (
                         <button

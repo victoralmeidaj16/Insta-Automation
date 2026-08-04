@@ -88,12 +88,15 @@ Crie um plano unificado para um carrossel de ${count} slides sobre: "${cleanText
 
 ${brandSections}
 
-CONTRATO NARRATIVO:
-- narrative resume o arco completo e orienta todos os slides.
-- Cada slide avança o mesmo raciocínio; não crie cards independentes ou repetitivos.
+CONTRATO NARRATIVO (TRAJETÓRIA PROGRESSIVA OBRIGATÓRIA):
+- narrative resume o arco sequencial do carrossel (Hook → Problema/Dor → Insight/Virada de Chave → Solução Prática → Chamada para Ação).
+- Cada slide DEVE ser um passo sequencial do mesmo raciocínio. NUNCA crie cards soltos, desconectados ou frases repetitivas.
+- Slide 1: HOOK / GANCHO (provocação de impacto, mito ou pergunta de dor).
+- Slides do Meio: DESENVOLVIMENTO LOGICO (aprofunda o conceito, revela a solução e detalha os passos).
+- Slide Final: CONCLUSÃO & CTA (desfecho natural que conecta o leitor à marca e à legenda).
 - background é uma cena fotográfica específica em inglês, sem texto, logos ou UI legível.
 - headline e subheadline são copy em português; highlights contém somente palavras presentes na headline.
-- caption continua o arco dos slides, acrescenta contexto e não repete o carrossel mecanicamente.
+- caption continua o arco dos slides, acrescentando contexto e profundidade sem repetir mecanicamente os textos dos cards.
 - cta deve ser coerente com o último slide e obedecer às regras da marca.
 - caption deve obedecer captionRules; hashtags deve obedecer hashtagStrategy.
 - Retorne exatamente ${count} slides. Todos os campos do schema são obrigatórios; use "" ou [] quando algo não se aplicar.`;

@@ -32,6 +32,12 @@ PRINCÍPIO CENTRAL:
 - Cada card conta uma micro-história visual diferente, com uma única ideia focal, luz editorial e contraste controlado.
 - Quando houver pessoas, use microexpressões e linguagem corporal reais; nunca poses de stock sem contexto.
 
+REGRAS DE TRAJETÓRIA NARRATIVA (ARCO PROGRESSIVO EM ${count} SLIDES):
+- O carrossel DEVE contar uma história contínua com começo, meio e fim. CADA SLIDE AVANÇA A NARRATIVA — NUNCA repita ou parafraseie frases dos slides anteriores.
+- SLIDE 1 (HOOK / GANCHO): Apresenta o problema, mito ou provocação inicial com headline curta e de alto impacto para capturar a atenção.
+- SLIDES INTERMEDIÁRIOS (DESENVOLVIMENTO E REVELAÇÃO): Cada slide avança um passo lógico único (aprofundamento da dor, virada de chave/insight, e solução prática).
+- SLIDE FINAL (CHAMADA / CONCLUSÃO): Conecta a transformação ao objetivo da marca, trazendo um desfecho claro.
+
 REGRAS TÉCNICAS:
 - Não descreva texto, logos, tipografia ou UI legível na imagem.
 - Reserve espaço negativo limpo para o overlay e não repita cena, ângulo ou composição entre os slides.
