@@ -1136,7 +1136,7 @@ export default function ReviewPage() {
                 slides.map((imgUrl, index) => renderPremiumPostToDataUrl({
                     layout: slideLayouts[index] || firstLayout,
                     backgroundImage: imgUrl,
-                    apiBaseUrl: api.defaults.baseURL || 'http://localhost:3011'
+                    apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || api.defaults.baseURL || 'https://insta-automation-backend-by1w.onrender.com'
                 }))
             );
 
@@ -2294,7 +2294,7 @@ export default function ReviewPage() {
                                                         <PremiumCanvasPreview
                                                             backgroundImage={draft.mediaUrls[idx]}
                                                             layout={buildPremiumLayoutFromDraft(draft, idx)}
-                                                            apiBaseUrl={api.defaults.baseURL || 'http://localhost:3011'}
+                                                            apiBaseUrl={process.env.NEXT_PUBLIC_API_URL || api.defaults.baseURL || 'https://insta-automation-backend-by1w.onrender.com'}
                                                         />
                                                     ) : (
                                                         <img src={currentMediaUrl} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -2378,7 +2378,7 @@ export default function ReviewPage() {
                                                                 <PremiumCanvasPreview
                                                                     backgroundImage={imgUrl}
                                                                     layout={thumbLayout}
-                                                                    apiBaseUrl={api.defaults.baseURL || 'http://localhost:3011'}
+                                                                    apiBaseUrl={process.env.NEXT_PUBLIC_API_URL || api.defaults.baseURL || 'https://insta-automation-backend-by1w.onrender.com'}
                                                                 />
                                                                 <span style={{
                                                                     position: 'absolute',
@@ -2997,7 +2997,7 @@ export default function ReviewPage() {
                     premiumEditorLayout
                     && Number(premiumEditorLayout.slideIndex || 0) < Math.max(0, Number(premiumEditorLayout.slideCount || 1) - 1)
                 )}
-                apiBaseUrl={api.defaults.baseURL || 'http://localhost:3011'}
+                apiBaseUrl={process.env.NEXT_PUBLIC_API_URL || api.defaults.baseURL || 'https://insta-automation-backend-by1w.onrender.com'}
             />
             {renderApprovalSelectionModal()}
             {renderConfirmModal()}

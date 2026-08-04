@@ -210,7 +210,7 @@ async function fetchImageAsDataUrl(url: string, apiBaseUrl?: string): Promise<st
 }
 
 function getBackgroundProxyUrl(imageUrl: string, apiBaseUrl?: string) {
-    const baseUrl = apiBaseUrl || 'http://localhost:3011';
+    const baseUrl = apiBaseUrl || process.env.NEXT_PUBLIC_API_URL || 'https://insta-automation-backend-by1w.onrender.com';
     return `${baseUrl}/api/proxy-download?url=${encodeURIComponent(imageUrl)}&filename=premium-background.jpg`;
 }
 
@@ -731,19 +731,16 @@ export function PremiumPostPreview({ layout, backgroundImage, compact = false }:
     const imageOffsetY = clampPremiumImageOffset(Number(layout.imageOffsetY || 0));
     const gradientOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? 1)));
 
-    // Auto-scale font to fit the 40% content zone
-    // More text = more lines = smaller font, scaling aggressively for 3+ lines
+    // Auto-scale font using container queries (cqi) to fit the 40% content zone proportionally
     const charCount = sanitizedTitle.length;
     const charsPerLine = compact ? 11 : 16;
     const estimatedLines = Math.max(1, Math.ceil(charCount / charsPerLine));
-    const maxTitleRem = compact ? 2.0 : 3.2;
-    const minTitleRem = compact ? 0.72 : 1.1;
-    // Use power 0.65 (steeper than sqrt=0.5) for more aggressive downscaling on long titles
-    const scaledRem = Math.max(minTitleRem, maxTitleRem / Math.pow(Math.max(1, estimatedLines), 0.65));
-    const titleFontSize = `${scaledRem.toFixed(2)}rem`;
+    const baseCqi = compact ? 6.8 : 8.8;
+    const scaledCqi = Math.max(3.8, baseCqi / Math.pow(Math.max(1, estimatedLines), 0.5));
+    const titleFontSize = `clamp(0.65rem, ${scaledCqi.toFixed(2)}cqi, 2.8rem)`;
 
-    const logoSize = compact ? '20px' : '28px';
-    const logoFontSize = compact ? '8px' : '10px';
+    const logoSize = 'clamp(16px, 7cqi, 28px)';
+    const logoFontSize = 'clamp(7px, 2.5cqi, 10px)';
 
     return (
         <div
@@ -752,6 +749,7 @@ export function PremiumPostPreview({ layout, backgroundImage, compact = false }:
                 width: '100%',
                 aspectRatio: '4 / 5',
                 overflow: 'hidden',
+                containerType: 'inline-size',
                 background: theme.canvasBackground,
                 boxShadow: compact ? '0 20px 50px rgba(0,0,0,0.5)' : '0 30px 80px rgba(0,0,0,0.6)',
             }}
@@ -1325,7 +1323,7 @@ export function PremiumCanvasPreview({ layout, backgroundImage, apiBaseUrl }: {
     React.useEffect(() => {
         let cancelled = false;
         setLoading(true);
-        renderPremiumPostToDataUrl({ layout, backgroundImage, apiBaseUrl: apiBaseUrl || 'http://localhost:3011' })
+        renderPremiumPostToDataUrl({ layout, backgroundImage, apiBaseUrl: apiBaseUrl || process.env.NEXT_PUBLIC_API_URL || 'https://insta-automation-backend-by1w.onrender.com' })
             .then(url => { if (!cancelled) { setDataUrl(url); setLoading(false); } })
             .catch(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
