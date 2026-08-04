@@ -646,39 +646,54 @@ export async function renderPremiumPostToDataUrl({
         context.fillText(initials, centerX, LOGO_Y);
     }
 
-    // ── Auto-scale headline font ──────────────────────────────────────────────
-    const TITLE_TOP    = LOGO_Y + LOGO_R + 48;
+    // ── Auto-scale headline & subheadline font ──────────────────────────────────────────────
+    const hasSub = Boolean(layout.description && layout.descriptionEnabled !== false);
+    const TITLE_TOP    = LOGO_Y + LOGO_R + 36;
     const DOTS_H       = 40;
-    const AVAILABLE_H  = canvas.height - TITLE_TOP - DOTS_H - 60;
+    const AVAILABLE_H  = canvas.height - TITLE_TOP - DOTS_H - 45;
 
-    const MAX_FONT = 148;
-    const MIN_FONT = 56;
+    const MAX_FONT = hasSub ? 120 : 148;
+    const MIN_FONT = hasSub ? 44 : 56;
     const FONT_STEP = 4;
     const LH_RATIO = 0.96;
 
     const sanitizedTitle = sanitizePremiumTitle(layout.title || '');
     let titleFontSize = MAX_FONT;
     let titleLines: string[] = [];
+    let subLines: string[] = [];
+    let subFontSize = 28;
 
     for (let fs = MAX_FONT; fs >= MIN_FONT; fs -= FONT_STEP) {
         context.font = `900 ${fs}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
-        const candidate = splitTitleLines(context, sanitizedTitle, CONTENT_W);
-        if (candidate.length * fs * LH_RATIO <= AVAILABLE_H) {
+        const candidateTitle = splitTitleLines(context, sanitizedTitle, CONTENT_W);
+
+        const candidateSubFont = Math.min(34, Math.max(22, Math.round(fs * 0.36)));
+        context.font = `500 ${candidateSubFont}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
+        const candidateSubLines = hasSub ? splitTitleLines(context, layout.description!, CONTENT_W * 0.88) : [];
+
+        const blockH = candidateTitle.length * fs * LH_RATIO + (hasSub ? candidateSubLines.length * candidateSubFont * 1.3 + 16 : 0);
+
+        if (blockH <= AVAILABLE_H) {
             titleFontSize = fs;
-            titleLines = candidate;
+            titleLines = candidateTitle;
+            subFontSize = candidateSubFont;
+            subLines = candidateSubLines;
             break;
         }
         if (fs - FONT_STEP < MIN_FONT) {
             titleFontSize = MIN_FONT;
             context.font = `900 ${MIN_FONT}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
             titleLines = splitTitleLines(context, sanitizedTitle, CONTENT_W);
+            subFontSize = Math.min(34, Math.max(22, Math.round(MIN_FONT * 0.36)));
+            context.font = `500 ${subFontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
+            subLines = hasSub ? splitTitleLines(context, layout.description!, CONTENT_W * 0.88) : [];
         }
     }
-    const titleLineHeight = titleFontSize * LH_RATIO;
 
-    // Center title block vertically between LOGO and dots
-    const totalTitleH = titleLines.length * titleLineHeight;
-    let titleY = TITLE_TOP + (AVAILABLE_H - totalTitleH) / 2 + titleFontSize * 0.8;
+    const titleLineHeight = titleFontSize * LH_RATIO;
+    const totalBlockH = titleLines.length * titleLineHeight + (hasSub ? subLines.length * subFontSize * 1.3 + 16 : 0);
+
+    let currentY = TITLE_TOP + Math.max(0, (AVAILABLE_H - totalBlockH) / 2) + titleFontSize * 0.8;
 
     context.font = `900 ${titleFontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
     context.textAlign = 'left';
@@ -692,27 +707,25 @@ export async function renderPremiumPostToDataUrl({
 
         fragments.forEach((fragment) => {
             context.fillStyle = fragment.highlighted ? accentColor : theme.text;
-            context.fillText(fragment.text, drawX, titleY);
+            context.fillText(fragment.text, drawX, currentY);
             drawX += context.measureText(fragment.text).width;
         });
 
-        titleY += titleLineHeight;
+        currentY += titleLineHeight;
     });
 
     // ── Subheadline / Description ─────────────────────────────────────────────
-    if (layout.description && layout.descriptionEnabled !== false) {
-        const subFontSize = Math.min(34, Math.max(22, Math.round(titleFontSize * 0.38)));
+    if (hasSub && subLines.length > 0) {
+        currentY += 12;
         context.font = `500 ${subFontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
         context.fillStyle = layout.descriptionColor || (theme.text === '#ffffff' ? 'rgba(255,255,255,0.85)' : 'rgba(17,24,39,0.85)');
         context.textAlign = 'center';
         context.textBaseline = 'alphabetic';
 
-        const subLines = splitTitleLines(context, layout.description, CONTENT_W * 0.9);
-        let subY = titleY + subFontSize * 0.2;
         subLines.forEach((subLine) => {
-            if (subY < canvas.height - 65) {
-                context.fillText(subLine, centerX, subY);
-                subY += subFontSize * 1.25;
+            if (currentY < canvas.height - 65) {
+                context.fillText(subLine, centerX, currentY);
+                currentY += subFontSize * 1.3;
             }
         });
     }
@@ -1019,32 +1032,61 @@ export function PremiumEditorModal({
                         <span style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>O texto será preservado apenas para visualização de limites do template, mas a arte final exportará somente a imagem posicionada.</span>
                     </div>
 
-                    <details open={!layout.hideOverlay} style={{ marginBottom: '0.8rem', background: '#111113', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #27272a' }}>
-                        <summary style={{ cursor: 'pointer', color: '#fff', fontSize: '0.85rem', fontWeight: 600, outline: 'none' }}>
-                            Opções Estruturais do Template (Oculto na arte final)
-                        </summary>
-                        <div style={{ display: 'grid', gap: '0.8rem', marginTop: '1rem' }}>
-                            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
-                                Branding / Logo
-                                <input value={layout.brandName} onChange={event => onChange('brandName', event.target.value)} className="input" />
-                            </label>
+                    {!layout.hideOverlay && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: '#111113', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #27272a' }}>
+                            <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700 }}>
+                                📝 Textos do Card (Headline & Subtítulo)
+                            </span>
 
                             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
-                                Ícone
-                                <input value={layout.logoIcon} onChange={event => onChange('logoIcon', event.target.value)} className="input" maxLength={4} />
+                                Título Principal (Headline)
+                                <textarea value={layout.title} onChange={event => onChange('title', event.target.value)} className="input" rows={3} placeholder="Digite a headline..." />
                             </label>
 
-                            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
-                                Título Principal
-                                <textarea value={layout.title} onChange={event => onChange('title', event.target.value)} className="input" rows={4} />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem', alignItems: 'end' }}>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                                    Subtítulo (Subheadline)
+                                    <textarea
+                                        value={layout.description || ''}
+                                        onChange={event => {
+                                            const val = event.target.value;
+                                            onChange('description', val);
+                                            if (val && layout.descriptionEnabled === false) {
+                                                onChange('descriptionEnabled', true);
+                                            }
+                                        }}
+                                        className="input"
+                                        rows={2}
+                                        placeholder="Digite o subtítulo de apoio..."
+                                    />
+                                </label>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                                    Cor Subtítulo
+                                    <input type="color" value={layout.descriptionColor || '#d1d5db'} onChange={event => onChange('descriptionColor', event.target.value)} style={{ width: '54px', height: '44px', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', padding: '0.15rem' }} />
+                                </label>
+                            </div>
+
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#d4d4d8', fontSize: '0.85rem' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={layout.descriptionEnabled !== false && Boolean(layout.description)}
+                                    onChange={event => onChange('descriptionEnabled', event.target.checked)}
+                                />
+                                Exibir Subtítulo no slide
                             </label>
 
-                            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
-                                Palavra em Destaque
-                                <input value={layout.highlightText} onChange={event => onChange('highlightText', event.target.value)} className="input" />
-                            </label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                                    Palavra em Destaque
+                                    <input value={layout.highlightText} onChange={event => onChange('highlightText', event.target.value)} className="input" />
+                                </label>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                                    Cor do Destaque
+                                    <input type="color" value={layout.primaryColor} onChange={event => onChange('primaryColor', event.target.value)} style={{ width: '100%', height: '42px', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', padding: '0.15rem' }} />
+                                </label>
+                            </div>
                         </div>
-                    </details>
+                    )}
 
                     <div style={{ display: 'grid', gap: '0.85rem' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
@@ -1093,26 +1135,6 @@ export function PremiumEditorModal({
                             </span>
                         </div>
                     </div>
-
-                    {!layout.hideOverlay && (
-                        <>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem', alignItems: 'end' }}>
-                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
-                                    Descrição
-                                    <textarea value={layout.description} onChange={event => onChange('description', event.target.value)} className="input" rows={3} />
-                                </label>
-                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
-                                    Cor
-                                    <input type="color" value={layout.descriptionColor} onChange={event => onChange('descriptionColor', event.target.value)} style={{ width: '56px', height: '54px', borderRadius: '0.75rem', border: '1px solid #3f3f46', background: 'transparent', padding: '0.2rem' }} />
-                                </label>
-                            </div>
-
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#d4d4d8', fontSize: '0.875rem' }}>
-                                <input type="checkbox" checked={layout.descriptionEnabled} onChange={event => onChange('descriptionEnabled', event.target.checked)} />
-                                Mostrar descrição
-                            </label>
-                        </>
-                    )}
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem', alignItems: 'end' }}>
                         {!layout.hideOverlay ? (
