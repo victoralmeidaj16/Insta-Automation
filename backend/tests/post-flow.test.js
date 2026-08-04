@@ -151,6 +151,51 @@ describe('critical post flow', () => {
         expect(firebase.deletedFiles).toEqual(['media/sync-post.jpg']);
     });
 
+    it('releases a post stuck in processing without an external job', async () => {
+        const { syncScheduledPosts } = await import('../src/services/postService.js');
+
+        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+        const postRef = await firebase.db.collection('posts').add({
+            userId: 'A9NJto9KIOSgYJg8uRj8u5xAvAg1',
+            accountId: 'account-1',
+            businessProfileId: 'profile-1',
+            type: 'static',
+            format: 'static',
+            mediaUrls: ['https://firebasestorage.googleapis.com/v0/b/test/o/media%2Fstuck.jpg?alt=media'],
+            status: 'processing',
+            scheduledFor: null,
+            createdAt: twoHoursAgo,
+            updatedAt: twoHoursAgo,
+        });
+
+        await syncScheduledPosts();
+
+        const savedPost = firebase.getCollection('posts').get(postRef.id);
+        expect(savedPost.status).toBe('error');
+        expect(savedPost.errorMessage).toContain('Processamento interrompido');
+        expect(checkJobStatusMock).not.toHaveBeenCalled();
+    });
+
+    it('keeps a recently started processing post untouched', async () => {
+        const { syncScheduledPosts } = await import('../src/services/postService.js');
+
+        const postRef = await firebase.db.collection('posts').add({
+            userId: 'A9NJto9KIOSgYJg8uRj8u5xAvAg1',
+            accountId: 'account-1',
+            businessProfileId: 'profile-1',
+            type: 'static',
+            format: 'static',
+            mediaUrls: ['https://firebasestorage.googleapis.com/v0/b/test/o/media%2Ffresh.jpg?alt=media'],
+            status: 'processing',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+
+        await syncScheduledPosts();
+
+        expect(firebase.getCollection('posts').get(postRef.id).status).toBe('processing');
+    });
+
     it('preserves a published story media and returns its library item to reusable state', async () => {
         const { syncScheduledPosts } = await import('../src/services/postService.js');
         const mediaUrl = 'https://firebasestorage.googleapis.com/v0/b/test/o/media%2Freusable-story.jpg?alt=media';

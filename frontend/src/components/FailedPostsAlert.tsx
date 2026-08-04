@@ -10,10 +10,14 @@ interface FailedPost {
     format?: string;
     errorMessage?: string;
     updatedAt?: string;
+    archivedAt?: string;
     businessProfileId?: string;
 }
 
 const DISMISS_KEY = 'dismissed_failed_posts';
+// Falhas antigas viram histórico, não alerta: sem esta janela o banner acumula
+// todo erro já ocorrido e deixa de sinalizar qualquer coisa acionável.
+const RECENT_FAILURE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 function getDismissed(): Set<string> {
     try {
@@ -44,10 +48,14 @@ export default function FailedPostsAlert() {
             try {
                 const res = await api.get('/api/posts');
                 const all: FailedPost[] = res.data.posts || [];
+                const cutoff = Date.now() - RECENT_FAILURE_WINDOW_MS;
                 const failed = all.filter(p => {
                     const isFailed = (p as any).status === 'failed' || (p as any).status === 'error';
                     if (!isFailed) return false;
+                    if ((p as any).archivedAt) return false;
                     if (selectedProfile && p.businessProfileId !== selectedProfile.id) return false;
+                    const failedAt = p.updatedAt ? new Date(p.updatedAt).getTime() : NaN;
+                    if (Number.isNaN(failedAt) || failedAt < cutoff) return false;
                     return true;
                 });
                 setFailedPosts(failed);

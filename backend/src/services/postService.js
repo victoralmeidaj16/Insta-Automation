@@ -832,9 +832,52 @@ async function scheduleWithUploadPost({ account, type, mediaUrls, caption, sched
  * Syncs the status of posts that are scheduled via the external Upload-Post API.
  * This should be called periodically (e.g. by a cron job)
  */
+// Um post fica em 'processing' enquanto o envio roda. Sem job_id externo nenhuma
+// sincronização consegue tirá-lo de lá, então após esta janela ele é dado como
+// interrompido em vez de ficar preso para sempre.
+const PROCESSING_STUCK_MS = 60 * 60 * 1000;
+
+function toDateOrNull(value) {
+    if (!value) return null;
+    const date = value.toDate?.() || new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+async function recoverStuckProcessingPosts(now = new Date()) {
+    const snapshot = await db.collection('posts')
+        .where('status', '==', 'processing')
+        .limit(50)
+        .get();
+
+    for (const doc of snapshot.docs) {
+        const post = doc.data();
+        if (post.externalJobId) continue;
+
+        const startedAt = toDateOrNull(post.processingStartedAt)
+            || toDateOrNull(post.updatedAt)
+            || toDateOrNull(post.createdAt);
+        if (!startedAt || now.getTime() - startedAt.getTime() < PROCESSING_STUCK_MS) continue;
+
+        const stuckForMinutes = Math.floor((now.getTime() - startedAt.getTime()) / 60000);
+        console.warn(`🧹 Post ${doc.id} preso em processing há ${stuckForMinutes} min sem job externo. Marcando como erro.`);
+        await updatePostStatus(
+            doc.id,
+            'error',
+            'Processamento interrompido antes de chegar ao Upload-Post. Reagende o conteúdo.'
+        );
+    }
+}
+
 export async function syncScheduledPosts() {
     try {
         console.log('🔄 Sincronizando posts agendados externamente...');
+
+        try {
+            await recoverStuckProcessingPosts();
+        } catch (recoveryError) {
+            console.error('❌ Falha ao recuperar posts presos em processing:', recoveryError.message);
+        }
+
         const [scheduledSnapshot, processingSnapshot] = await Promise.all([
             db.collection('posts')
                 .where('status', '==', 'scheduled')
