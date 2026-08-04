@@ -1094,6 +1094,21 @@ export default function ReviewPage() {
         const savedLayout = draft.premiumLayout || null;
         const savedSlideLayout = Array.isArray(draft.premiumLayouts) ? draft.premiumLayouts[slidePosition] : null;
 
+        // Um descriptionEnabled salvo só vale quando veio acompanhado de um texto
+        // salvo. Os posts gerados antes da subheadline existir gravaram `false` com
+        // descrição vazia, e esse `false` mantinha invisível o texto recuperado do
+        // prompt — `false ?? x` devolve `false`.
+        const resolvedDescription = savedSlideLayout?.description
+            || savedLayout?.description
+            || baseLayout.description
+            || overlay?.subheadline
+            || '';
+        const savedDescriptionEnabled = savedSlideLayout?.description
+            ? savedSlideLayout?.descriptionEnabled
+            : savedLayout?.description
+                ? savedLayout?.descriptionEnabled
+                : undefined;
+
         return {
             ...baseLayout,
             title: savedSlideLayout?.title || savedLayout?.title || overlay?.headline || baseLayout.title,
@@ -1102,8 +1117,8 @@ export default function ReviewPage() {
             primaryColor: savedSlideLayout?.primaryColor || savedLayout?.primaryColor || baseLayout.primaryColor,
             logoIcon: savedLayout?.logoIcon || savedSlideLayout?.logoIcon || baseLayout.logoIcon,
             logoUrl: savedLayout?.logoUrl || savedSlideLayout?.logoUrl || baseLayout.logoUrl,
-            description: savedSlideLayout?.description || savedLayout?.description || baseLayout.description || overlay?.subheadline || '',
-            descriptionEnabled: savedSlideLayout?.descriptionEnabled ?? savedLayout?.descriptionEnabled ?? Boolean(savedSlideLayout?.description || savedLayout?.description || baseLayout.description || overlay?.subheadline),
+            description: resolvedDescription,
+            descriptionEnabled: savedDescriptionEnabled ?? Boolean(resolvedDescription),
             descriptionColor: savedSlideLayout?.descriptionColor || savedLayout?.descriptionColor || baseLayout.descriptionColor,
             imageOffsetX: savedSlideLayout?.imageOffsetX ?? savedLayout?.imageOffsetX ?? baseLayout.imageOffsetX,
             imageOffsetY: savedSlideLayout?.imageOffsetY ?? savedLayout?.imageOffsetY ?? baseLayout.imageOffsetY,

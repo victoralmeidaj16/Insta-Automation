@@ -321,7 +321,10 @@ router.patch('/drafts/:postId/media', async (req, res) => {
             updates.premiumLayout = premiumLayout;
             updates.overlayData = {
                 headline: premiumLayout.title || '',
-                subheadline: '',
+                // Zerar aqui apagava a subheadline toda vez que o layout era salvo.
+                subheadline: premiumLayout.descriptionEnabled === false
+                    ? ''
+                    : String(premiumLayout.description || ''),
                 highlights: String(premiumLayout.highlightText || '')
                     .split(',')
                     .map(item => item.trim())

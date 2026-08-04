@@ -1618,6 +1618,7 @@ function extractPremiumLayoutFromPrompt(prompt = '', profile = {}, fallbackText 
     const titleMatch = safePrompt.match(/\[TITLE:\s*(.*?)\]/i);
     const headlineMatch = safePrompt.match(/\[HEADLINE:\s*(.*?)\]/i);
     const descriptionMatch = safePrompt.match(/\[DESCRIPTION:\s*(.*?)\]/i);
+    const subheadlineMatch = safePrompt.match(/\[SUBHEADLINE:\s*(.*?)\]/i);
     const highlightsMatch = safePrompt.match(/\[HIGHLIGHTS:\s*(.*?)\]/i);
     const mainPhraseMatch = safePrompt.match(/Main phrase:\s*"?([^\n"]+)"?/i);
 
@@ -1665,10 +1666,20 @@ function extractPremiumLayoutFromPrompt(prompt = '', profile = {}, fallbackText 
     if (isFitswap) logoIcon = '🍎';
     if (isViverMais) logoIcon = '✨';
 
+    // A IA escreve uma subheadline por slide no prompt; sem lê-la aqui o texto
+    // nunca chega ao compositor e a imagem sai só com o título.
+    const subheadline = String(subheadlineMatch?.[1] || '')
+        .replace(/\*\*/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 160);
+
     return {
         title,
         highlights,
         brandName,
+        description: subheadline,
+        descriptionEnabled: Boolean(subheadline),
         logoUrl: profile.branding?.logoUrl || profile.branding?.logo || null,
         primaryColor: profile.branding?.primaryColor || (isFitswap ? '#6F9800' : '#4C1D95'),
         logoIcon: profile.branding?.logoIcon || logoIcon
@@ -1908,7 +1919,9 @@ function normalizePremiumLayout(layout = {}, profile = {}, fallbackText = '') {
         highlightText: safeHighlightText,
         description: String(layout.description || '').trim(),
         descriptionEnabled: Boolean(layout.descriptionEnabled),
-        descriptionColor: String(layout.descriptionColor || '#d1d5db').trim(),
+        // Sem cor explícita o renderizador deriva do tema; um cinza fixo sumia
+        // nos painéis claros.
+        descriptionColor: layout.descriptionColor ? String(layout.descriptionColor).trim() : null,
         primaryColor: String(layout.primaryColor || fallbackLayout.primaryColor || '#4C1D95').trim(),
         logoIcon: String(layout.logoIcon || fallbackLayout.logoIcon || '🧠').trim(),
         logoUrl: layout.logoUrl || fallbackLayout.logoUrl || null,
