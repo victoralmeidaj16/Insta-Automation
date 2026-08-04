@@ -214,6 +214,16 @@ async function executeExternalTick() {
         const { syncScheduledPosts } = await import('./postService.js');
         await syncScheduledPosts();
         await ref.set({ heartbeatAt: new Date(), updatedAt: new Date() }, { merge: true });
+
+        // Rede de segurança da revisão: aprova sozinho o que ninguém revisou a tempo.
+        // Isolado para que uma falha aqui não impeça a geração semanal abaixo.
+        try {
+            const { runAutoApprover } = await import('../cron/autoApprover.js');
+            await runAutoApprover();
+        } catch (approverError) {
+            console.error('❌ Auto-aprovador falhou:', approverError);
+        }
+
         await runWeeklyAutoGeneration();
         await ref.set({
             status: 'completed',

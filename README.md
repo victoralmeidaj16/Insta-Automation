@@ -27,7 +27,7 @@ Plataforma web completa para criação, geração com IA, agendamento e publica�
 - Agendamento por data e hora
 - Edição de posts pendentes
 - Calendário visual de posts agendados
-- Rastreamento de status em tempo real (pending → processing → success/error)
+- Rastreamento de status em tempo real (`draft`, `scheduled`, `schedule_error`, `processing`, `success` e `failed`)
 
 ### Video Reels
 - Pipeline completo: roteiro → âncora visual → cenas → animação → merge final
@@ -59,7 +59,7 @@ Insta-Automation/
 │       ├── services/          # Lógica de negócio
 │       │   ├── aiService.js             # Geração de imagens e texto (OpenAI, Gemini, Replicate)
 │       │   ├── postService.js           # CRUD de posts + publicação
-│       │   ├── schedulerService.js      # Agendamento com node-cron
+│       │   ├── schedulerService.js      # Lease/heartbeat do cron externo e fallback local opcional
 │       │   ├── businessProfileService.js
 │       │   ├── contentGeneratorService.js  # Geração semanal por pilar
 │       │   ├── htmlExportService.js     # Carrossel HTML
@@ -103,7 +103,7 @@ Insta-Automation/
 | Banco de Dados | Firebase Firestore |
 | Storage | Firebase Storage |
 | Auth | Firebase Admin SDK + JWT |
-| Agendamento | node-cron |
+| Agendamento | UptimeRobot → cron HTTP protegido → leases Firestore |
 | Filas | Bull + Redis |
 | Imagens | Sharp, FFmpeg, fluent-ffmpeg |
 | Frontend | Next.js 14, React 18, TypeScript |
@@ -147,6 +147,11 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 PORT=3011
 NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000
+ALLOWED_USER_UIDS=urL2RUboHscN40FGOwXtt0vYfdt1
+CRON_USERNAME=uptimerobot
+CRON_PASSWORD=<senha-local-forte>
+ENABLE_IN_PROCESS_SCHEDULER=false
 
 # Redis
 REDIS_URL=redis://localhost:6379
@@ -156,7 +161,7 @@ ENCRYPTION_KEY=<openssl rand -base64 32>
 
 # IA
 OPENAI_API_KEY=sk-...
-GOOGLE_GENERATIVE_AI_API_KEY=AIza...
+GEMINI_API_KEY=AIza...
 REPLICATE_API_TOKEN=r8_...
 KLING_API_KEY=...
 KLING_API_SECRET=...
@@ -173,6 +178,7 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123...
 NEXT_PUBLIC_FIREBASE_APP_ID=1:123...:web:abc...
 
 NEXT_PUBLIC_API_URL=http://localhost:3011
+NEXT_PUBLIC_AUTHORIZED_EMAIL=123indiozinhos@gmail.com
 ```
 
 ### 4. Executar em desenvolvimento
@@ -208,6 +214,7 @@ Acesse: `http://localhost:3000`
 | GET | `/:id` | Detalhes do post |
 | PUT | `/:id` | Editar post pendente |
 | DELETE | `/:id` | Cancelar/deletar |
+| POST | `/:id/retry-schedule` | Reenviar um post em `schedule_error` |
 
 ### AI `/api/ai`
 | Método | Rota | Descrição |
@@ -238,16 +245,6 @@ Acesse: `http://localhost:3000`
 | PUT | `/:id` | Atualizar item |
 | DELETE | `/:id` | Deletar item |
 | POST | `/:id/format` | Reformatar para proporção Instagram |
-
-### Video Reels `/api/video-reels`
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| POST | `/` | Criar projeto de Reel |
-| POST | `/:id/generate-anchor` | Gerar imagem âncora |
-| POST | `/:id/approve-anchor` | Aprovar/rejeitar âncora |
-| POST | `/:id/generate-scenes` | Gerar cenas |
-| POST | `/:id/scenes/:sceneId/approve` | Aprovar cena |
-| POST | `/:id/merge` | Merge final do vídeo |
 
 ### Business Profiles `/api/business-profiles`
 | Método | Rota | Descrição |
@@ -286,7 +283,7 @@ Acesse: `http://localhost:3000`
   "mediaUrls": ["array"],
   "caption": "string",
   "scheduledFor": "timestamp | null",
-  "status": "draft | pending | processing | success | error",
+  "status": "draft | scheduled | schedule_error | processing | success | failed",
   "source": "manual | auto-generated",
   "pillar": "string | null",
   "createdAt": "timestamp"
@@ -322,12 +319,22 @@ Acesse: `http://localhost:3000`
 
 ## Segurança
 
-- Credenciais Instagram criptografadas com AES antes de salvar no Firestore
-- Autenticação via Firebase Auth + JWT em todas as rotas protegidas
+- Credenciais legadas do Instagram criptografadas com AES; conexões atuais preferem OAuth via Upload-Post
+- Firebase ID token obrigatório em `/api/*`, limitado ao UID administrativo
 - CORS configurado para aceitar apenas origem do frontend
-- Rate limiting nas rotas de IA
-- Validação de entrada em todos os endpoints
-- Cookies de sessão armazenados localmente (nunca no banco)
+- Chaves e senhas removidas das respostas da API
+- Proxies de mídia restritos a hosts HTTPS autorizados
+
+## Cron externo em produção
+
+O Render mantém `ENABLE_IN_PROCESS_SCHEDULER=false`. Um monitor UptimeRobot chama a cada 5 minutos:
+
+```text
+GET ou HEAD /internal/cron/tick
+Authorization: Basic <CRON_USERNAME:CRON_PASSWORD>
+```
+
+O tick usa lease e heartbeat no Firestore para impedir execuções concorrentes. O endpoint público `/health` não exige autenticação; todas as rotas `/api/*` exigem Firebase ID token.
 
 ---
 
@@ -340,8 +347,9 @@ cd backend && npm run dev
 ```
 
 **Post travado em `processing`**
-- Verifique se o Redis está rodando
-- Confira os logs do backend em `backend/.dev-log.txt`
+- Verifique o heartbeat `schedulerRuns/uptimerobot_tick`
+- Confira o monitor UptimeRobot e os logs do Render
+- Para `schedule_error`, corrija a data/configuração Upload-Post e use o retry
 
 **Placeholder literal nas imagens geradas**
 - Já corrigido: os prompts de overlay não passam mais texto literal para a IA de imagem

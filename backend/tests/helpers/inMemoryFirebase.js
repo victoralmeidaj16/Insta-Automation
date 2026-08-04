@@ -14,16 +14,17 @@ function compareValues(left, right) {
     return leftValue > rightValue ? 1 : -1;
 }
 
-function createDocSnapshot(id, data) {
+function createDocSnapshot(id, data, ref = undefined) {
     return {
         id,
+        ref,
         exists: data !== undefined,
         data: () => (data === undefined ? undefined : clone(data)),
     };
 }
 
-function createQuerySnapshot(entries) {
-    const docs = entries.map(([id, data]) => createDocSnapshot(id, data));
+function createQuerySnapshot(entries, createRef = () => undefined) {
+    const docs = entries.map(([id, data]) => createDocSnapshot(id, data, createRef(id)));
     return {
         empty: docs.length === 0,
         docs,
@@ -67,6 +68,7 @@ export function createInMemoryFirebase() {
                         if (operator === '==') return fieldValue === value;
                         if (operator === '<=') return compareValues(fieldValue, value) <= 0;
                         if (operator === '>=') return compareValues(fieldValue, value) >= 0;
+                        if (operator === 'in') return Array.isArray(value) && value.includes(fieldValue);
 
                         throw new Error(`Unsupported operator in test DB: ${operator}`);
                     });
@@ -85,7 +87,7 @@ export function createInMemoryFirebase() {
                     entries = entries.slice(0, limitSize);
                 }
 
-                return createQuerySnapshot(entries);
+                return createQuerySnapshot(entries, id => db.collection(name).doc(id));
             }
         };
     }
@@ -102,8 +104,9 @@ export function createInMemoryFirebase() {
                 },
                 doc(id) {
                     return {
+                        id,
                         async get() {
-                            return createDocSnapshot(id, collection.get(id));
+                            return createDocSnapshot(id, collection.get(id), db.collection(name).doc(id));
                         },
                         async update(updates) {
                             const current = collection.get(id);

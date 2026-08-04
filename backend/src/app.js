@@ -28,7 +28,6 @@ export function createApp() {
     const allowedOrigins = new Set([
         process.env.FRONTEND_URL,
         'http://localhost:3000',
-        'http://localhost:3001',
         'http://localhost:3002',
         'https://insta-automation-sooty.vercel.app',
         'https://insta-automation-victoralmeidaj16s-projects.vercel.app',

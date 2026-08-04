@@ -12,9 +12,7 @@ import { normalizeScheduleConfig } from '../utils/scheduleConfig.js';
 export async function runAutoApprover() {
     console.log('⏰ Verificando rascunhos próximos da hora para auto-aprovação...');
 
-    // Vamos aprovar posts rascunho que estão programados para as próximas 24 horas
     const now = new Date();
-    const thresholdDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Daqui a 24h
 
     try {
         const snapshot = await db.collection('posts')
@@ -24,6 +22,9 @@ export async function runAutoApprover() {
 
         let approvedCount = 0;
         let skippedCount = 0;
+        let failedCount = 0;
+        let waitingCount = 0;
+        let overdueCount = 0;
         const scheduleCache = new Map();
 
         for (const doc of snapshot.docs) {
@@ -42,51 +43,90 @@ export async function runAutoApprover() {
                 scheduleCache.set(draft.businessProfileId, schedule);
             }
 
-            // Opt-in explícito. Revisão nunca pode publicar sem uma ação humana.
-            const fallbackEnabled = schedule.publishingMode === 'auto'
-                && schedule.autoApproveFallbackEnabled === true;
-            if (!fallbackEnabled) {
+            // Opt-in explícito por perfil. Sem a flag, revisão continua exigindo
+            // uma ação humana e nada é publicado sozinho.
+            if (!schedule.autoApproveFallbackEnabled) {
                 skippedCount++;
                 continue;
             }
 
-            // Nunca autoaprovar conteúdo vencido.
-            if (!isNaN(scheduledFor.getTime()) && scheduledFor > now && scheduledFor <= thresholdDate) {
-                console.log(`\n⏳ Auto-aprovando rascunho ${doc.id} ("${draft.pillarName}") agendado para ${scheduledFor.toLocaleString('pt-BR')}...`);
-                
+            // Sem mídia não há o que publicar; aprovar geraria erro no provedor.
+            if (!Array.isArray(draft.mediaUrls) || draft.mediaUrls.length === 0) {
+                console.warn(`⚠️ Rascunho ${doc.id} ignorado: nenhuma mídia associada.`);
+                skippedCount++;
+                continue;
+            }
+
+            const thresholdDate = new Date(now.getTime() + schedule.autoApproveLeadHours * 60 * 60 * 1000);
+
+            if (isNaN(scheduledFor.getTime())) {
+                skippedCount++;
+                continue;
+            }
+            // Conteúdo vencido nunca é autoaprovado; expire-overdue-drafts cuida dele.
+            if (scheduledFor <= now) {
+                overdueCount++;
+                continue;
+            }
+            if (scheduledFor > thresholdDate) {
+                waitingCount++;
+                continue;
+            }
+
+            console.log(`\n⏳ Auto-aprovando rascunho ${doc.id} ("${draft.pillarName}") agendado para ${scheduledFor.toLocaleString('pt-BR')}...`);
+
+            try {
+                // Descobrir a conta do Instagram para este perfil
+                let accountId = draft.accountId;
+                if (!accountId && draft.businessProfileId) {
+                    const accounts = await getAccountsByProfile(draft.businessProfileId);
+                    if (accounts && accounts.length > 0) {
+                        accountId = accounts[0].id;
+                    } else {
+                        // Fallback para usar o próprio businessProfileId como conta virtual (suportado por scheduleApprovedPost)
+                        accountId = draft.businessProfileId;
+                    }
+                }
+
+                if (!accountId) {
+                    console.error(`❌ Não foi possível auto-aprovar ${doc.id}: Nenhuma conta ou perfil de negócios vinculado.`);
+                    failedCount++;
+                    continue;
+                }
+
+                // Aprovar o rascunho (destination schedule)
+                await approveDraftPost(doc.id, accountId, { destination: 'schedule' });
+
                 try {
-                    // Descobrir a conta do Instagram para este perfil
-                    let accountId = draft.accountId;
-                    if (!accountId && draft.businessProfileId) {
-                        const accounts = await getAccountsByProfile(draft.businessProfileId);
-                        if (accounts && accounts.length > 0) {
-                            accountId = accounts[0].id;
-                        } else {
-                            // Fallback para usar o próprio businessProfileId como conta virtual (suportado por scheduleApprovedPost)
-                            accountId = draft.businessProfileId;
-                        }
-                    }
-
-                    if (!accountId) {
-                        console.error(`❌ Não foi possível auto-aprovar ${doc.id}: Nenhuma conta ou perfil de negócios vinculado.`);
-                        continue;
-                    }
-
-                    // Aprovar o rascunho (destination schedule)
-                    await approveDraftPost(doc.id, accountId, { destination: 'schedule' });
-                    
                     // Disparar agendamento real para o provedor (Upload-Post)
                     await scheduleApprovedPost(doc.id, accountId);
-
-                    console.log(`✅ Rascunho ${doc.id} auto-aprovado e agendado com sucesso!`);
-                    approvedCount++;
-                } catch (err) {
-                    console.error(`❌ Erro ao auto-aprovar rascunho ${doc.id}:`, err.message);
+                } catch (scheduleErr) {
+                    // approveDraftPost já marcou o post como 'scheduled'. Sem job_id
+                    // do provedor ele viraria um zumbi que nenhum sync resolve, então
+                    // devolvemos para rascunho e tentamos de novo no próximo tick.
+                    await doc.ref.update({
+                        isDraft: true,
+                        status: 'draft',
+                        approvedAt: null,
+                        autoApproveError: scheduleErr.message,
+                        autoApproveFailedAt: new Date(),
+                        updatedAt: new Date()
+                    });
+                    throw scheduleErr;
                 }
+
+                console.log(`✅ Rascunho ${doc.id} auto-aprovado e agendado com sucesso!`);
+                approvedCount++;
+            } catch (err) {
+                console.error(`❌ Erro ao auto-aprovar rascunho ${doc.id}:`, err.message);
+                failedCount++;
             }
         }
 
-        console.log(`\n🏁 Verificação concluída. ${approvedCount} auto-aprovados; ${skippedCount} protegidos/ignorados.`);
+        console.log(
+            `\n🏁 Verificação concluída. ${approvedCount} auto-aprovados; ${failedCount} com falha; `
+            + `${waitingCount} aguardando a janela; ${overdueCount} vencidos; ${skippedCount} sem opt-in/inválidos.`
+        );
 
     } catch (error) {
         console.error('❌ Falha geral no autoApprover:', error);

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DashboardPage from './page';
 
@@ -83,7 +83,8 @@ describe('DashboardPage smoke', () => {
                 data: {
                     posts: [
                         { id: 'post-1', businessProfileId: 'profile-1', status: 'pending' },
-                        { id: 'post-2', businessProfileId: 'profile-2', status: 'success' },
+                        { id: 'post-2', businessProfileId: 'profile-1', status: 'schedule_error' },
+                        { id: 'post-3', businessProfileId: 'profile-2', status: 'success' },
                     ],
                 },
             })
@@ -107,5 +108,8 @@ describe('DashboardPage smoke', () => {
         expect(screen.getByText('Ações Rápidas')).toBeInTheDocument();
         expect(screen.getByText(/AI Generator/)).toBeInTheDocument();
         expect(screen.getByText('Posts Status Widget')).toBeInTheDocument();
+
+        const scheduledCard = screen.getByText('Agendados').closest('.card-glass');
+        expect(within(scheduledCard).getByText('2')).toBeInTheDocument();
     });
 });

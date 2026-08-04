@@ -1153,7 +1153,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
             const bakedImage = await renderPremiumPostToDataUrl({
                 layout: cleanLayout,
                 backgroundImage: renderInput.backgroundImage,
-                apiBaseUrl: api.defaults.baseURL || 'http://localhost:3001'
+                apiBaseUrl: api.defaults.baseURL || 'http://localhost:3011'
             });
 
             nextMediaUrls[index] = bakedImage;
@@ -1280,7 +1280,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
             const bakedImage = await renderPremiumPostToDataUrl({
                 layout: layoutToSave,
                 backgroundImage: sourceImage,
-                apiBaseUrl: api.defaults.baseURL || 'http://localhost:3001'
+                apiBaseUrl: api.defaults.baseURL || 'http://localhost:3011'
             });
 
             const currentMediaUrls = getPostMediaUrls(premiumEditorPost);
@@ -1358,7 +1358,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                 const baked = await renderPremiumPostToDataUrl({
                     layout: cleanLayout,
                     backgroundImage: bgImage,
-                    apiBaseUrl: api.defaults.baseURL || 'http://localhost:3001'
+                    apiBaseUrl: api.defaults.baseURL || 'http://localhost:3011'
                 });
                 newMediaUrls.push(baked);
                 newLayouts.push(cleanLayout);
@@ -2149,7 +2149,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         <PremiumCanvasPreview
                                                             layout={premiumRenderInput.layout}
                                                             backgroundImage={premiumRenderInput.backgroundImage}
-                                                            apiBaseUrl={api.defaults.baseURL || 'http://localhost:3001'}
+                                                            apiBaseUrl={api.defaults.baseURL || 'http://localhost:3011'}
                                                         />
                                                     </div>
                                                 ) : (
@@ -4098,7 +4098,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                 )}
 
                                 {/* Scheduled Date */}
-                                {selectedPost.status === 'pending' && (
+                                {['pending', 'schedule_error'].includes(selectedPost.status) && (
                                     <div style={{ marginBottom: '1.5rem' }}>
                                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#a1a1aa' }}>
                                             Data/Hora Agendada
@@ -4251,7 +4251,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                         premiumEditorLayout
                         && Number(premiumEditorLayout.slideIndex || 0) < Math.max(0, Number(premiumEditorLayout.slideCount || 1) - 1)
                     )}
-                    apiBaseUrl={api.defaults.baseURL || 'http://localhost:3001'}
+                    apiBaseUrl={api.defaults.baseURL || 'http://localhost:3011'}
                     onSecondaryAction={handleRegeneratePremiumSlide}
                     secondaryActionLabel="🔄 Regerar imagem com IA"
                     secondaryActionDisabled={savingPremiumLayout}

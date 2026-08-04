@@ -14,7 +14,7 @@ export default function CalendarView({ posts }) {
     }, [currentDate]);
 
     const scheduledPosts = useMemo(() => {
-        return posts.filter(p => p.status === 'pending' && p.scheduledFor);
+        return posts.filter(p => ['pending', 'scheduled', 'schedule_error'].includes(p.status) && p.scheduledFor);
     }, [posts]);
 
     const getPostsForDay = (day) => {

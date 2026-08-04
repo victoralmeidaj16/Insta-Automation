@@ -1,141 +1,91 @@
-# Instagram Automation Backend
+# Insta-Automation Backend
 
-Backend da plataforma de automação para Instagram com comportamento humanizado.
+API Express da plataforma de geração, revisão e agendamento de conteúdo para Instagram.
 
-## 🚀 Tecnologias
+## Requisitos
 
-- Node.js + Express
-- Puppeteer (automação de navegador)
-- Firebase (Firestore + Storage + Auth)
-- Bull (sistema de filas)
-- Redis
-- Node-cron (agendamento)
+- Node.js compatível com o `package-lock.json`
+- Firebase Auth, Firestore e Storage
+- Credenciais OpenAI/Gemini conforme os recursos utilizados
+- Conta Upload-Post para agendamento externo
 
-## 📦 Instalação
+## Instalação local
 
 ```bash
 npm install
-```
-
-## ⚙️ Configuração
-
-1. Copie o arquivo `.env.example` para `.env`:
-
-```bash
 cp .env.example .env
-```
-
-2. Configure as variáveis de ambiente no `.env`:
-
-```.env
-# Firebase Admin SDK (obtenha no Console do Firebase)
-FIREBASE_PROJECT_ID=seu-projeto
-FIREBASE_CLIENT_EMAIL=email@projeto.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-
-# Server
-PORT=3001
-NODE_ENV=development
-
-# Redis (Render fornece gratuitamente)
-REDIS_URL=redis://localhost:6379
-
-# Frontend URL
-FRONTEND_URL=http://localhost:3000
-
-# Chave de criptografia (gere uma aleatória)
-ENCRYPTION_KEY=sua-chave-secreta-aqui
-```
-
-3. Certifique-se de ter o Redis rodando:
-
-```bash
-# Mac (com Homebrew)
-brew install redis
-brew services start redis
-
-# Linux
-sudo apt-get install redis-server
-sudo systemctl start redis
-```
-
-## 🏃 Executar
-
-### Desenvolvimento (com auto-reload)
-
-```bash
 npm run dev
 ```
 
-### Produção
+O backend local usa `http://localhost:3011` quando `PORT=3011`.
 
-```bash
-npm start
+## Variáveis principais
+
+```env
+PORT=3011
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000
+ALLOWED_USER_UIDS=<uid-firebase-administrativo>
+
+FIREBASE_PROJECT_ID=<projeto>
+FIREBASE_CLIENT_EMAIL=<service-account>
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
+CRON_USERNAME=uptimerobot
+CRON_PASSWORD=<senha-forte>
+ENABLE_IN_PROCESS_SCHEDULER=false
 ```
 
-## 📡 Endpoints da API
+Consulte `.env.example` para integrações adicionais. Nunca versione `.env`, arquivos `.env.vercel.*`, senhas ou tokens.
 
-### Health Check
-- `GET /health` - Verificar status do servidor
+## Autenticação
 
-### Accounts
-- `POST /api/accounts` - Adicionar conta Instagram
-- `GET /api/accounts` - Listar contas
-- `PUT /api/accounts/:id` - Atualizar conta
-- `DELETE /api/accounts/:id` - Remover conta
-- `POST /api/accounts/:id/verify` - Verificar login
+- `/health` é público e retorna dados mínimos.
+- `/internal/cron/tick` usa HTTP Basic com `CRON_USERNAME` e `CRON_PASSWORD`.
+- Todas as rotas `/api/*` exigem `Authorization: Bearer <Firebase ID token>`.
+- Apenas UIDs presentes em `ALLOWED_USER_UIDS` são aceitos.
+- Serviços e rotas validam propriedade antes de acessar contas, perfis, posts e biblioteca.
 
-### Posts
-- `POST /api/posts` - Criar post (imediato ou agendado)
-- `GET /api/posts` - Listar posts (com filtros)
-- `GET /api/posts/:id` - Detalhes do post
-- `DELETE /api/posts/:id` - Cancelar/deletar post
+## Scheduler
 
-### Upload
-- `POST /api/upload` - Upload de mídia(s)
+Em produção, `ENABLE_IN_PROCESS_SCHEDULER=false`. O UptimeRobot chama `/internal/cron/tick` a cada cinco minutos. Cada tick:
 
-### Stats
-- `GET /api/stats` - Estatísticas da fila
+1. adquire um lease transacional no Firestore;
+2. sincroniza jobs Upload-Post;
+3. retoma geração semanal elegível e idempotente;
+4. atualiza heartbeat e estado terminal.
 
-## 🎭 Comportamento Humanizado
+O `node-cron` permanece apenas como fallback explícito para desenvolvimento e só inicia quando `ENABLE_IN_PROCESS_SCHEDULER=true`.
 
-O sistema simula ações humanas antes de postar:
-- ✅ Scrolling aleatório do feed
-- ✅ Curtir 2-4 posts aleatórios
-- ✅ Pausar em posts (3-8 segundos)
-- ✅ Delays aleatórios entre ações
-- ✅ User-agent randomizado
-- ✅ Viewport randomizado
+## Endpoints principais
 
-## 🔒 Segurança
+- `GET /health`
+- `GET|POST /internal/cron/tick`
+- `/api/accounts`
+- `/api/posts`
+- `/api/upload`
+- `/api/ai`
+- `/api/history`
+- `/api/business-profiles`
+- `/api/library`
+- `/api/auto-generate`
+- `/api/alerts`
 
-- Credenciais do Instagram são criptografadas
-- Cookies salvos localmente para "manter logado"
-- Autenticação via Firebase Auth JWT
-- Validação de todas as entradas
+Posts cujo provedor externo não confirmou um `job_id` recebem `schedule_error`; eles não são publicados localmente como fallback.
 
-## 📝 Logs
+## Validação
 
-O sistema exibe logs detalhados no console:
-- 🔐 Login
-- 🎭 Comportamento humanizado
-- 📸 Upload de posts
-- ✅ Sucesso
-- ❌ Erros
+```bash
+npm test -- --run
+```
 
-## 🚢 Deploy no Render
+Scripts operacionais exigem IDs e credenciais por variáveis de ambiente. Scripts destrutivos ou de backfill usam dry-run por padrão quando disponível.
 
-1. Crie um novo Web Service no Render
-2. Conecte seu repositório
-3. Configure:
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-4. Adicione as variáveis de ambiente
-5. Adicione um Redis (gratuito) no Render
-6. Deploy!
+## Deploy no Render
 
-## ⚠️ Avisos
-
-- Este projeto **viola os Termos de Serviço do Instagram**
-- Use por sua conta e risco
-- Apenas para fins educacionais
+- Root Directory: `backend`
+- Build Command: `npm install`
+- Start Command: `npm start`
+- Configure os segredos exclusivamente em **Environment**.
+- Mantenha `ENABLE_IN_PROCESS_SCHEDULER=false` quando o UptimeRobot estiver ativo.

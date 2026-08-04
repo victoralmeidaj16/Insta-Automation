@@ -1149,7 +1149,7 @@ export default function GeneratePage() {
                         const composedImage = await renderPremiumPostToDataUrl({
                             layout: premiumLayout,
                             backgroundImage: baseImage,
-                            apiBaseUrl: api.defaults.baseURL || 'http://localhost:3001'
+                            apiBaseUrl: api.defaults.baseURL || 'http://localhost:3011'
                         });
                         setCarouselCards(prev => {
                             const newCards = [...prev];
@@ -1348,7 +1348,7 @@ export default function GeneratePage() {
                     finalImageUrl = await renderPremiumPostToDataUrl({
                         layout: getCardPremiumLayout(card),
                         backgroundImage: getCardPremiumLayout(card).backgroundImage || card.premiumBaseImage || imageUrl,
-                        apiBaseUrl: api.defaults.baseURL || 'http://localhost:3001'
+                        apiBaseUrl: api.defaults.baseURL || 'http://localhost:3011'
                     });
 
                     setCarouselCards(prev => prev.map((currentCard, index) => (
@@ -3173,7 +3173,7 @@ export default function GeneratePage() {
                         handleDownloadImage(imageUrl, premiumEditorIndex);
                     }}
                     actionLabel="Baixar Arte Premium"
-                    apiBaseUrl={api.defaults.baseURL || 'http://localhost:3001'}
+                    apiBaseUrl={api.defaults.baseURL || 'http://localhost:3011'}
                 />
 
                 {lightboxOpen && (

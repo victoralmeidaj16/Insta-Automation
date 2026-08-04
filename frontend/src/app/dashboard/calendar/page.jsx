@@ -129,7 +129,7 @@ export default function CalendarPage() {
                 params: { businessProfileId: selectedProfile.id, limit: 500 }
             });
             const scheduledPosts = res.data.posts.filter(p =>
-                p.status === 'scheduled' || p.status === 'processing' || p.status === 'success' || p.status === 'pending'
+                p.status === 'scheduled' || p.status === 'processing' || p.status === 'success' || p.status === 'pending' || p.status === 'schedule_error'
             );
             console.log('📋 Posts agendados carregados:', scheduledPosts.length);
             setPosts(scheduledPosts);
