@@ -1927,9 +1927,11 @@ function normalizePremiumLayout(layout = {}, profile = {}, fallbackText = '') {
         primaryColor: String(layout.primaryColor || fallbackLayout.primaryColor || '#4C1D95').trim(),
         logoIcon: String(layout.logoIcon || fallbackLayout.logoIcon || '🧠').trim(),
         logoUrl: layout.logoUrl || fallbackLayout.logoUrl || null,
-        imageOffsetX: Number.isFinite(Number(layout.imageOffsetX)) ? Math.min(100, Math.max(-100, Number(layout.imageOffsetX))) : 0,
-        imageOffsetY: Number.isFinite(Number(layout.imageOffsetY)) ? Math.min(100, Math.max(-100, Number(layout.imageOffsetY))) : 0,
-        imageScale: Number.isFinite(Number(layout.imageScale)) ? Math.min(1.4, Math.max(1, Number(layout.imageScale))) : 1,
+        // Os limites precisam bater com os do editor (±150 e 2.0). Cortar antes
+        // fazia a arte bakeada usar um enquadramento diferente do preview.
+        imageOffsetX: Number.isFinite(Number(layout.imageOffsetX)) ? Math.min(150, Math.max(-150, Number(layout.imageOffsetX))) : 0,
+        imageOffsetY: Number.isFinite(Number(layout.imageOffsetY)) ? Math.min(150, Math.max(-150, Number(layout.imageOffsetY))) : 0,
+        imageScale: Number.isFinite(Number(layout.imageScale)) ? Math.min(2.0, Math.max(1, Number(layout.imageScale))) : 1,
         gradientOpacity: Number.isFinite(Number(layout.gradientOpacity)) ? Math.min(1, Math.max(0, Number(layout.gradientOpacity))) : 1,
         slideIndex: Number.isFinite(layout.slideIndex) ? Number(layout.slideIndex) : null,
         slideCount: Number.isFinite(layout.slideCount) ? Number(layout.slideCount) : null,

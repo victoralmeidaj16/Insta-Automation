@@ -76,6 +76,9 @@ function getPremiumTheme(layout = {}) {
     if (fitswap) {
         return {
             accent: '#6F9800',
+            // Espelha o `imageFilter` do editor (contrast(1.02) brightness(1.02)).
+            imageContrast: 1.02,
+            imageBrightness: 1.02,
             panelFill: '#EEF2E8',
             gradientEnd: '#EEF2E8',
             text: '#111827',
@@ -89,6 +92,8 @@ function getPremiumTheme(layout = {}) {
     if (isElevepicLayout(layout)) {
         return {
             accent: '#3F507A', // Keyword color as highlights
+            imageContrast: 1.1,
+            imageBrightness: 0.9,
             panelFill: '#000000', // Black background
             gradientEnd: '#000000',
             text: '#C7CEDA', // Main text blue-grey
@@ -101,6 +106,8 @@ function getPremiumTheme(layout = {}) {
 
     return {
         accent: layout.primaryColor || '#00C2FF',
+        imageContrast: 1.1,
+        imageBrightness: 0.9,
         panelFill: '#000000',
         gradientEnd: '#000000',
         text: '#FFFFFF',
@@ -192,9 +199,20 @@ async function buildPositionedBackground(backgroundBuffer, targetWidth, targetHe
     const left = Math.max(0, Math.min(renderWidth - targetWidth, Math.round((renderWidth - targetWidth) / 2 + xOffset)));
     const top = Math.max(0, Math.min(renderHeight - targetHeight, Math.round((renderHeight - targetHeight) / 2 + yOffset)));
 
-    return sharp(backgroundBuffer)
+    // Espelha o `filter: contrast(c) brightness(b)` que o editor aplica na imagem.
+    // Em CSS, contrast é out = (in - 0.5) * c + 0.5, que em sharp vira .linear().
+    const theme = getPremiumTheme(layout);
+    const contrast = Number(theme.imageContrast ?? 1);
+    const brightness = Number(theme.imageBrightness ?? 1);
+
+    const positioned = sharp(backgroundBuffer)
         .resize(renderWidth, renderHeight, { fit: 'fill' })
         .extract({ left, top, width: targetWidth, height: targetHeight });
+
+    if (contrast !== 1) positioned.linear(contrast, -(0.5 * contrast - 0.5) * 255);
+    if (brightness !== 1) positioned.modulate({ brightness });
+
+    return positioned;
 }
 
 /**
@@ -225,6 +243,9 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
 
         const subheadline = String(description || '').trim();
         const hasSub = Boolean(subheadline) && descriptionEnabled !== false;
+        // O editor deixa regular a intensidade do gradiente; ignorá-la aqui fazia
+        // a arte publicada sair sempre com o gradiente no máximo.
+        const gradientOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? 1)));
 
         if (!title) {
             console.warn('⚠️ No title provided, skipping composition.');
@@ -340,10 +361,10 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
         <defs>
             <linearGradient id="darkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%"   stop-color="${theme.gradientEnd}" stop-opacity="0" />
-                <stop offset="20%"  stop-color="${theme.gradientEnd}" stop-opacity="0.15" />
-                <stop offset="45%"  stop-color="${theme.gradientEnd}" stop-opacity="0.55" />
-                <stop offset="70%"  stop-color="${theme.gradientEnd}" stop-opacity="0.88" />
-                <stop offset="88%"  stop-color="${theme.gradientEnd}" stop-opacity="0.97" />
+                <stop offset="20%"  stop-color="${theme.gradientEnd}" stop-opacity="${(gradientOpacity * 0.15).toFixed(3)}" />
+                <stop offset="45%"  stop-color="${theme.gradientEnd}" stop-opacity="${(gradientOpacity * 0.55).toFixed(3)}" />
+                <stop offset="70%"  stop-color="${theme.gradientEnd}" stop-opacity="${(gradientOpacity * 0.88).toFixed(3)}" />
+                <stop offset="88%"  stop-color="${theme.gradientEnd}" stop-opacity="${(gradientOpacity * 0.97).toFixed(3)}" />
                 <stop offset="100%" stop-color="${theme.gradientEnd}" stop-opacity="1" />
             </linearGradient>
         </defs>
