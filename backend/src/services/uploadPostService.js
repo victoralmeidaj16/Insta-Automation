@@ -241,6 +241,34 @@ export async function cancelScheduledPost(jobId, apiKey = null) {
 }
 
 /**
+ * Lists the profiles registered under the Upload-Post account.
+ * @param {string} [apiKey] - Per-profile key; falls back to the global one
+ * @returns {Promise<Array>} - Profiles as returned by the provider
+ */
+export async function listUserProfiles(apiKey = null) {
+    const client = getApiClient(apiKey);
+    const response = await client.get('/uploadposts/users');
+    return response.data?.profiles || [];
+}
+
+/**
+ * Deletes a profile from the Upload-Post account. Irreversible, and the
+ * provider frees the slot immediately.
+ * @param {string} username - Provider profile username, not the Instagram handle
+ * @param {string} [apiKey] - Per-profile key; falls back to the global one
+ * @returns {Promise<Object>} - API response
+ */
+export async function deleteUserProfile(username, apiKey = null) {
+    if (!username) throw new Error('username é obrigatório para excluir um perfil no Upload-Post.');
+    console.log(`🗑️ Deleting Upload-Post profile "${username}"...`);
+    const client = getApiClient(apiKey);
+    // O provedor espera o username no corpo, não na URL.
+    const response = await client.delete('/uploadposts/users', { data: { username } });
+    console.log('✅ Profile deletion successful:', response.data);
+    return response.data;
+}
+
+/**
  * Checks the status of a scheduled post in the Upload-Post API
  * @param {string} jobId - The job ID to check
  * @returns {Promise<Object>} - API Response containing status
