@@ -390,55 +390,96 @@ function wrapCarouselForSlide(html: string, slideIndex: number = 0, totalSlides?
     const slideCount = totalSlides || countCarouselSlidesInHtml(html);
     const safeIdx = Math.max(0, Math.min(slideIndex, slideCount - 1));
 
+    // Só o template `instagram` usa trilho horizontal; os outros empilham os
+    // slides com position:absolute e alternam a classe .active. Dimensionar
+    // `.slide` por fração do trilho espremia esses onze templates numa coluna
+    // estreita, então a seleção do slide é feita como na exportação.
     const responsiveCss = `
+        /* Os templates usam medidas em px pensadas para 420x525, o mesmo
+           viewport que htmlExportService usa antes de rasterizar. Renderizamos
+           nesse tamanho e reduzimos por transform, senão a tipografia mantém o
+           tamanho original e vaza do card. */
         html, body {
             margin: 0 !important;
             padding: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
+            width: 420px !important;
+            height: 525px !important;
             overflow: hidden !important;
             background: #09090b !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-        body > * {
-            width: 100% !important;
-            height: 100% !important;
-            box-sizing: border-box !important;
+            transform-origin: top left !important;
         }
         .carousel-wrap, .ig-frame, .carousel-viewport, #viewport {
             width: 100% !important;
             height: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             overflow: hidden !important;
         }
-        .carousel-track, #track {
-            display: flex !important;
-            width: ${slideCount * 100}% !important;
-            height: 100% !important;
-            transform: translateX(-${(safeIdx / Math.max(1, slideCount)) * 100}%) !important;
-            transition: transform 0.25s ease-in-out !important;
-        }
-        .slide {
-            flex: 0 0 ${100 / Math.max(1, slideCount)}% !important;
-            width: ${100 / Math.max(1, slideCount)}% !important;
-            height: 100% !important;
-            box-sizing: border-box !important;
-        }
-        .ig-header, .ig-actions, .ig-caption {
+        /* Mesma cromagem que htmlExportService remove antes de rasterizar. */
+        .ig-header, .ig-dots, .ig-actions, .ig-caption,
+        .nav-btn, .nav-prev, .nav-next,
+        .progress-bar, .slide-counter,
+        .nav-dots, .bottom-bar .bb-swipe {
             display: none !important;
         }
-        .slide-dot { opacity: 0.35 !important; }
-        .slide-dot:nth-child(${safeIdx + 1}) { opacity: 1 !important; width: 16px !important; border-radius: 3px !important; }
     `;
 
-    if (/<head[\s>]/i.test(html)) {
-        return html.replace(/<\/head>/i, `<style>${responsiveCss}</style></head>`);
+    // Espelha activateSlide do exportador, para o preview mostrar o mesmo slide
+    // que a imagem publicada.
+    const activateScript = `
+        (function () {
+            function fit() {
+                var scale = Math.min(window.innerWidth / 420, window.innerHeight / 525);
+                document.documentElement.style.transform = 'scale(' + scale + ')';
+            }
+            function activate() {
+                fit();
+                var index = ${safeIdx};
+                var slides = document.querySelectorAll('.slide');
+                if (!slides.length) return;
+                var track = document.querySelector('.carousel-track, #track');
+                if (track) {
+                    track.style.transition = 'none';
+                    track.style.display = 'flex';
+                    track.style.width = (slides.length * 100) + '%';
+                    track.style.transform = 'translateX(-' + (index * (100 / slides.length)) + '%)';
+                    for (var t = 0; t < slides.length; t++) {
+                        slides[t].style.flex = '0 0 ' + (100 / slides.length) + '%';
+                    }
+                    return;
+                }
+                for (var i = 0; i < slides.length; i++) {
+                    var slide = slides[i];
+                    if (i === index) {
+                        slide.style.opacity = '1';
+                        slide.style.display = 'block';
+                        slide.classList.add('active');
+                        slide.classList.remove('exit');
+                    } else {
+                        slide.style.opacity = '0';
+                        slide.style.display = 'none';
+                        slide.classList.remove('active', 'exit');
+                    }
+                }
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', activate);
+            } else {
+                activate();
+            }
+            window.addEventListener('resize', fit);
+        })();
+    `;
+
+    const injected = `<style>${responsiveCss}</style><script>${activateScript}<\/script>`;
+
+    if (/<\/body>/i.test(html)) {
+        return html.replace(/<\/body>/i, `${injected}</body>`);
     }
 
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${responsiveCss}</style></head><body>${html}</body></html>`;
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${html}${injected}</body></html>`;
 }
 
 function extractHtmlSlides(html: string): string[] {
