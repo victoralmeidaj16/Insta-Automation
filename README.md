@@ -351,6 +351,14 @@ Duas coisas que o build depende e não são óbvias:
 - O `postinstall` do pacote `playwright` baixa o Chromium que rasteriza os carrosséis HTML. Um build com `--ignore-scripts` quebra a exportação.
 - O plano Free tem 512 MB. Chromium, `sharp` e `ffmpeg` competem por essa memória durante a exportação.
 
+### Health check (recomendado, hoje desativado)
+
+O campo *Health Check Path* está vazio no dashboard, então o Render considera o deploy bem-sucedido assim que a porta é aberta — um processo que sobe e falha logo depois entra no ar do mesmo jeito.
+
+Apontá-lo para `/health` faz o Render barrar o deploy que não responder, mantendo a versão anterior no ar. O endpoint serve bem: é público, não consulta banco e responde na hora.
+
+É uma mudança de comportamento, então está fora do `render.yaml` de propósito — ative pelo dashboard quando quiser adotá-la.
+
 ### Qual commit está no ar
 
 ```bash

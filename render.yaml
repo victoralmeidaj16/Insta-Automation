@@ -17,8 +17,11 @@ services:
     # rasterizar os carrosséis HTML — não acrescente --ignore-scripts aqui.
     buildCommand: npm install
     startCommand: npm start
-    healthCheckPath: /health
     autoDeploy: true
+    # healthCheckPath está deliberadamente ausente: hoje o campo está vazio no
+    # dashboard e este arquivo espelha o serviço como ele é. Ativar `/health`
+    # é recomendado (ver README), mas é mudança de comportamento — deploy que
+    # não responder passa a ser barrado em vez de entrar no ar.
 
     envVars:
       - key: NODE_ENV
