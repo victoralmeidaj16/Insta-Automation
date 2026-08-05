@@ -14,6 +14,7 @@ import autoGenerateRouter from './routes/auto-generate.js';
 import alertsRouter from './routes/alerts.js';
 import internalCronRouter from './routes/internalCron.js';
 import { getQueueStats } from './queues/postQueue.js';
+import { buildInfo } from './utils/buildInfo.js';
 import { URL } from 'url';
 
 dotenv.config();
@@ -54,6 +55,7 @@ export function createApp() {
             status: 'ok',
             message: 'Instagram Automation API is running',
             timestamp: new Date().toISOString(),
+            version: buildInfo,
         });
     });
 
