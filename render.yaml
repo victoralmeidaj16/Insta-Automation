@@ -13,9 +13,13 @@ services:
     branch: main
     # O app vive em backend/; build e start rodam a partir daí.
     rootDir: backend
-    # O postinstall do pacote `playwright` baixa o Chromium usado para
-    # rasterizar os carrosséis HTML — não acrescente --ignore-scripts aqui.
-    buildCommand: npm install
+    # O Chromium que rasteriza os carrosséis HTML precisa ser baixado
+    # explicitamente: com `npm install` sozinho o export falha com
+    # "Executable doesn't exist at /opt/render/.cache/ms-playwright/...".
+    # O node_modules em cache faz o postinstall do playwright não rodar de novo,
+    # então uma atualização do pacote troca a revisão exigida do browser sem que
+    # ela seja baixada.
+    buildCommand: npm install && npx playwright install chromium
     startCommand: npm start
     autoDeploy: true
     # healthCheckPath está deliberadamente ausente: hoje o campo está vazio no

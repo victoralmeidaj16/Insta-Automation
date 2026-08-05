@@ -346,10 +346,22 @@ O serviço `insta-automation-backend` deploya da branch `main` a cada commit, co
 
 `render.yaml` na raiz descreve essa configuração. Ele **documenta** o serviço que já existe — não foi aplicado como Blueprint. Adotá-lo transforma o arquivo em fonte da verdade, e qualquer divergência passa a sobrescrever o dashboard; um serviço com nome diferente do atual faria o Render criar um segundo serviço em vez de atualizar este. Para adotar, use *New > Blueprint* e confirme que ele associou ao serviço existente antes de aplicar.
 
-Duas coisas que o build depende e não são óbvias:
+### O Chromium precisa ser baixado no build
 
-- O `postinstall` do pacote `playwright` baixa o Chromium que rasteriza os carrosséis HTML. Um build com `--ignore-scripts` quebra a exportação.
-- O plano Free tem 512 MB. Chromium, `sharp` e `ffmpeg` competem por essa memória durante a exportação.
+A exportação de carrossel HTML usa Playwright. **`npm install` sozinho não basta:** o `node_modules` em cache faz o `postinstall` do pacote não rodar de novo, então atualizar o `playwright` troca a revisão de browser exigida sem baixá-la. O sintoma é o export falhando com:
+
+```text
+browserType.launch: Executable doesn't exist at
+/opt/render/.cache/ms-playwright/chromium_headless_shell-<rev>/...
+```
+
+Por isso o Build Command precisa ser:
+
+```bash
+npm install && npx playwright install chromium
+```
+
+O plano Free tem 512 MB, compartilhados por Chromium, `sharp` e `ffmpeg` durante a exportação — se aparecer falha intermitente só em carrossel HTML, é o próximo lugar para olhar.
 
 ### Health check (recomendado, hoje desativado)
 
