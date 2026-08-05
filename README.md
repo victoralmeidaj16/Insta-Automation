@@ -336,6 +336,37 @@ Authorization: Basic <CRON_USERNAME:CRON_PASSWORD>
 
 O tick usa lease e heartbeat no Firestore para impedir execuções concorrentes. O endpoint público `/health` não exige autenticação; todas as rotas `/api/*` exigem Firebase ID token.
 
+O plano Free hiberna após inatividade, então esse ping também mantém a instância acordada. Se o monitor parar, o agendamento para junto.
+
+---
+
+## Deploy do backend (Render)
+
+O serviço `insta-automation-backend` deploya da branch `main` a cada commit, com `rootDir: backend`.
+
+`render.yaml` na raiz descreve essa configuração. Ele **documenta** o serviço que já existe — não foi aplicado como Blueprint. Adotá-lo transforma o arquivo em fonte da verdade, e qualquer divergência passa a sobrescrever o dashboard; um serviço com nome diferente do atual faria o Render criar um segundo serviço em vez de atualizar este. Para adotar, use *New > Blueprint* e confirme que ele associou ao serviço existente antes de aplicar.
+
+Duas coisas que o build depende e não são óbvias:
+
+- O `postinstall` do pacote `playwright` baixa o Chromium que rasteriza os carrosséis HTML. Um build com `--ignore-scripts` quebra a exportação.
+- O plano Free tem 512 MB. Chromium, `sharp` e `ffmpeg` competem por essa memória durante a exportação.
+
+### Health check (recomendado, hoje desativado)
+
+O campo *Health Check Path* está vazio no dashboard, então o Render considera o deploy bem-sucedido assim que a porta é aberta — um processo que sobe e falha logo depois entra no ar do mesmo jeito.
+
+Apontá-lo para `/health` faz o Render barrar o deploy que não responder, mantendo a versão anterior no ar. O endpoint serve bem: é público, não consulta banco e responde na hora.
+
+É uma mudança de comportamento, então está fora do `render.yaml` de propósito — ative pelo dashboard quando quiser adotá-la.
+
+### Qual commit está no ar
+
+```bash
+curl -s https://insta-automation-backend-by1w.onrender.com/health | jq .version
+```
+
+Devolve `commit`, `branch`, `service` e `startedAt` — este último mostra se o deploy realmente reiniciou a instância.
+
 ---
 
 ## Troubleshooting

@@ -1,0 +1,57 @@
+# Blueprint do serviço já existente no Render (insta-automation-backend).
+# Reproduz a configuração atual do dashboard; ver README para como adotá-lo sem
+# criar um serviço duplicado.
+#
+# Segredos ficam com `sync: false`: o Render mantém o valor definido no
+# dashboard e nada sensível entra no repositório.
+services:
+  - type: web
+    name: insta-automation-backend
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    # O app vive em backend/; build e start rodam a partir daí.
+    rootDir: backend
+    # O postinstall do pacote `playwright` baixa o Chromium usado para
+    # rasterizar os carrosséis HTML — não acrescente --ignore-scripts aqui.
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    # healthCheckPath está deliberadamente ausente: hoje o campo está vazio no
+    # dashboard e este arquivo espelha o serviço como ele é. Ativar `/health`
+    # é recomendado (ver README), mas é mudança de comportamento — deploy que
+    # não responder passa a ser barrado em vez de entrar no ar.
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # O scheduler in-process fica desligado: quem dispara o tick é o
+      # UptimeRobot chamando /internal/cron/tick com Basic Auth.
+      - key: ENABLE_IN_PROCESS_SCHEDULER
+        value: "false"
+
+      - key: UPLOAD_POST_TIMEZONE
+        value: America/Sao_Paulo
+
+      # Credenciais e chaves — definidas no dashboard, nunca versionadas.
+      - { key: FIREBASE_PROJECT_ID, sync: false }
+      - { key: FIREBASE_CLIENT_EMAIL, sync: false }
+      - { key: FIREBASE_PRIVATE_KEY, sync: false }
+      - { key: ENCRYPTION_KEY, sync: false }
+
+      - { key: CRON_USERNAME, sync: false }
+      - { key: CRON_PASSWORD, sync: false }
+
+      - { key: ALLOWED_ORIGINS, sync: false }
+      - { key: ALLOWED_USER_UIDS, sync: false }
+      - { key: FRONTEND_URL, sync: false }
+
+      - { key: UPLOAD_POST_API_KEY, sync: false }
+      - { key: OPENAI_API_KEY, sync: false }
+      - { key: GEMINI_API_KEY, sync: false }
+      - { key: REPLICATE_API_TOKEN, sync: false }
+      - { key: SEEDREAM_API_TOKEN, sync: false }
+      - { key: KLING_ACCESS_KEY, sync: false }
+      - { key: KLING_SECRET_KEY, sync: false }
