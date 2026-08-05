@@ -362,7 +362,13 @@ function defaultBoldEyebrows(topic, brandContext = {}) {
 // Cada slide é uma imagem de tamanho fixo, sem rolagem: copy longa é cortada na
 // exportação. O prompt pede textos curtos, mas o modelo extrapola com frequência,
 // então o limite é aplicado aqui.
+// Nem todo slide tem o mesmo espaço: o de CTA divide a área com o botão, e o de
+// dor usa corpo maior. As chaves específicas vêm antes das genéricas porque a
+// busca para na primeira que casar.
 const COPY_BUDGETS = [
+  [/^s6_headline$/, 32],
+  [/^s6_subtext$/, 70],
+  [/^s3_headline$/, 45],
   [/_eyebrow$/, 28],
   [/_headline$/, 60],
   [/_subtext$/, 120],
