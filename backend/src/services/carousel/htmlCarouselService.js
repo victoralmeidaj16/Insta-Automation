@@ -188,6 +188,9 @@ Schema Structure (MUST strictly follow these keys and formats):
 Rules:
 - Content theme: ${topic}
 - Follow the schema structure strictly.
+- In the schema each slide is written as \`[index] type: { fields }\`. The type is only a label describing that slide's role — every slide object must carry the listed fields directly. Return \`{ "eyebrow": ..., "headline": ... }\`, never \`{ "hook": { "eyebrow": ... } }\`.
+- Slides are fixed-size images with no scrolling, so copy that runs long is cut off. Respect these budgets: eyebrow up to 28 characters, headline up to 60, subtext up to 120, impactLabel up to 40, and each entry of listItems/checkItems up to 32. Prefer short, punchy sentences over complete ones.
+- statementLines are stacked in very large type: each entry must be a single word or a two-word fragment of at most 16 characters (think "DE" / "DÚVIDA" / "PARA" / "AÇÃO"), never a full sentence.
 - Write all copy in Portuguese do Brasil.
 - Tone: premium, direct, engaging, authoritative.
 - Do NOT use structural labels as visible copy, such as "Tema central", "A realidade", "A virada", "O processo", "O ponto central", "Conteúdo estratégico", "Próximo passo".

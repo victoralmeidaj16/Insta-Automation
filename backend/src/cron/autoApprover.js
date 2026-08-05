@@ -3,6 +3,18 @@ import { approveDraftPost } from '../services/contentGeneratorService.js';
 import { scheduleApprovedPost } from '../services/postService.js';
 import { getAccountsByProfile, getBusinessProfile } from '../services/businessProfileService.js';
 import { normalizeScheduleConfig } from '../utils/scheduleConfig.js';
+import { isHtmlFormat } from '../domain/formatRules.js';
+
+// Carrosséis HTML só viram imagem na aprovação (approveDraftPost dispara o
+// export), então até lá é normal não terem mídia. Exigir mediaUrls aqui
+// bloquearia o formato inteiro.
+function hasPublishableContent(draft) {
+    if (Array.isArray(draft.mediaUrls) && draft.mediaUrls.filter(Boolean).length > 0) return true;
+    if (isHtmlFormat(draft.format || draft.type)) {
+        return Boolean(draft.htmlCode || draft.htmlContent);
+    }
+    return false;
+}
 
 /**
  * Script para aprovar automaticamente rascunhos cuja data agendada 
@@ -50,9 +62,9 @@ export async function runAutoApprover() {
                 continue;
             }
 
-            // Sem mídia não há o que publicar; aprovar geraria erro no provedor.
-            if (!Array.isArray(draft.mediaUrls) || draft.mediaUrls.length === 0) {
-                console.warn(`⚠️ Rascunho ${doc.id} ignorado: nenhuma mídia associada.`);
+            // Sem mídia nem HTML não há o que publicar; aprovar geraria erro no provedor.
+            if (!hasPublishableContent(draft)) {
+                console.warn(`⚠️ Rascunho ${doc.id} ignorado: sem mídia e sem HTML.`);
                 skippedCount++;
                 continue;
             }

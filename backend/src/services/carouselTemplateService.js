@@ -359,16 +359,43 @@ function defaultBoldEyebrows(topic, brandContext = {}) {
   return [topicLabel, 'Na prática', 'Insight útil', 'Erro comum', 'Novo caminho', 'Aplicação', 'Link na bio'];
 }
 
+// Cada slide é uma imagem de tamanho fixo, sem rolagem: copy longa é cortada na
+// exportação. O prompt pede textos curtos, mas o modelo extrapola com frequência,
+// então o limite é aplicado aqui.
+const COPY_BUDGETS = [
+  [/_eyebrow$/, 28],
+  [/_headline$/, 60],
+  [/_subtext$/, 120],
+];
+
+function budgetForSlot(key) {
+  return COPY_BUDGETS.find(([pattern]) => pattern.test(key))?.[1] || null;
+}
+
+export function clampCopy(value, maxLength) {
+  if (typeof value !== 'string' || !maxLength) return value;
+
+  const visible = stripHtml(value).replace(/\s+/g, ' ').trim();
+  if (visible.length <= maxLength) return value;
+
+  // Acima do limite descartamos a marcação: cortar no meio de uma tag
+  // produziria HTML inválido, e um destaque perdido é melhor que arte quebrada.
+  const truncated = visible.slice(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(' ');
+  const cut = lastSpace > maxLength * 0.6 ? truncated.slice(0, lastSpace) : truncated;
+  return cut.replace(/[\s,;:.\-–—]+$/, '');
+}
+
 function setEyebrowSlot(slots, key, value, fallback) {
   const candidate = firstNonEmpty(value);
   const resolved = candidate && !isGenericEyebrow(candidate) ? candidate : fallback;
-  setSlotIfPresent(slots, key, resolved);
+  setSlotIfPresent(slots, key, clampCopy(resolved, budgetForSlot(key)));
 }
 
 function setContentSlot(slots, key, value, fallback) {
   const candidate = firstNonEmpty(value);
   const resolved = candidate && !isGenericVisibleCopy(candidate) ? candidate : fallback;
-  setSlotIfPresent(slots, key, resolved);
+  setSlotIfPresent(slots, key, clampCopy(resolved, budgetForSlot(key)));
 }
 
 function buildTopicHeadline(source, { maxWords = 6, maxLines = 4, accentLastWord = true } = {}) {
@@ -401,19 +428,25 @@ function buildTopicHeadline(source, { maxWords = 6, maxLines = 4, accentLastWord
   return safeLines.join('<br>');
 }
 
+// O bloco de statement empilha linhas em corpo grande; sem limitar quantidade e
+// comprimento, uma frase longa devolvida pelo modelo transborda o slide.
+// O bloco usa corpo `xl` nas primeiras linhas: são palavras soltas, no espírito
+// de "DE / DÚVIDA / PARA / AÇÃO". Frases inteiras quebram em várias linhas
+// visuais e transbordam.
+const STATEMENT_MAX_LINES = 5;
+const STATEMENT_MAX_LINE_LENGTH = 16;
+
 function deriveStatementLines(slide = {}) {
-  if (Array.isArray(slide.statementLines) && slide.statementLines.length > 0) {
-    return slide.statementLines
-      .map(line => typeof line === 'string' ? line.trim() : '')
-      .filter(Boolean);
-  }
+  const rawLines = Array.isArray(slide.statementLines) && slide.statementLines.length > 0
+    ? slide.statementLines.map(line => typeof line === 'string' ? line.trim() : '')
+    : firstNonEmpty(slide.headline, slide.title, slide.heading, slide.statement)
+      .split(/<br\s*\/?>|\n|[|]/i)
+      .map(line => line.replace(/<[^>]+>/g, '').trim());
 
-  const source = firstNonEmpty(slide.headline, slide.title, slide.heading, slide.statement);
-  if (!source) return [];
-
-  return source
-    .split(/<br\s*\/?>|\n|[|]/i)
-    .map(line => line.replace(/<[^>]+>/g, '').trim())
+  return rawLines
+    .filter(Boolean)
+    .slice(0, STATEMENT_MAX_LINES)
+    .map(line => clampCopy(line, STATEMENT_MAX_LINE_LENGTH))
     .filter(Boolean);
 }
 
@@ -498,9 +531,9 @@ function buildBoldSlots(contentJson, brandContext = {}) {
 
     if (i === 1) {
       // Impact slide
-      setSlotIfPresent(slots, `s${i}_impact_num`, firstNonEmpty(s.impactNumber, s.impactNum, s.value, s.statNumber));
-      setSlotIfPresent(slots, `s${i}_impact_big`, normalizeLineBreaks(firstNonEmpty(s.impactLabel, s.impactBig)));
-      setSlotIfPresent(slots, `s${i}_impact_small`, firstNonEmpty(s.impactCaption, s.impactSmall, s.subtitle, s.body));
+      setSlotIfPresent(slots, `s${i}_impact_num`, clampCopy(firstNonEmpty(s.impactNumber, s.impactNum, s.value, s.statNumber), 4));
+      setSlotIfPresent(slots, `s${i}_impact_big`, normalizeLineBreaks(clampCopy(firstNonEmpty(s.impactLabel, s.impactBig), 40)));
+      setSlotIfPresent(slots, `s${i}_impact_small`, clampCopy(firstNonEmpty(s.impactCaption, s.impactSmall, s.subtitle, s.body), 60));
     } else if (i === 2 || i === 4) {
       // Statement slides
       const lines = deriveStatementLines(s);
@@ -922,7 +955,40 @@ function renderEditorialSci(html, contentJson, brandContext, libraryImages) {
  * @param {string[]} libraryImages - Array of image URLs from the brand's library
  * @returns {string} Complete, ready-to-render HTML string
  */
-export function renderElevepicTemplate(templateId, contentJson, brandContext, libraryImages = []) {
+// O schema descreve cada slide como `[0] hook: { eyebrow, headline, subtext }`,
+// e o Gemini costuma ler `hook` como chave literal, devolvendo
+// `{ hook: { ... } }`. Os builders leem os campos direto do slide, então sem
+// desembrulhar tudo vem undefined e o carrossel inteiro sai com o texto de
+// fallback. Aceitamos as duas formas.
+const SLIDE_CONTENT_KEYS = new Set([
+  'eyebrow', 'tag', 'kicker', 'headline', 'title', 'subtext', 'subtitle', 'body',
+  'description', 'statementLines', 'impactNumber', 'impactLabel', 'impactCaption',
+  'ctaText', 'ctaSub', 'listItems', 'checkItems', 'stats', 'items', 'label', 'value'
+]);
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function unwrapSlide(slide) {
+  if (!isPlainObject(slide)) return slide;
+  const keys = Object.keys(slide);
+  if (keys.length !== 1) return slide;
+
+  const inner = slide[keys[0]];
+  if (!isPlainObject(inner)) return slide;
+  if (!Object.keys(inner).some(key => SLIDE_CONTENT_KEYS.has(key))) return slide;
+
+  return inner;
+}
+
+export function normalizeElevepicContentJson(contentJson = {}) {
+  if (!Array.isArray(contentJson?.slides)) return contentJson;
+  return { ...contentJson, slides: contentJson.slides.map(unwrapSlide) };
+}
+
+export function renderElevepicTemplate(templateId, rawContentJson, brandContext, libraryImages = []) {
+  const contentJson = normalizeElevepicContentJson(rawContentJson);
   let html = loadTemplate(templateId);
 
   // 1. Inject CSS variable overrides for brand colors
