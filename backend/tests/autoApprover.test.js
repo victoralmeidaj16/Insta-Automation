@@ -123,6 +123,32 @@ describe('auto approver fallback', () => {
         expect(approveDraftPostMock).not.toHaveBeenCalled();
     });
 
+    // Carrosséis HTML só são rasterizados na aprovação, então não têm mediaUrls
+    // enquanto são rascunho.
+    it('approves an HTML carousel that has no media yet but carries its markup', async () => {
+        seedProfile({ autoApproveFallbackEnabled: true });
+        const draft = await seedDraft({
+            format: 'carousel-html',
+            mediaUrls: [],
+            htmlCode: '<section>slide</section>'
+        });
+
+        const { runAutoApprover } = await import('../src/cron/autoApprover.js');
+        await runAutoApprover();
+
+        expect(approveDraftPostMock).toHaveBeenCalledWith(draft.id, 'profile-1', { destination: 'schedule' });
+    });
+
+    it('still skips an HTML carousel with neither media nor markup', async () => {
+        seedProfile({ autoApproveFallbackEnabled: true });
+        await seedDraft({ format: 'carousel-html', mediaUrls: [], htmlCode: '' });
+
+        const { runAutoApprover } = await import('../src/cron/autoApprover.js');
+        await runAutoApprover();
+
+        expect(approveDraftPostMock).not.toHaveBeenCalled();
+    });
+
     it('returns the draft to review when the external scheduling fails', async () => {
         seedProfile({ autoApproveFallbackEnabled: true });
         const draft = await seedDraft();

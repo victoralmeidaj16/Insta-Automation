@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { db } from '../config/firebase.js';
 import { getBusinessProfile, getAccountsByProfile } from './businessProfileService.js';
-import { generateImages, generateCarousel, generateImageCaption, generateImagePrompt, generateHtmlCarousel, generateSingleImage, generateContentPlan, serializeSlideToTagPrompt } from './aiService.js';
+import { generateImages, generateCarousel, generateImageCaption, generateImagePrompt, generateHtmlCarousel, generateSingleImage, generateContentPlan, serializeSlideToTagPrompt, countCarouselSlides } from './aiService.js';
 import { renderElevepicTemplate } from './carouselTemplateService.js';
 import { createPost } from './postService.js';
 import {
@@ -188,9 +188,11 @@ function resolveHtmlTemplateSlideCount(templateId, requestedCount = null) {
     return clampSlideCount(requestedCount, limits);
 }
 
+// `\bslide\b` também casa dentro de `slide-inner`, `slide-content` e afins, o
+// que inflava a contagem (um carrossel de 7 slides era gravado como 22).
+// countCarouselSlides compara o token exato de classe e já tem cobertura.
 function inferHtmlSlideCount(html = '') {
-    const matches = String(html || '').match(/class=(["'])[^"']*\bslide\b[^"']*\1/gi);
-    return matches?.length || 1;
+    return countCarouselSlides(html) || 1;
 }
 
 function splitPremiumPromptBlocks(prompt = '') {
