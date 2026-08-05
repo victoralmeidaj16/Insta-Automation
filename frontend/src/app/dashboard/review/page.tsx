@@ -366,37 +366,99 @@ function getDraftReviewTab(draft: DraftPost): 'feed' | 'stories' | 'reels' {
  * Looks for elements with class "slide" and wraps each in a minimal HTML doc
  * that inherits the original <head> styles.
  */
-function extractHtmlSlides(html: string): string[] {
-    if (!html) return [];
+/**
+ * Helper to count slides inside raw HTML carousel code
+ */
+function countCarouselSlidesInHtml(html: string): number {
+    if (!html) return 1;
     try {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        const slides = Array.from(doc.querySelectorAll('.slide'));
-        if (slides.length === 0) return [html]; // fallback: treat whole thing as 1 slide
-        const headHtml = doc.head?.innerHTML || '';
-        return slides.map(slide => {
-            const clonedSlide = slide.cloneNode(true) as HTMLElement;
-            clonedSlide.classList.add('active');
-            // Give each slide full-size styles
-            return `<!DOCTYPE html><html><head>${headHtml}<style>
-                html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#09090b;}
-                body{display:flex;align-items:stretch;justify-content:stretch;}
-                body>*{width:100%;height:100%;box-sizing:border-box;}
-                .slide{opacity:1!important;pointer-events:auto!important;z-index:1!important;}
-                .slide.active{opacity:1!important;}
-            </style></head><body>${clonedSlide.outerHTML}</body></html>`;
-        });
+        const slides = doc.querySelectorAll('.slide');
+        return slides.length || 1;
     } catch {
-        return [html];
+        return 1;
     }
 }
 
 /**
- * Wrap a single slide HTML string with the same full-size reset CSS
- * used by cleanHtmlCarousel (for non-split cases).
+ * Wraps an HTML carousel string into a clean, 100% responsive iframe document
+ * positioned at slideIndex (0-indexed) while preserving original CSS, fonts, and DOM tree.
  */
+function wrapCarouselForSlide(html: string, slideIndex: number = 0, totalSlides?: number): string {
+    if (!html) return '';
+    const slideCount = totalSlides || countCarouselSlidesInHtml(html);
+    const safeIdx = Math.max(0, Math.min(slideIndex, slideCount - 1));
+
+    const responsiveCss = `
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            overflow: hidden !important;
+            background: #09090b !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        body > * {
+            width: 100% !important;
+            height: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .carousel-wrap, .ig-frame, .carousel-viewport, #viewport {
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            overflow: hidden !important;
+        }
+        .carousel-track, #track {
+            display: flex !important;
+            width: ${slideCount * 100}% !important;
+            height: 100% !important;
+            transform: translateX(-${(safeIdx / Math.max(1, slideCount)) * 100}%) !important;
+            transition: transform 0.25s ease-in-out !important;
+        }
+        .slide {
+            flex: 0 0 ${100 / Math.max(1, slideCount)}% !important;
+            width: ${100 / Math.max(1, slideCount)}% !important;
+            height: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .ig-header, .ig-actions, .ig-caption {
+            display: none !important;
+        }
+        .slide-dot { opacity: 0.35 !important; }
+        .slide-dot:nth-child(${safeIdx + 1}) { opacity: 1 !important; width: 16px !important; border-radius: 3px !important; }
+    `;
+
+    if (/<head[\s>]/i.test(html)) {
+        return html.replace(/<\/head>/i, `<style>${responsiveCss}</style></head>`);
+    }
+
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${responsiveCss}</style></head><body>${html}</body></html>`;
+}
+
+function extractHtmlSlides(html: string): string[] {
+    if (!html) return [];
+    try {
+        const slideCount = countCarouselSlidesInHtml(html);
+        if (slideCount <= 1) return [cleanHtmlCarousel(html)];
+
+        return Array.from({ length: slideCount }, (_, idx) => wrapCarouselForSlide(html, idx, slideCount));
+    } catch {
+        return [cleanHtmlCarousel(html)];
+    }
+}
+
 function wrapSingleSlide(html: string): string {
     return cleanHtmlCarousel(html);
+}
+
+function cleanHtmlCarousel(html: string): string {
+    return wrapCarouselForSlide(html, 0, countCarouselSlidesInHtml(html));
 }
 
 function getDraftAspectRatio(draft: DraftPost): string {
@@ -426,98 +488,6 @@ function getReviewStateLabel(state?: string): string {
 function isLikelyVideoUrl(url?: string | null): boolean {
     if (!url) return false;
     return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url);
-}
-
-function cleanHtmlCarousel(html: string): string {
-    if (!html) return '';
-    const sanitizedHtml = html
-        // Strip legacy Instagram mockup nodes completely
-        .replace(/<div[^>]*class=["'][^"']*\big-frame\b[^"']*["'][^>]*>/gi, '')
-        .replace(/<div[^>]*class=["'][^"']*\big-header\b[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, '')
-        .replace(/<div[^>]*class=["'][^"']*\big-dots\b[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, '')
-        .replace(/<div[^>]*class=["'][^"']*\big-actions\b[^"']*["'][^>]*>[\s\S]*?<\/div>/gi, '')
-        .replace(/<\/div>\s*<\/div>\s*<\/body>/i, '</div></body>')
-        // Remove associated legacy CSS blocks
-        .replace(/\.ig-frame\s*\{[\s\S]*?\}\s*/gi, '')
-        .replace(/\.ig-header\s*\{[\s\S]*?\}\s*/gi, '')
-        .replace(/\.ig-actions\s*\{[\s\S]*?\}\s*/gi, '')
-        .replace(/\.ig-dots\s*\{[\s\S]*?\}\s*/gi, '');
-
-    const reviewCss = `
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            overflow: hidden !important;
-            background: #09090b !important;
-        }
-        body {
-            display: flex !important;
-            align-items: stretch !important;
-            justify-content: stretch !important;
-        }
-        body > * {
-            width: 100% !important;
-            height: 100% !important;
-            max-width: 100% !important;
-            max-height: 100% !important;
-            box-sizing: border-box !important;
-        }
-        .carousel-viewport,
-        .carousel,
-        #viewport,
-        .carousel-track,
-        #track {
-            width: 100% !important;
-            height: 100% !important;
-            min-width: 100% !important;
-            max-width: 100% !important;
-            overflow: hidden !important;
-        }
-        .carousel-viewport,
-        .carousel,
-        #viewport {
-            display: block !important;
-        }
-        .carousel-track,
-        #track {
-            display: flex !important;
-            transform: none !important;
-            transition: none !important;
-        }
-        .slide {
-            position: relative !important;
-            flex: 0 0 100% !important;
-            width: 100% !important;
-            min-width: 100% !important;
-            max-width: 100% !important;
-            height: 100% !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            scroll-snap-align: start !important;
-        }
-        .carousel-track > .slide:not(:first-child),
-        #track > .slide:not(:first-child),
-        .carousel > .slide:not(:first-child),
-        #viewport > .slide:not(:first-child) {
-            display: none !important;
-        }
-        .slide img {
-            max-width: 100% !important;
-            max-height: 100% !important;
-        }
-        .ig-frame, .ig-header, .ig-actions, .ig-dots {
-            display: none !important;
-            visibility: hidden !important;
-        }
-    `;
-
-    if (/<head[\s>]/i.test(sanitizedHtml)) {
-        return sanitizedHtml.replace(/<\/head>/i, `<style>${reviewCss}</style></head>`);
-    }
-
-    return `<html><head><style>${reviewCss}</style></head><body>${sanitizedHtml}</body></html>`;
 }
 
 function shouldRenderPremiumOverlay(draft: DraftPost) {

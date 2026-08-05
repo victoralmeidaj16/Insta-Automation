@@ -402,14 +402,13 @@ router.patch('/drafts/:postId/caption', async (req, res) => {
 router.post('/drafts/:postId/regenerate', async (req, res) => {
     try {
         const userId = req.user?.uid;
-        const { prompt } = req.body;
-        if (!prompt) return res.status(400).json({ error: 'prompt é obrigatório.' });
+        const { prompt, templateId } = req.body;
         if (!userId) {
             return res.status(401).json({ error: 'Não autenticado.' });
         }
 
         await requireOwnedDraft(req.params.postId, userId);
-        const post = await regenerateDraftPost(req.params.postId, prompt);
+        const post = await regenerateDraftPost(req.params.postId, prompt, { templateId });
         res.json({ success: true, post });
     } catch (error) {
         sendAutoGenerateError('auto-generate/regenerate', error, res);

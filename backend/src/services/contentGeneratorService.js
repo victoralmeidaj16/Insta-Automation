@@ -2269,7 +2269,7 @@ export async function regenerateDraftPost(postId, newPrompt) {
         };
         // Keep same template as original draft; fall back to selectHtmlTemplate
         const existingTemplate = draft.extra?.carouselTemplateId;
-        const regenTemplate = existingTemplate || selectHtmlTemplate(pillar || {}, {});
+        const regenTemplate = options.templateId || existingTemplate || selectHtmlTemplate(pillar || {}, {});
         const templateSlideCount = resolveHtmlTemplateSlideCount(regenTemplate, requestedSlideCount || draft.slideCount || 0);
 
         // ElevePic moodboard: regenerar também com imagens IA
