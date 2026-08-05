@@ -1,6 +1,18 @@
 import sharp from 'sharp';
 import axios from 'axios';
 
+// Deriva a cor da subheadline do texto do tema. Fixar um cinza claro deixaria o
+// texto ilegível nos temas de painel claro (Fitswap).
+function withAlpha(hexColor, alpha) {
+    const hex = String(hexColor || '').trim().replace('#', '');
+    const full = hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex;
+    if (!/^[0-9a-f]{6}$/i.test(full)) return `rgba(255,255,255,${alpha})`;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
 function escapeXml(value = '') {
     return String(value)
         .replace(/&/g, '&amp;')
@@ -205,8 +217,14 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
             highlightText = '',
             brandName = 'Sua Marca',
             logoUrl = null,
-            primaryColor = '#00C2FF'
+            primaryColor = '#00C2FF',
+            description = '',
+            descriptionEnabled,
+            descriptionColor = null
         } = layout;
+
+        const subheadline = String(description || '').trim();
+        const hasSub = Boolean(subheadline) && descriptionEnabled !== false;
 
         if (!title) {
             console.warn('⚠️ No title provided, skipping composition.');
@@ -245,15 +263,23 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
         const ZONE_TOP = IMAGE_H;
         const ZONE_HEIGHT = height - IMAGE_H;
         const HEADER_AREA = 150;
-        const BOTTOM_PAD = 92;
+        // Com subheadline o bloco cresce para baixo e encostava nos swipe dots;
+        // a reserva maior empurra o conjunto para cima.
+        const BOTTOM_PAD = hasSub ? 120 : 92;
         const AVAILABLE_TITLE = ZONE_HEIGHT - HEADER_AREA - BOTTOM_PAD;
 
         // ─── Auto-scale font size to fit title within available space ───────────
         const contentWidth = 908;
-        const MAX_FONT = 148;
-        const MIN_FONT = 76;
+        // Com subheadline o título cede espaço para o bloco de baixo, espelhando o
+        // canvas do editor (PremiumCarouselEditor) para que preview e imagem batam.
+        const MAX_FONT = hasSub ? 120 : 148;
+        const MIN_FONT = hasSub ? 44 : 76;
         const FONT_STEP = 4;
         const LH_RATIO = 0.96;
+        const SUB_LH_RATIO = 1.3;
+        const SUB_GAP = 16;
+
+        const subFontFor = fontSize => Math.min(34, Math.max(22, Math.round(fontSize * 0.36)));
 
         function wrapTextSvg(text, maxWidth, fontSize) {
             const avgCharWidth = fontSize * 0.58;
@@ -276,17 +302,30 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
 
         let titleFontSize = MAX_FONT;
         let titleLines = [];
+        let subFontSize = subFontFor(MAX_FONT);
+        let subLines = [];
 
         for (let fs = MAX_FONT; fs >= MIN_FONT; fs -= FONT_STEP) {
             const candidate = wrapTextSvg(title, contentWidth, fs);
-            if (candidate.length * fs * LH_RATIO <= AVAILABLE_TITLE) {
+            const candidateSubFont = subFontFor(fs);
+            const candidateSubLines = hasSub
+                ? wrapTextSvg(subheadline, contentWidth * 0.88, candidateSubFont)
+                : [];
+            const blockHeight = candidate.length * fs * LH_RATIO
+                + (hasSub ? candidateSubLines.length * candidateSubFont * SUB_LH_RATIO + SUB_GAP : 0);
+
+            if (blockHeight <= AVAILABLE_TITLE) {
                 titleFontSize = fs;
                 titleLines = candidate;
+                subFontSize = candidateSubFont;
+                subLines = candidateSubLines;
                 break;
             }
             if (fs - FONT_STEP < MIN_FONT) {
                 titleFontSize = MIN_FONT;
                 titleLines = wrapTextSvg(title, contentWidth, MIN_FONT);
+                subFontSize = subFontFor(MIN_FONT);
+                subLines = hasSub ? wrapTextSvg(subheadline, contentWidth * 0.88, subFontSize) : [];
             }
         }
         const lineHeight = titleFontSize * LH_RATIO;
@@ -362,6 +401,22 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
             </text>
             `);
         });
+
+        // Subheadline — abaixo do título, sem invadir a faixa dos swipe dots
+        if (hasSub && subLines.length > 0) {
+            const subColor = descriptionColor || withAlpha(theme.text, 0.85);
+            let subY = titleY + 12;
+
+            subLines.forEach(line => {
+                subY += subFontSize * SUB_LH_RATIO;
+                if (subY >= height - 65) return;
+                svgParts.push(`
+                <text x="${width / 2}" y="${subY}" font-family="Inter, -apple-system, sans-serif" font-size="${subFontSize}" font-weight="500" fill="${subColor}" text-anchor="middle">
+                    ${escapeXml(line)}
+                </text>
+                `);
+            });
+        }
 
         // Swipe dots
         const dotY = height - 58;
