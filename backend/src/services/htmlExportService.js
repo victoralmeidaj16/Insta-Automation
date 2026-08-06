@@ -1,4 +1,4 @@
-import { chromium } from 'playwright';
+import { launchChromium } from './browserLauncher.js';
 import { db, storage } from '../config/firebase.js';
 import { v4 as uuidv4 } from 'uuid';
 import { promises as fs } from 'fs';
@@ -135,7 +135,7 @@ function convertToMp4(inputPath, outputPath) {
 export async function renderHtmlToImages(htmlContent, storageFolder) {
     let browser;
     try {
-        browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        browser = await launchChromium();
 
         const context = await browser.newContext({
             viewport: { width: VIEW_W, height: VIEW_H },
@@ -195,7 +195,7 @@ export async function renderHtmlToVideos(htmlContent, storageFolder, slideDurati
 
     let browser;
     try {
-        browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        browser = await launchChromium();
 
         // ── Step 1: count slides with a throw-away context ──────────────────
         const countCtx = await browser.newContext({ viewport: { width: VIEW_W, height: VIEW_H } });

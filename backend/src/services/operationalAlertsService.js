@@ -1,7 +1,12 @@
 import axios from 'axios';
 import { db } from '../config/firebase.js';
+import { normalizeScheduleConfig } from '../utils/scheduleConfig.js';
 
 const PROCESSING_STALE_MS = 20 * 60 * 1000;
+
+// Abaixo disto o perfil fica sem conteúdo antes da próxima geração semanal
+// conseguir repor a fila, e o feed abre um buraco sem ninguém ser avisado.
+const COVERAGE_WARNING_HOURS = 72;
 
 function asDate(value) {
     return value?.toDate?.() || (value ? new Date(value) : null);
@@ -86,8 +91,92 @@ export async function getOperationalAlerts(userId, profileId = null) {
         });
     }
 
+    // Fila futura por perfil — base para os alertas de cobertura e de colisão.
+    const upcomingByProfile = new Map();
+    postsSnapshot.docs.forEach(doc => {
+        const post = doc.data();
+        if (!['draft', 'scheduled'].includes(post.status)) return;
+        const scheduledFor = asDate(post.scheduledFor);
+        if (!scheduledFor || scheduledFor.getTime() <= now) return;
+        const bucket = upcomingByProfile.get(post.businessProfileId) || [];
+        bucket.push({ id: doc.id, scheduledFor, format: post.format || post.type, status: post.status });
+        upcomingByProfile.set(post.businessProfileId, bucket);
+    });
+
+    for (const profile of profiles) {
+        const schedule = normalizeScheduleConfig(profile.contentSchedule || {});
+        if (!schedule.autoGenerationEnabled) continue;
+
+        const upcoming = (upcomingByProfile.get(profile.id) || []).sort((a, b) => a.scheduledFor - b.scheduledFor);
+        const lastScheduled = upcoming.at(-1)?.scheduledFor || null;
+        const coverageHours = lastScheduled ? (lastScheduled.getTime() - now) / 3600000 : 0;
+
+        // O piloto ligado sem fila é a falha mais cara e mais silenciosa: nada
+        // quebra, nada alerta, o perfil simplesmente para de publicar.
+        if (coverageHours < COVERAGE_WARNING_HOURS) {
+            alerts.push({
+                id: `coverage-gap:${profile.id}`,
+                kind: 'coverage_gap',
+                severity: upcoming.length === 0 ? 'critical' : 'warning',
+                profileId: profile.id,
+                profileName: profile.name,
+                title: upcoming.length === 0 ? 'Sem conteúdo na fila' : 'Fila acabando',
+                message: upcoming.length === 0
+                    ? `O piloto automático está ligado, mas “${profile.name}” não tem nenhum post futuro agendado.`
+                    : `${upcoming.length === 1 ? 'Resta 1 post' : `Restam ${upcoming.length} posts`} `
+                        + `e a fila termina em ${Math.round(coverageHours)}h.`,
+                action: 'Gerar conteúdo'
+            });
+        }
+
+        // Dois posts no mesmo instante viram duas publicações seguidas no
+        // Instagram. O gerador semanal e a reprogramação manual não conversam,
+        // então a sobreposição só aparece na hora em que o feed duplica.
+        const bySlot = new Map();
+        upcoming.forEach(post => {
+            const key = post.scheduledFor.toISOString();
+            bySlot.set(key, [...(bySlot.get(key) || []), post]);
+        });
+        for (const [slot, clashing] of bySlot) {
+            if (clashing.length < 2) continue;
+            alerts.push({
+                id: `slot-collision:${profile.id}:${slot}`,
+                kind: 'slot_collision',
+                severity: 'warning',
+                profileId: profile.id,
+                profileName: profile.name,
+                postId: clashing[0].id,
+                title: 'Dois posts no mesmo horário',
+                message: `${clashing.length} publicações (${clashing.map(item => item.format).join(', ')}) `
+                    + `estão marcadas para ${new Date(slot).toLocaleString('pt-BR', { timeZone: schedule.timezone })}.`,
+                action: 'Abrir calendário'
+            });
+        }
+    }
+
     postsSnapshot.docs.forEach(doc => {
         const post = { id: doc.id, ...doc.data() };
+
+        // Carrossel HTML só vira imagem no export. Falhando ele, o post fica sem
+        // mídia e o auto-aprovador retenta em silêncio a cada tick até vencer.
+        if (post.exportStatus === 'failed'
+            && ['draft', 'scheduled'].includes(post.status)
+            && (!profileId || post.businessProfileId === profileId)) {
+            const profile = profiles.find(item => item.id === post.businessProfileId);
+            alerts.push({
+                id: `export-failed:${post.id}`,
+                kind: 'export_failed',
+                severity: 'critical',
+                profileId: post.businessProfileId || null,
+                profileName: profile?.name || 'Perfil não identificado',
+                postId: post.id,
+                title: 'Falha ao gerar as imagens',
+                message: String(post.errorMessage || 'O carrossel HTML não pôde ser convertido em imagens.')
+                    .split('\n')[0].slice(0, 200),
+                action: 'Revisar conteúdo'
+            });
+        }
+
         if (post.status === 'schedule_error' && (!profileId || post.businessProfileId === profileId)) {
             const profile = profiles.find(item => item.id === post.businessProfileId);
             alerts.push({
