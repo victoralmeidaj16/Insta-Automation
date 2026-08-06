@@ -108,6 +108,10 @@ export function createInMemoryFirebase() {
                         async get() {
                             return createDocSnapshot(id, collection.get(id), db.collection(name).doc(id));
                         },
+                        async set(data, options = {}) {
+                            const current = options.merge ? collection.get(id) : undefined;
+                            collection.set(id, { ...(current || {}), ...clone(data) });
+                        },
                         async update(updates) {
                             const current = collection.get(id);
                             if (!current) {

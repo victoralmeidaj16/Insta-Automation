@@ -12,6 +12,7 @@ import businessProfilesRouter from './routes/business-profiles.js';
 import libraryRouter from './routes/library.js';
 import autoGenerateRouter from './routes/auto-generate.js';
 import alertsRouter from './routes/alerts.js';
+import coverageRouter from './routes/coverage.js';
 import internalCronRouter from './routes/internalCron.js';
 import { getQueueStats } from './queues/postQueue.js';
 import { buildInfo } from './utils/buildInfo.js';
@@ -155,6 +156,7 @@ export function createApp() {
     app.use('/api/library', authenticate, libraryRouter);
     app.use('/api/auto-generate', authenticate, autoGenerateRouter);
     app.use('/api/alerts', authenticate, alertsRouter);
+    app.use('/api/coverage', authenticate, coverageRouter);
 
     app.use((req, res) => {
         res.status(404).json({

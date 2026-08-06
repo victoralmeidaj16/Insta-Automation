@@ -5,8 +5,66 @@ import api from '@/lib/api';
 import { isAutopilotEnabled, isAutoApproveEnabled } from '@/lib/schedule';
 import toast from 'react-hot-toast';
 
+const DATE_FORMAT = { day: '2-digit', month: '2-digit' };
+
+function formatDay(iso) {
+    return new Date(iso).toLocaleDateString('pt-BR', DATE_FORMAT);
+}
+
+function daysAhead(iso) {
+    return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000));
+}
+
+/**
+ * Até quando o perfil tem conteúdo garantido.
+ *
+ * Com a auto-aprovação ligada um rascunho publica sozinho, então ele conta
+ * igual a um post já agendado. Com ela desligada a diferença é real e os
+ * rascunhos aparecem à parte — prometer uma data que depende de alguém abrir
+ * a revisão seria pior do que não mostrar nada.
+ */
+function CoverageLine({ coverage }) {
+    if (!coverage) return null;
+
+    const { coveredUntil, scheduledCount, pendingCount, pendingCountsAsCovered, pendingUntil } = coverage;
+    const days = coveredUntil ? daysAhead(coveredUntil) : 0;
+    const tone = !coveredUntil ? '#ef4444' : days <= 3 ? '#f59e0b' : '#10b981';
+
+    const breakdown = [
+        scheduledCount > 0 && `${scheduledCount} agendado${scheduledCount > 1 ? 's' : ''}`,
+        pendingCount > 0 && (pendingCountsAsCovered
+            ? `${pendingCount} aprovado${pendingCount > 1 ? 's' : ''} automaticamente`
+            : `${pendingCount} aguardando você`),
+    ].filter(Boolean).join(' + ');
+
+    return (
+        <div style={{
+            background: 'rgba(255,255,255,0.04)', border: `1px solid ${tone}33`,
+            borderRadius: '0.5rem', padding: '0.6rem 0.7rem',
+        }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.7rem', color: '#a1a1aa', fontWeight: 600 }}>📅 Conteúdo até</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: 800, color: tone }}>
+                    {coveredUntil ? formatDay(coveredUntil) : 'sem fila'}
+                </span>
+            </div>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.7rem', color: '#a1a1aa', lineHeight: 1.4 }}>
+                {coveredUntil
+                    ? `${days} ${days === 1 ? 'dia' : 'dias'} à frente${breakdown ? ` · ${breakdown}` : ''}`
+                    : 'Nenhum post futuro garantido.'}
+            </p>
+            {pendingUntil && (
+                <p style={{ margin: '0.3rem 0 0', fontSize: '0.7rem', color: '#f59e0b', lineHeight: 1.4 }}>
+                    ⚠️ {pendingCount} rascunho{pendingCount > 1 ? 's' : ''} até {formatDay(pendingUntil)} só publica{pendingCount > 1 ? 'm' : ''} se você aprovar.
+                </p>
+            )}
+        </div>
+    );
+}
+
 export default function ProfileControlMatrix({ onProfilesUpdated }) {
     const [profiles, setProfiles] = useState([]);
+    const [coverage, setCoverage] = useState({});
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState(null);
     const [collapsed, setCollapsed] = useState(false);
@@ -22,8 +80,20 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
         }
     };
 
+    // Separado dos perfis: a cobertura é derivada dos posts e um erro aqui não
+    // pode esconder os toggles, que continuam utilizáveis sem ela.
+    const loadCoverage = async () => {
+        try {
+            const res = await api.get('/api/coverage');
+            setCoverage(Object.fromEntries((res.data?.coverage || []).map(item => [item.profileId, item])));
+        } catch (error) {
+            console.error('Erro ao carregar a cobertura de conteúdo:', error);
+        }
+    };
+
     useEffect(() => {
         loadProfiles();
+        loadCoverage();
     }, []);
 
     const handleToggle = async (profile, field, currentValue) => {
@@ -56,6 +126,9 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
             });
 
             toast.success(`${profile.name}: ${fieldNameLabel} ${newValue ? 'ATIVADO ✅' : 'DESATIVADO ⚪'}`);
+            // Ligar/desligar a auto-aprovação muda quais rascunhos são cobertura,
+            // então a data anunciada muda junto com o toggle.
+            loadCoverage();
             if (onProfilesUpdated) onProfilesUpdated();
         } catch (error) {
             console.error(`Erro ao atualizar ${field} do perfil ${profileId}:`, error);
@@ -87,7 +160,7 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                         🎛️ Matriz de Controle de Perfis
                     </h3>
                     <p style={{ fontSize: '0.85rem', color: '#a1a1aa', margin: '0.25rem 0 0 0' }}>
-                        Controle rápido de Piloto Automático e Auto-Aprovação em lote por marca.
+                        Até quando cada marca tem conteúdo garantido, e os interruptores que decidem isso.
                     </p>
                 </div>
                 <button
@@ -161,6 +234,8 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                                     🏢
                                 </div>
                             </div>
+
+                            <CoverageLine coverage={coverage[profile.id]} />
 
                             <hr style={{ borderColor: 'rgba(255, 255, 255, 0.06)', margin: 0 }} />
 

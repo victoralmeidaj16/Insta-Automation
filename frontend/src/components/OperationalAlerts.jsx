@@ -5,8 +5,19 @@ import Link from 'next/link';
 import api from '@/lib/api';
 
 const styles = {
-    critical: { accent: '#fb7185', wash: 'rgba(251, 113, 133, 0.10)', label: 'Conexão necessária' },
+    critical: { accent: '#fb7185', wash: 'rgba(251, 113, 133, 0.10)', label: 'Ação necessária' },
     warning: { accent: '#fbbf24', wash: 'rgba(251, 191, 36, 0.10)', label: 'Acompanhamento necessário' }
+};
+
+// Cada alerta leva à tela onde o problema se resolve. Sem isto tudo caía em
+// "perfis de negócio", que não resolve nenhum deles.
+const DESTINATIONS = {
+    processing_stuck: '/dashboard/calendar',
+    slot_collision: '/dashboard/calendar',
+    export_failed: '/dashboard/review',
+    draft_near_deadline: '/dashboard/review',
+    schedule_error: '/dashboard/review',
+    coverage_gap: '/dashboard/generate',
 };
 
 export default function OperationalAlerts({ profileId = null }) {
@@ -83,7 +94,7 @@ export default function OperationalAlerts({ profileId = null }) {
             {!collapsed && <div style={{ padding: '0.35rem 0.55rem 0.55rem' }}>
                 {alerts.map(alert => {
                     const tone = styles[alert.severity] || styles.warning;
-                    const href = alert.kind === 'processing_stuck' ? '/dashboard/calendar' : '/dashboard/business-profiles';
+                    const href = DESTINATIONS[alert.kind] || '/dashboard/business-profiles';
                     return (
                         <div key={alert.id} style={{
                             display: 'grid', gridTemplateColumns: '4px 1fr auto', gap: '0.8rem', alignItems: 'center',
@@ -92,7 +103,10 @@ export default function OperationalAlerts({ profileId = null }) {
                             <span aria-hidden="true" style={{ alignSelf: 'stretch', borderRadius: '999px', background: tone.accent }} />
                             <div>
                                 <p style={{ margin: 0, color: tone.accent, fontSize: '0.67rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{tone.label}</p>
-                                <p style={{ margin: '0.18rem 0 0', color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>{alert.title} · {alert.profileName}</p>
+                                {/* O alerta de heartbeat não pertence a um perfil e virava "· undefined". */}
+                                <p style={{ margin: '0.18rem 0 0', color: '#f8fafc', fontSize: '0.9rem', fontWeight: 700 }}>
+                                    {alert.profileName ? `${alert.title} · ${alert.profileName}` : alert.title}
+                                </p>
                                 <p style={{ margin: '0.2rem 0 0', color: '#aab3c2', fontSize: '0.8rem', lineHeight: 1.45 }}>{alert.message}</p>
                             </div>
                             <Link href={href} style={{
