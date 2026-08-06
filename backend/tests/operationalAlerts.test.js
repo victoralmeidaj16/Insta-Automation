@@ -80,6 +80,26 @@ describe('coverage_gap', () => {
         expect((await loadAlerts()).some(item => item.kind === 'coverage_gap')).toBe(false);
     });
 
+    // Um rascunho só é cobertura se algo o publicaria sozinho. Sem
+    // auto-aprovação a fila está cheia e mesmo assim nada vai ao ar.
+    it('does not count drafts as coverage while approval is manual', async () => {
+        await seedProfile();
+        await seedPost({ status: 'draft', scheduledFor: new Date(Date.now() + 6 * 24 * HOUR) });
+
+        const alert = (await loadAlerts()).find(item => item.kind === 'coverage_gap');
+        expect(alert).toMatchObject({ severity: 'critical', action: 'Revisar conteúdo' });
+        expect(alert.message).toContain('1 rascunho aguarda aprovação manual');
+    });
+
+    it('counts the same draft as coverage once auto-approval is on', async () => {
+        await seedProfile({
+            contentSchedule: { autoGenerationEnabled: true, autoApproveFallbackEnabled: true, timezone: 'America/Sao_Paulo' }
+        });
+        await seedPost({ status: 'draft', scheduledFor: new Date(Date.now() + 6 * 24 * HOUR) });
+
+        expect((await loadAlerts()).some(item => item.kind === 'coverage_gap')).toBe(false);
+    });
+
     // Sem piloto automático a fila vazia é uma escolha, não uma falha.
     it('ignores profiles with the autopilot switched off', async () => {
         await seedProfile({ contentSchedule: { autoGenerationEnabled: false } });

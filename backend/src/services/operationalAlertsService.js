@@ -108,24 +108,35 @@ export async function getOperationalAlerts(userId, profileId = null) {
         if (!schedule.autoGenerationEnabled) continue;
 
         const upcoming = (upcomingByProfile.get(profile.id) || []).sort((a, b) => a.scheduledFor - b.scheduledFor);
-        const lastScheduled = upcoming.at(-1)?.scheduledFor || null;
-        const coverageHours = lastScheduled ? (lastScheduled.getTime() - now) / 3600000 : 0;
+
+        // Mesma regra de contentCoverageService: um rascunho só é cobertura
+        // quando o auto-aprovador o publicaria sem ninguém revisar.
+        const guaranteed = schedule.autoApproveFallbackEnabled
+            ? upcoming
+            : upcoming.filter(post => post.status === 'scheduled');
+        const coverageHours = guaranteed.length
+            ? (guaranteed.at(-1).scheduledFor.getTime() - now) / 3600000
+            : 0;
 
         // O piloto ligado sem fila é a falha mais cara e mais silenciosa: nada
         // quebra, nada alerta, o perfil simplesmente para de publicar.
         if (coverageHours < COVERAGE_WARNING_HOURS) {
+            const stuckInReview = upcoming.length - guaranteed.length;
             alerts.push({
                 id: `coverage-gap:${profile.id}`,
                 kind: 'coverage_gap',
-                severity: upcoming.length === 0 ? 'critical' : 'warning',
+                severity: guaranteed.length === 0 ? 'critical' : 'warning',
                 profileId: profile.id,
                 profileName: profile.name,
-                title: upcoming.length === 0 ? 'Sem conteúdo na fila' : 'Fila acabando',
-                message: upcoming.length === 0
-                    ? `O piloto automático está ligado, mas “${profile.name}” não tem nenhum post futuro agendado.`
-                    : `${upcoming.length === 1 ? 'Resta 1 post' : `Restam ${upcoming.length} posts`} `
-                        + `e a fila termina em ${Math.round(coverageHours)}h.`,
-                action: 'Gerar conteúdo'
+                title: guaranteed.length === 0 ? 'Sem conteúdo na fila' : 'Fila acabando',
+                message: (guaranteed.length === 0
+                    ? `O piloto automático está ligado, mas “${profile.name}” não tem nenhum post futuro garantido.`
+                    : `${guaranteed.length === 1 ? 'Resta 1 post' : `Restam ${guaranteed.length} posts`} `
+                        + `e a fila termina em ${Math.round(coverageHours)}h.`)
+                    + (stuckInReview > 0
+                        ? ` ${stuckInReview} ${stuckInReview === 1 ? 'rascunho aguarda' : 'rascunhos aguardam'} aprovação manual.`
+                        : ''),
+                action: guaranteed.length === 0 && stuckInReview > 0 ? 'Revisar conteúdo' : 'Gerar conteúdo'
             });
         }
 
