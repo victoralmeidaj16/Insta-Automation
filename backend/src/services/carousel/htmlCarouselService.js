@@ -194,6 +194,8 @@ Rules:
 - Write all copy in Portuguese do Brasil.
 - Tone: premium, direct, engaging, authoritative.
 - Do NOT use structural labels as visible copy, such as "Tema central", "A realidade", "A virada", "O processo", "O ponto central", "Conteúdo estratégico", "Próximo passo".
+- Never invent figures. Review counts, star ratings, number of users or downloads, prices, delivery or response times, percentages and research findings may only appear if they are stated in the brand context or in the theme above. These slides are published as advertising, so an invented number is a false claim about a real product.
+- When a slot asks for a statistic and no verified figure exists, write a qualitative statement instead — a concrete benefit, a use case, a contrast — never a plausible-looking number.
 - Every headline, subtext, stat, label, and CTA must be concrete content about the brand, audience, product, and selected theme. Never output placeholder meta-copy like "Conteúdo criado para a marca" or "alinhado ao tema principal".
 - IMPORTANT: Return ONLY valid JSON, without any markdown formatting blocks like \`\`\`json or \`\`\`.`;
 

@@ -246,7 +246,10 @@ function setSlotIfPresent(slots, key, value) {
   if (typeof value !== 'string') return;
   const trimmed = value.trim();
   if (!trimmed) return;
-  slots[key] = trimmed;
+  // O corte fica aqui para valer em qualquer template: cada família usa nomes de
+  // slot próprios (`_headline` no bold, `_title` no editorial) e antes só a
+  // primeira estava coberta.
+  slots[key] = clampCopy(trimmed, budgetForSlot(key));
 }
 
 function normalizeLineBreaks(value) {
@@ -362,10 +365,21 @@ function defaultBoldEyebrows(topic, brandContext = {}) {
 // Cada slide é uma imagem de tamanho fixo, sem rolagem: copy longa é cortada na
 // exportação. O prompt pede textos curtos, mas o modelo extrapola com frequência,
 // então o limite é aplicado aqui.
+// Nem todo slide tem o mesmo espaço: o de CTA divide a área com o botão, e o de
+// dor usa corpo maior. As chaves específicas vêm antes das genéricas porque a
+// busca para na primeira que casar.
 const COPY_BUDGETS = [
+  [/^s6_headline$/, 32],
+  [/^s6_subtext$/, 70],
+  [/^s3_headline$/, 45],
+  [/^s6_title$/, 32],
+  [/^s6_subtitle$/, 70],
   [/_eyebrow$/, 28],
+  [/_tag$/, 28],
   [/_headline$/, 60],
+  [/_title$/, 60],
   [/_subtext$/, 120],
+  [/_subtitle$/, 120],
 ];
 
 function budgetForSlot(key) {
@@ -389,13 +403,13 @@ export function clampCopy(value, maxLength) {
 function setEyebrowSlot(slots, key, value, fallback) {
   const candidate = firstNonEmpty(value);
   const resolved = candidate && !isGenericEyebrow(candidate) ? candidate : fallback;
-  setSlotIfPresent(slots, key, clampCopy(resolved, budgetForSlot(key)));
+  setSlotIfPresent(slots, key, resolved);
 }
 
 function setContentSlot(slots, key, value, fallback) {
   const candidate = firstNonEmpty(value);
   const resolved = candidate && !isGenericVisibleCopy(candidate) ? candidate : fallback;
-  setSlotIfPresent(slots, key, clampCopy(resolved, budgetForSlot(key)));
+  setSlotIfPresent(slots, key, resolved);
 }
 
 function buildTopicHeadline(source, { maxWords = 6, maxLines = 4, accentLastWord = true } = {}) {
@@ -579,8 +593,12 @@ function buildEditorialSlots(contentJson) {
       setSlotIfPresent(slots, 's1_subtitle', firstNonEmpty(s.subtitle, s.subtext, s.body));
     } else if (i === 2) {
       setSlotIfPresent(slots, 's2_subtitle', firstNonEmpty(s.subtitle, s.subtext, s.body));
-      const stats = Array.isArray(s.stats) && s.stats.length > 0 ? s.stats : null;
-      if (stats) slots['s2_stats'] = buildEditorialStats(stats);
+      // Sempre atribuído: um slot não definido preserva o conteúdo do template,
+      // e o bloco de estatísticas do editorial traz "93% da percepção é
+      // não-verbal" como demonstração. Omitir a estatística passaria a publicar
+      // esse dado inventado — justamente o que o prompt agora pede para evitar.
+      const stats = Array.isArray(s.stats) ? s.stats : [];
+      slots['s2_stats'] = buildEditorialStats(stats);
     } else if (i === 3) {
       const items = Array.isArray(s.listItems) && s.listItems.length > 0 ? s.listItems
           : Array.isArray(s.items) && s.items.length > 0 ? s.items : null;

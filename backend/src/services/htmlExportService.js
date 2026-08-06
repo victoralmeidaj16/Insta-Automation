@@ -42,6 +42,43 @@ function applyCleanLayout() {
 }
 
 /**
+ * Shrinks text that would be cut off horizontally.
+ * Templates size headlines in fixed pixels, so a long word — "ALIMENTAÇÃO" at
+ * the bold template's 52px floor — runs past the text column and gets clipped by
+ * overflow:hidden. Only elements that actually overflow are touched, so short
+ * copy keeps the intended size.
+ * Called via page.evaluate() so must be serialisable.
+ */
+function fitOversizedText() {
+    var MIN_RATIO = 0.6;
+    var slides = document.querySelectorAll('.slide');
+    var scope = null;
+    for (var s = 0; s < slides.length; s++) {
+        if (getComputedStyle(slides[s]).display !== 'none') { scope = slides[s]; break; }
+    }
+    if (!scope) scope = document.body;
+
+    var nodes = scope.querySelectorAll('h1, h2, h3, h4, p, div, span, li');
+    for (var i = 0; i < nodes.length; i++) {
+        var el = nodes[i];
+        if (!(el.textContent || '').trim()) continue;
+        if (el.scrollWidth <= el.clientWidth + 1) continue;
+
+        var start = parseFloat(getComputedStyle(el).fontSize);
+        if (!start) continue;
+
+        var guard = 0;
+        while (el.scrollWidth > el.clientWidth + 1 && guard < 30) {
+            var current = parseFloat(getComputedStyle(el).fontSize);
+            var next = current - Math.max(1, current * 0.04);
+            if (next < start * MIN_RATIO) break;
+            el.style.fontSize = next + 'px';
+            guard++;
+        }
+    }
+}
+
+/**
  * Shows only slide at index `idx`, hiding all others.
  * Resets CSS animations on the visible slide so they play from the start.
  */
@@ -120,6 +157,7 @@ export async function renderHtmlToImages(htmlContent, storageFolder) {
         for (let i = 0; i < slideCount; i++) {
             console.log(`🖼️ Exporting image slide ${i + 1}/${slideCount}...`);
             await page.evaluate(activateSlide, i);
+            await page.evaluate(fitOversizedText);
             await page.waitForTimeout(1500);
 
             const buffer = await page.screenshot({
@@ -191,6 +229,7 @@ export async function renderHtmlToVideos(htmlContent, storageFolder, slideDurati
 
             await page.evaluate(applyCleanLayout);
             await page.evaluate(activateSlide, i);
+            await page.evaluate(fitOversizedText);
 
             // Let CSS animations run
             await page.waitForTimeout(slideDurationMs);

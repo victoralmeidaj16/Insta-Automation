@@ -434,6 +434,26 @@ function wrapCarouselForSlide(html: string, slideIndex: number = 0, totalSlides?
                 var scale = Math.min(window.innerWidth / 420, window.innerHeight / 525);
                 document.documentElement.style.transform = 'scale(' + scale + ')';
             }
+            // Espelha fitOversizedText do exportador: encolhe só o que seria
+            // cortado, para o card mostrar o mesmo que a imagem publicada.
+            function fitOversized(scope) {
+                var nodes = scope.querySelectorAll('h1, h2, h3, h4, p, div, span, li');
+                for (var i = 0; i < nodes.length; i++) {
+                    var el = nodes[i];
+                    if (!(el.textContent || '').trim()) continue;
+                    if (el.scrollWidth <= el.clientWidth + 1) continue;
+                    var start = parseFloat(getComputedStyle(el).fontSize);
+                    if (!start) continue;
+                    var guard = 0;
+                    while (el.scrollWidth > el.clientWidth + 1 && guard < 30) {
+                        var current = parseFloat(getComputedStyle(el).fontSize);
+                        var next = current - Math.max(1, current * 0.04);
+                        if (next < start * 0.6) break;
+                        el.style.fontSize = next + 'px';
+                        guard++;
+                    }
+                }
+            }
             function activate() {
                 fit();
                 var index = ${safeIdx};
@@ -457,6 +477,7 @@ function wrapCarouselForSlide(html: string, slideIndex: number = 0, totalSlides?
                         slide.style.display = 'block';
                         slide.classList.add('active');
                         slide.classList.remove('exit');
+                        fitOversized(slide);
                     } else {
                         slide.style.opacity = '0';
                         slide.style.display = 'none';

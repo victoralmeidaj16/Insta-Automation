@@ -12,6 +12,7 @@ const styles = {
 export default function OperationalAlerts({ profileId = null }) {
     const [alerts, setAlerts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [collapsed, setCollapsed] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -46,7 +47,7 @@ export default function OperationalAlerts({ profileId = null }) {
             boxShadow: '0 22px 50px rgba(0,0,0,0.20)'
         }}>
             <div style={{
-                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '1rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
                 padding: '1rem 1.2rem 0.7rem', borderBottom: '1px solid rgba(255,255,255,0.08)'
             }}>
                 <div>
@@ -57,10 +58,29 @@ export default function OperationalAlerts({ profileId = null }) {
                         {alerts.length} {alerts.length === 1 ? 'ponto requer atenção' : 'pontos requerem atenção'}
                     </h2>
                 </div>
-                <span style={{ color: '#64748b', fontSize: '0.72rem' }}>Atualização automática</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.72rem' }}>Atualização automática</span>
+                    <button
+                        type="button"
+                        onClick={() => setCollapsed(value => !value)}
+                        aria-expanded={!collapsed}
+                        aria-label={collapsed ? 'Expandir Centro de operação' : 'Recolher Centro de operação'}
+                        title={collapsed ? 'Expandir painel' : 'Recolher painel'}
+                        style={{
+                            width: '2rem', height: '2rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            padding: 0, color: '#cbd5e1', background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', cursor: 'pointer',
+                            transition: 'background 160ms ease, color 160ms ease'
+                        }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d={collapsed ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'} />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
-            <div style={{ padding: '0.35rem 0.55rem 0.55rem' }}>
+            {!collapsed && <div style={{ padding: '0.35rem 0.55rem 0.55rem' }}>
                 {alerts.map(alert => {
                     const tone = styles[alert.severity] || styles.warning;
                     const href = alert.kind === 'processing_stuck' ? '/dashboard/calendar' : '/dashboard/business-profiles';
@@ -84,7 +104,7 @@ export default function OperationalAlerts({ profileId = null }) {
                         </div>
                     );
                 })}
-            </div>
+            </div>}
         </section>
     );
 }

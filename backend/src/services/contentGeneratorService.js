@@ -2,7 +2,7 @@ import axios from 'axios';
 import { db } from '../config/firebase.js';
 import { getBusinessProfile, getAccountsByProfile } from './businessProfileService.js';
 import { generateImages, generateCarousel, generateImageCaption, generateImagePrompt, generateHtmlCarousel, generateSingleImage, generateContentPlan, serializeSlideToTagPrompt, countCarouselSlides } from './aiService.js';
-import { renderElevepicTemplate } from './carouselTemplateService.js';
+import { renderElevepicTemplate, ELEVEPIC_TEMPLATE_METADATA } from './carouselTemplateService.js';
 import { createPost } from './postService.js';
 import {
     createFeedPostDraftRecord,
@@ -78,8 +78,11 @@ async function analyzeRecentPosts(businessProfileId, days = 7) {
         const format = post.type || 'static';
         byPilar[pilarId] = (byPilar[pilarId] || 0) + 1;
         byFormat[format] = (byFormat[format] || 0) + 1;
-        if (post.extra?.carouselTemplateId) {
-            const tpl = post.extra.carouselTemplateId;
+        // O id é gravado no topo do documento; ler só de `extra` deixava
+        // byTemplate sempre vazio, e a rotação devolvia eternamente o primeiro
+        // template da lista.
+        const tpl = post.carouselTemplateId || post.extra?.carouselTemplateId;
+        if (tpl) {
             byTemplate[tpl] = (byTemplate[tpl] || 0) + 1;
         }
         total++;
@@ -88,7 +91,21 @@ async function analyzeRecentPosts(businessProfileId, days = 7) {
     return { byPilar, byFormat, byTemplate, total };
 }
 
-const ELEVEPIC_TEMPLATE_ROTATION = ['bold', 'editorial', 'instagram', 'photo', 'moodboard', 'editorial-sci'];
+// Templates marcados como "Usa biblioteca" dependem do acervo de imagens do
+// perfil e caem em placeholder quando ele está vazio. Filtrar pela própria
+// classificação mantém futuros templates de biblioteca fora do rodízio sem
+// precisar lembrar desta lista.
+const LIBRARY_IMAGE_BADGE = 'Usa biblioteca';
+
+// O `instagram` traz cartões de prova social (contagem de avaliações, estrelas,
+// tempo de entrega) que o modelo preenche com números plausíveis mas inventados.
+// Como a auto-aprovação publica sem revisão, ele fica de fora até esses slots
+// serem alimentados por dados do perfil.
+const ROTATION_EXCLUDED = new Set(['instagram']);
+
+const ELEVEPIC_TEMPLATE_ROTATION = ['bold', 'editorial', 'instagram', 'photo', 'moodboard', 'editorial-sci']
+    .filter(id => !ROTATION_EXCLUDED.has(id))
+    .filter(id => ELEVEPIC_TEMPLATE_METADATA.find(template => template.id === id)?.badge !== LIBRARY_IMAGE_BADGE);
 
 /**
  * Selects the least-recently-used ElevePic template for a business profile,
