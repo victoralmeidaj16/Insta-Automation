@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
+import { isAutopilotEnabled, isAutoApproveEnabled } from '@/lib/schedule';
 import toast from 'react-hot-toast';
 
 export default function ProfileControlMatrix({ onProfilesUpdated }) {
@@ -115,8 +116,8 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
             }}>
                 {profiles.map(profile => {
                     const schedule = profile.contentSchedule || {};
-                    const isAutopilotOn = schedule.autoGenerationEnabled ?? (profile.autonomyMode !== 'manual');
-                    const isAutoApproveOn = schedule.autoApproveFallbackEnabled === true;
+                    const isAutopilotOn = isAutopilotEnabled(profile);
+                    const isAutoApproveOn = isAutoApproveEnabled(profile);
                     const username = profile.instagram?.username;
 
                     const isUpdatingAutopilot = updatingId === `${profile.id}-autoGenerationEnabled`;

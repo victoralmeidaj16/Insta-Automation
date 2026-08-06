@@ -1,11 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { isAutopilotEnabled } from '@/lib/schedule';
 
 export default function AutopilotStatusBanner({ selectedProfile }) {
-    const isAutopilotOn = Boolean(
-        selectedProfile?.autoGenerateSettings?.enabled || selectedProfile?.autoPostEnabled
-    );
+    const isAutopilotOn = isAutopilotEnabled(selectedProfile);
 
     if (!selectedProfile) {
         return null;
