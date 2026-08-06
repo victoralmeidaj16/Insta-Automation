@@ -246,7 +246,10 @@ function setSlotIfPresent(slots, key, value) {
   if (typeof value !== 'string') return;
   const trimmed = value.trim();
   if (!trimmed) return;
-  slots[key] = trimmed;
+  // O corte fica aqui para valer em qualquer template: cada família usa nomes de
+  // slot próprios (`_headline` no bold, `_title` no editorial) e antes só a
+  // primeira estava coberta.
+  slots[key] = clampCopy(trimmed, budgetForSlot(key));
 }
 
 function normalizeLineBreaks(value) {
@@ -369,9 +372,14 @@ const COPY_BUDGETS = [
   [/^s6_headline$/, 32],
   [/^s6_subtext$/, 70],
   [/^s3_headline$/, 45],
+  [/^s6_title$/, 32],
+  [/^s6_subtitle$/, 70],
   [/_eyebrow$/, 28],
+  [/_tag$/, 28],
   [/_headline$/, 60],
+  [/_title$/, 60],
   [/_subtext$/, 120],
+  [/_subtitle$/, 120],
 ];
 
 function budgetForSlot(key) {
@@ -395,13 +403,13 @@ export function clampCopy(value, maxLength) {
 function setEyebrowSlot(slots, key, value, fallback) {
   const candidate = firstNonEmpty(value);
   const resolved = candidate && !isGenericEyebrow(candidate) ? candidate : fallback;
-  setSlotIfPresent(slots, key, clampCopy(resolved, budgetForSlot(key)));
+  setSlotIfPresent(slots, key, resolved);
 }
 
 function setContentSlot(slots, key, value, fallback) {
   const candidate = firstNonEmpty(value);
   const resolved = candidate && !isGenericVisibleCopy(candidate) ? candidate : fallback;
-  setSlotIfPresent(slots, key, clampCopy(resolved, budgetForSlot(key)));
+  setSlotIfPresent(slots, key, resolved);
 }
 
 function buildTopicHeadline(source, { maxWords = 6, maxLines = 4, accentLastWord = true } = {}) {

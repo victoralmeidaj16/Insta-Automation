@@ -8,6 +8,7 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
     const [profiles, setProfiles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState(null);
+    const [collapsed, setCollapsed] = useState(false);
 
     const loadProfiles = async () => {
         try {
@@ -79,7 +80,7 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
 
     return (
         <div className="card-glass mb-lg" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: collapsed ? 0 : '1rem' }}>
                 <div>
                     <h3 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         🎛️ Matriz de Controle de Perfis
@@ -88,9 +89,26 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                         Controle rápido de Piloto Automático e Auto-Aprovação em lote por marca.
                     </p>
                 </div>
+                <button
+                    type="button"
+                    onClick={() => setCollapsed(value => !value)}
+                    aria-expanded={!collapsed}
+                    aria-label={collapsed ? 'Expandir Matriz de Controle de Perfis' : 'Recolher Matriz de Controle de Perfis'}
+                    title={collapsed ? 'Expandir painel' : 'Recolher painel'}
+                    style={{
+                        flexShrink: 0, width: '2rem', height: '2rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        padding: 0, color: '#cbd5e1', background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', cursor: 'pointer',
+                        transition: 'background 160ms ease, color 160ms ease'
+                    }}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d={collapsed ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'} />
+                    </svg>
+                </button>
             </div>
 
-            <div style={{
+            {!collapsed && <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
                 gap: '1rem'
@@ -211,7 +229,7 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                         </div>
                     );
                 })}
-            </div>
+            </div>}
         </div>
     );
 }

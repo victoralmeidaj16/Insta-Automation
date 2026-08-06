@@ -78,8 +78,11 @@ async function analyzeRecentPosts(businessProfileId, days = 7) {
         const format = post.type || 'static';
         byPilar[pilarId] = (byPilar[pilarId] || 0) + 1;
         byFormat[format] = (byFormat[format] || 0) + 1;
-        if (post.extra?.carouselTemplateId) {
-            const tpl = post.extra.carouselTemplateId;
+        // O id é gravado no topo do documento; ler só de `extra` deixava
+        // byTemplate sempre vazio, e a rotação devolvia eternamente o primeiro
+        // template da lista.
+        const tpl = post.carouselTemplateId || post.extra?.carouselTemplateId;
+        if (tpl) {
             byTemplate[tpl] = (byTemplate[tpl] || 0) + 1;
         }
         total++;

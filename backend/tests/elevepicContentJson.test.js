@@ -31,6 +31,22 @@ describe('clampCopy', () => {
     });
 });
 
+describe('orçamentos por slot', () => {
+    // Cada família de template usa nomes próprios: `_headline`/`_subtext` no
+    // bold, `_title`/`_subtitle` no editorial.
+    const LONGA = 'Uma manchete deliberadamente longa que passa do limite previsto para o slot';
+
+    it('corta o título do editorial, não só o headline do bold', () => {
+        expect(clampCopy(LONGA, 60).length).toBeLessThanOrEqual(60);
+    });
+
+    it('reserva menos espaço para o slide de CTA, que divide a área com o botão', () => {
+        const cta = clampCopy(LONGA, 32);
+        expect(cta.length).toBeLessThanOrEqual(32);
+        expect(cta.length).toBeLessThan(clampCopy(LONGA, 60).length);
+    });
+});
+
 describe('normalizeElevepicContentJson', () => {
     it('unwraps slides the model nested under their type key', () => {
         const result = normalizeElevepicContentJson({
