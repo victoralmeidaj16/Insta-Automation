@@ -12,7 +12,8 @@ export default defineConfig({
     test: {
         environment: 'jsdom',
         setupFiles: ['./vitest.setup.js'],
-        include: ['src/**/*.test.jsx'],
+        // Restrito a .jsx, qualquer teste .js/.ts era ignorado sem aviso.
+        include: ['src/**/*.test.{js,jsx,ts,tsx}'],
         clearMocks: true,
     },
 });
