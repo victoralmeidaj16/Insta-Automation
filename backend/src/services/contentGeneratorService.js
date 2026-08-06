@@ -2,7 +2,7 @@ import axios from 'axios';
 import { db } from '../config/firebase.js';
 import { getBusinessProfile, getAccountsByProfile } from './businessProfileService.js';
 import { generateImages, generateCarousel, generateImageCaption, generateImagePrompt, generateHtmlCarousel, generateSingleImage, generateContentPlan, serializeSlideToTagPrompt, countCarouselSlides } from './aiService.js';
-import { renderElevepicTemplate } from './carouselTemplateService.js';
+import { renderElevepicTemplate, ELEVEPIC_TEMPLATE_METADATA } from './carouselTemplateService.js';
 import { createPost } from './postService.js';
 import {
     createFeedPostDraftRecord,
@@ -91,7 +91,13 @@ async function analyzeRecentPosts(businessProfileId, days = 7) {
     return { byPilar, byFormat, byTemplate, total };
 }
 
-const ELEVEPIC_TEMPLATE_ROTATION = ['bold', 'editorial', 'instagram', 'photo', 'moodboard', 'editorial-sci'];
+// Templates marcados como "Usa biblioteca" dependem do acervo de imagens do
+// perfil e caem em placeholder quando ele está vazio, então ficam fora do
+// rodízio automático. Filtrar pela própria classificação mantém futuros
+// templates de biblioteca de fora sem precisar lembrar desta lista.
+const LIBRARY_IMAGE_BADGE = 'Usa biblioteca';
+const ELEVEPIC_TEMPLATE_ROTATION = ['bold', 'editorial', 'instagram', 'photo', 'moodboard', 'editorial-sci']
+    .filter(id => ELEVEPIC_TEMPLATE_METADATA.find(template => template.id === id)?.badge !== LIBRARY_IMAGE_BADGE);
 
 /**
  * Selects the least-recently-used ElevePic template for a business profile,

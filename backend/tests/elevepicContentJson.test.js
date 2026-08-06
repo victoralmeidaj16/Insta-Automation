@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { clampCopy, normalizeElevepicContentJson } from '../src/services/carouselTemplateService.js';
+import { clampCopy, normalizeElevepicContentJson, ELEVEPIC_TEMPLATE_METADATA } from '../src/services/carouselTemplateService.js';
+
+describe('classificação dos templates', () => {
+    // O rodízio automático exclui os templates de biblioteca por este badge.
+    // Se a classificação mudar, eles voltam a entrar sem ninguém perceber.
+    const LIBRARY_BADGE = 'Usa biblioteca';
+
+    it.each(['photo', 'moodboard', 'editorial-sci'])('marca %s como dependente da biblioteca', id => {
+        expect(ELEVEPIC_TEMPLATE_METADATA.find(t => t.id === id)?.badge).toBe(LIBRARY_BADGE);
+    });
+
+    it.each(['bold', 'editorial', 'instagram'])('mantém %s independente de imagens', id => {
+        expect(ELEVEPIC_TEMPLATE_METADATA.find(t => t.id === id)?.badge).not.toBe(LIBRARY_BADGE);
+    });
+});
 
 describe('clampCopy', () => {
     it('leaves copy within budget untouched, markup included', () => {
