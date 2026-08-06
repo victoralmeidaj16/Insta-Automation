@@ -593,8 +593,12 @@ function buildEditorialSlots(contentJson) {
       setSlotIfPresent(slots, 's1_subtitle', firstNonEmpty(s.subtitle, s.subtext, s.body));
     } else if (i === 2) {
       setSlotIfPresent(slots, 's2_subtitle', firstNonEmpty(s.subtitle, s.subtext, s.body));
-      const stats = Array.isArray(s.stats) && s.stats.length > 0 ? s.stats : null;
-      if (stats) slots['s2_stats'] = buildEditorialStats(stats);
+      // Sempre atribuído: um slot não definido preserva o conteúdo do template,
+      // e o bloco de estatísticas do editorial traz "93% da percepção é
+      // não-verbal" como demonstração. Omitir a estatística passaria a publicar
+      // esse dado inventado — justamente o que o prompt agora pede para evitar.
+      const stats = Array.isArray(s.stats) ? s.stats : [];
+      slots['s2_stats'] = buildEditorialStats(stats);
     } else if (i === 3) {
       const items = Array.isArray(s.listItems) && s.listItems.length > 0 ? s.listItems
           : Array.isArray(s.items) && s.items.length > 0 ? s.items : null;

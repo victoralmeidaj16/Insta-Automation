@@ -92,11 +92,19 @@ async function analyzeRecentPosts(businessProfileId, days = 7) {
 }
 
 // Templates marcados como "Usa biblioteca" dependem do acervo de imagens do
-// perfil e caem em placeholder quando ele está vazio, então ficam fora do
-// rodízio automático. Filtrar pela própria classificação mantém futuros
-// templates de biblioteca de fora sem precisar lembrar desta lista.
+// perfil e caem em placeholder quando ele está vazio. Filtrar pela própria
+// classificação mantém futuros templates de biblioteca fora do rodízio sem
+// precisar lembrar desta lista.
 const LIBRARY_IMAGE_BADGE = 'Usa biblioteca';
+
+// O `instagram` traz cartões de prova social (contagem de avaliações, estrelas,
+// tempo de entrega) que o modelo preenche com números plausíveis mas inventados.
+// Como a auto-aprovação publica sem revisão, ele fica de fora até esses slots
+// serem alimentados por dados do perfil.
+const ROTATION_EXCLUDED = new Set(['instagram']);
+
 const ELEVEPIC_TEMPLATE_ROTATION = ['bold', 'editorial', 'instagram', 'photo', 'moodboard', 'editorial-sci']
+    .filter(id => !ROTATION_EXCLUDED.has(id))
     .filter(id => ELEVEPIC_TEMPLATE_METADATA.find(template => template.id === id)?.badge !== LIBRARY_IMAGE_BADGE);
 
 /**

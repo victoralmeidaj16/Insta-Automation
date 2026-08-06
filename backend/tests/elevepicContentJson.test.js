@@ -1,5 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { clampCopy, normalizeElevepicContentJson, ELEVEPIC_TEMPLATE_METADATA } from '../src/services/carouselTemplateService.js';
+import { clampCopy, normalizeElevepicContentJson, ELEVEPIC_TEMPLATE_METADATA, renderElevepicTemplate } from '../src/services/carouselTemplateService.js';
+
+describe('dados de demonstração do template', () => {
+    const brand = { brandName: 'Fitswap', brandKey: 'fitswap' };
+
+    it('não publica a estatística de exemplo quando a IA não fornece uma', () => {
+        const html = renderElevepicTemplate('editorial', {
+            brandName: 'Fitswap',
+            slides: [{}, {}, { title: 'Sem estatística', subtitle: 'Só texto' }, {}, {}, {}, {}]
+        }, brand);
+
+        expect(html).not.toContain('93%');
+        expect(html).not.toContain('da percepção é não-verbal');
+    });
+
+    it('usa a estatística fornecida quando existe', () => {
+        const html = renderElevepicTemplate('editorial', {
+            brandName: 'Fitswap',
+            slides: [{}, {}, { stats: [{ value: '10 min', label: 'por refeição' }] }, {}, {}, {}, {}]
+        }, brand);
+
+        expect(html).toContain('10 min');
+        expect(html).not.toContain('93%');
+    });
+});
 
 describe('classificação dos templates', () => {
     // O rodízio automático exclui os templates de biblioteca por este badge.
