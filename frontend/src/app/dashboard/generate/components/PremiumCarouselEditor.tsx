@@ -1071,7 +1071,7 @@ export function PremiumEditorModal({
                                 </label>
                                 <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
                                     Cor Subtítulo
-                                    <input type="color" value={layout.descriptionColor || (theme as any).subtitleColor || '#727983'} onChange={event => onChange('descriptionColor', event.target.value)} style={{ width: '54px', height: '44px', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', padding: '0.15rem' }} />
+                                    <input type="color" value={layout.descriptionColor || '#727983'} onChange={event => onChange('descriptionColor', event.target.value)} style={{ width: '54px', height: '44px', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', padding: '0.15rem' }} />
                                 </label>
                             </div>
 
