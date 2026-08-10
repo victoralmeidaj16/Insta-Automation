@@ -82,9 +82,12 @@ function getPremiumTheme(layout = {}) {
             panelFill: '#EEF2E8',
             gradientEnd: '#EEF2E8',
             text: '#111827',
+            subtitleColor: '#727983',
             divider: 'rgba(17,24,39,0.18)',
-            logoCircle: '#111827',
-            logoText: '#FFFFFF',
+            // O editor desenha o círculo do logo em branco com as iniciais escuras;
+            // o inverso deixava a marca publicada diferente do preview.
+            logoCircle: '#FFFFFF',
+            logoText: '#111827',
             inactiveDot: 'rgba(17,24,39,0.24)'
         };
     }
@@ -191,13 +194,23 @@ async function buildPositionedBackground(backgroundBuffer, targetWidth, targetHe
     const renderHeight = Math.max(targetHeight, Math.round(imageHeight * coverScale * imageScale));
     const maxTravelX = Math.max(0, Math.round((renderWidth - targetWidth) / 2));
     const maxTravelY = Math.max(0, Math.round((renderHeight - targetHeight) / 2));
-    // Pan para cima tem 1.5x mais alcance (painel overlay cobre o inferior)
-    const xOffset = Math.round(maxTravelX * (imageOffsetX / 150));
+    // O editor move a IMAGEM sobre o quadro; aqui movemos o RECORTE dentro da
+    // imagem, então o sinal inverte para o pan bater com o preview.
+    // Pan para cima tem 1.5x mais alcance (painel overlay cobre o inferior).
+    const xOffset = -Math.round(maxTravelX * (imageOffsetX / 150));
     const yOffset = imageOffsetY < 0
-        ? Math.round(maxTravelY * 1.5 * (imageOffsetY / 150))
-        : Math.round(maxTravelY * (imageOffsetY / 150));
-    const left = Math.max(0, Math.min(renderWidth - targetWidth, Math.round((renderWidth - targetWidth) / 2 + xOffset)));
-    const top = Math.max(0, Math.min(renderHeight - targetHeight, Math.round((renderHeight - targetHeight) / 2 + yOffset)));
+        ? -Math.round(maxTravelY * 1.5 * (imageOffsetY / 150))
+        : -Math.round(maxTravelY * (imageOffsetY / 150));
+    const left = Math.round((renderWidth - targetWidth) / 2 + xOffset);
+    const top = Math.round((renderHeight - targetHeight) / 2 + yOffset);
+
+    // O pan de 1.5x pode empurrar o recorte para fora da imagem (o editor
+    // simplesmente deixa sobrar fundo). Preenchemos essa sobra com a cor do tema
+    // em vez de travar o deslocamento, senão o publicado divergiria do preview.
+    const padTop = Math.max(0, -top);
+    const padLeft = Math.max(0, -left);
+    const padBottom = Math.max(0, top + targetHeight - renderHeight);
+    const padRight = Math.max(0, left + targetWidth - renderWidth);
 
     // Espelha o `filter: contrast(c) brightness(b)` que o editor aplica na imagem.
     // Em CSS, contrast é out = (in - 0.5) * c + 0.5, que em sharp vira .linear().
@@ -205,14 +218,27 @@ async function buildPositionedBackground(backgroundBuffer, targetWidth, targetHe
     const contrast = Number(theme.imageContrast ?? 1);
     const brightness = Number(theme.imageBrightness ?? 1);
 
-    const positioned = sharp(backgroundBuffer)
-        .resize(renderWidth, renderHeight, { fit: 'fill' })
-        .extract({ left, top, width: targetWidth, height: targetHeight });
+    let resized = sharp(backgroundBuffer).resize(renderWidth, renderHeight, { fit: 'fill' });
+
+    if (padTop || padBottom || padLeft || padRight) {
+        const extended = await resized
+            .extend({ top: padTop, bottom: padBottom, left: padLeft, right: padRight, background: theme.panelFill })
+            .png()
+            .toBuffer();
+        resized = sharp(extended);
+    }
+
+    const positioned = resized.extract({
+        left: left + padLeft,
+        top: top + padTop,
+        width: targetWidth,
+        height: targetHeight
+    });
 
     if (contrast !== 1) positioned.linear(contrast, -(0.5 * contrast - 0.5) * 255);
     if (brightness !== 1) positioned.modulate({ brightness });
 
-    return positioned;
+    return positioned.png().toBuffer();
 }
 
 /**
@@ -247,20 +273,36 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
         // a arte publicada sair sempre com o gradiente no máximo.
         const gradientOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? 1)));
 
+        const width = 1080;
+        const height = 1350;
+        // A foto ocupa só a faixa superior (60%), como no editor. Compor no canvas
+        // inteiro jogava o motivo da imagem para baixo, bem dentro do gradiente.
+        const IMAGE_H = Math.round(height * 0.60);
+        const themedLayout = { ...layout, primaryColor };
+
+        // ─── 1. Configuration ──────────────────────────────────────────────────
+        const theme = getPremiumTheme(themedLayout);
+
+        // ─── 2. Background ─────────────────────────────────────────────────────
+        const bgBuffer = await fetchImageBuffer(backgroundUrl);
+
+        // Sem overlay o editor usa a foto no canvas inteiro, sem gradiente nem painel.
+        if (layout.hideOverlay) {
+            const fullBleed = await buildPositionedBackground(bgBuffer, width, height, themedLayout);
+            const rawBuffer = await sharp({ create: { width, height, channels: 3, background: '#000000' } })
+                .composite([{ input: fullBleed, top: 0, left: 0 }])
+                .jpeg({ quality: 95 })
+                .toBuffer();
+            return `data:image/jpeg;base64,${rawBuffer.toString('base64')}`;
+        }
+
         if (!title) {
             console.warn('⚠️ No title provided, skipping composition.');
             return backgroundUrl;
         }
 
-        const width = 1080;
-        const height = 1350;
-
-        // ─── 1. Background ─────────────────────────────────────────────────────
-        const bgBuffer = await fetchImageBuffer(backgroundUrl);
-        const baseImage = await buildPositionedBackground(bgBuffer, width, height, layout);
-
-        // ─── 2. Configuration ──────────────────────────────────────────────────
-        const theme = getPremiumTheme({ ...layout, primaryColor });
+        const heroBuffer = await buildPositionedBackground(bgBuffer, width, IMAGE_H, themedLayout);
+        const baseImage = sharp({ create: { width, height, channels: 3, background: theme.panelFill } });
         const highlightColor = theme.accent;
         const normalizedHighlights = normalizeHighlights(highlights, highlightText, title);
         const highlightSet = new Set(normalizeHighlightWords(normalizedHighlights));
@@ -280,27 +322,29 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
         }
 
         // ─── 3. Fixed zone: bottom 40% ─────────────────────────────────────────
-        const IMAGE_H = height * 0.60;
+        // Todas as medidas espelham renderPremiumPostToDataUrl() no editor.
         const ZONE_TOP = IMAGE_H;
-        const ZONE_HEIGHT = height - IMAGE_H;
-        const HEADER_AREA = 150;
-        // Com subheadline o bloco cresce para baixo e encostava nos swipe dots;
-        // a reserva maior empurra o conjunto para cima.
-        const BOTTOM_PAD = hasSub ? 120 : 92;
-        const AVAILABLE_TITLE = ZONE_HEIGHT - HEADER_AREA - BOTTOM_PAD;
+        const ZONE_HEIGHT = height - IMAGE_H;              // 540
+        const PADDING_X = Math.round(width * 0.08);        // 86
+        const LOGO_Y = IMAGE_H + Math.round(ZONE_HEIGHT * 0.14); // 886
+        const LOGO_R = 38;
+        const LINE_GAP = LOGO_R + 18;                      // 56
+        const TITLE_TOP = LOGO_Y + LOGO_R + 22;            // 946
+        const DOTS_H = 40;
+        const AVAILABLE_TITLE = height - TITLE_TOP - DOTS_H - 30;
 
         // ─── Auto-scale font size to fit title within available space ───────────
-        const contentWidth = 908;
+        const contentWidth = width - PADDING_X * 2;        // 908
         // Com subheadline o título cede espaço para o bloco de baixo, espelhando o
         // canvas do editor (PremiumCarouselEditor) para que preview e imagem batam.
-        const MAX_FONT = hasSub ? 120 : 148;
-        const MIN_FONT = hasSub ? 44 : 76;
+        const MAX_FONT = hasSub ? 116 : 148;
+        const MIN_FONT = hasSub ? 38 : 56;
         const FONT_STEP = 4;
         const LH_RATIO = 0.96;
-        const SUB_LH_RATIO = 1.3;
-        const SUB_GAP = 16;
+        const SUB_LH_RATIO = 1.25;
+        const SUB_GAP = 14;
 
-        const subFontFor = fontSize => Math.min(34, Math.max(22, Math.round(fontSize * 0.36)));
+        const subFontFor = fontSize => Math.min(42, Math.max(28, Math.round(fontSize * 0.42)));
 
         function wrapTextSvg(text, maxWidth, fontSize) {
             const avgCharWidth = fontSize * 0.58;
@@ -350,13 +394,15 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
             }
         }
         const lineHeight = titleFontSize * LH_RATIO;
+        const totalBlockHeight = titleLines.length * lineHeight
+            + (hasSub ? subLines.length * subFontSize * SUB_LH_RATIO + SUB_GAP : 0);
 
         // ─── 4. Layout SVG ────────────────────────────────────────────────────
         const svgParts = [];
 
         // Gradient from image to card — softer at the top, fully opaque at the bottom
-        const gradientFadeStart = height * 0.28;
-        const gradientFadeEnd = height * 0.60;
+        const gradientFadeStart = Math.round(height * 0.28);
+        const gradientFadeEnd = IMAGE_H;
         svgParts.push(`
         <defs>
             <linearGradient id="darkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -372,19 +418,17 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
         <rect x="0" y="${ZONE_TOP}" width="${width}" height="${ZONE_HEIGHT}" fill="${theme.panelFill}" />`);
 
         // Branding area — anchored to ZONE_TOP
-        const groupTop = ZONE_TOP + 68;
-        const lineY = groupTop + 10;
-        const lineWidth = 330;
-        const iconGap = 56;
+        const lineY = LOGO_Y;
+        const lineWidth = width / 2 - LINE_GAP - PADDING_X;
+        const iconGap = LINE_GAP;
         const iconX = width / 2;
         const iconFontSize = 42;
-        const circleSize = 76;
-        const circleRadius = circleSize / 2;
+        const circleRadius = LOGO_R;
 
         // Horizontal lines
         svgParts.push(`
-        <rect x="${iconX - iconGap - lineWidth}" y="${lineY}" width="${lineWidth}" height="2" fill="${theme.divider}" />
-        <rect x="${iconX + iconGap}" y="${lineY}" width="${lineWidth}" height="2" fill="${theme.divider}" />
+        <rect x="${PADDING_X}" y="${lineY - 1}" width="${lineWidth}" height="2" fill="${theme.divider}" />
+        <rect x="${iconX + iconGap}" y="${lineY - 1}" width="${lineWidth}" height="2" fill="${theme.divider}" />
         `);
 
         // Logo circle
@@ -401,8 +445,10 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
             `);
         }
 
-        // Title — auto-scaled, within fixed zone
-        let titleY = groupTop + HEADER_AREA - 40;
+        // Title — auto-scaled, bloco centralizado na zona livre (igual ao editor)
+        let titleY = TITLE_TOP
+            + Math.max(0, (AVAILABLE_TITLE - totalBlockHeight) / 2)
+            + titleFontSize * 0.8;
         titleLines.forEach((line) => {
             const words = line.split(/\s+/);
             const tspanContent = words.map((word, index) => {
@@ -415,32 +461,33 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
                     : `<tspan xml:space="preserve" fill="${theme.text}">${renderedText}</tspan>`;
             }).join('');
 
-            titleY += lineHeight;
             svgParts.push(`
             <text x="${width / 2}" y="${titleY}" font-family="Inter, -apple-system, sans-serif" font-size="${titleFontSize}" font-weight="900" text-anchor="middle" letter-spacing="-2">
                 ${tspanContent}
             </text>
             `);
+            titleY += lineHeight;
         });
 
         // Subheadline — abaixo do título, sem invadir a faixa dos swipe dots
         if (hasSub && subLines.length > 0) {
-            const subColor = descriptionColor || withAlpha(theme.text, 0.85);
-            let subY = titleY + 12;
+            const defaultSubColor = theme.subtitleColor || (theme.text === '#FFFFFF' ? 'rgba(255,255,255,0.85)' : '#727983');
+            const subColor = (descriptionColor && descriptionColor !== '#d1d5db') ? descriptionColor : defaultSubColor;
+            let subY = titleY + SUB_GAP;
 
             subLines.forEach(line => {
-                subY += subFontSize * SUB_LH_RATIO;
-                if (subY >= height - 65) return;
+                if (subY >= height - 58) return;
                 svgParts.push(`
-                <text x="${width / 2}" y="${subY}" font-family="Inter, -apple-system, sans-serif" font-size="${subFontSize}" font-weight="500" fill="${subColor}" text-anchor="middle">
+                <text x="${width / 2}" y="${subY}" font-family="Inter, -apple-system, sans-serif" font-size="${subFontSize}" font-weight="500" fill="${escapeXml(subColor)}" text-anchor="middle">
                     ${escapeXml(line)}
                 </text>
                 `);
+                subY += subFontSize * SUB_LH_RATIO;
             });
         }
 
         // Swipe dots
-        const dotY = height - 58;
+        const dotY = height - 50;
         const dotRadius = 7;
         const dotGap = 10;
         const activeWidth = 28;
@@ -463,7 +510,11 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
         </svg>`;
 
         // ─── 4. Composite ──────────────────────────────────────────────────────
-        const layers = [{ input: Buffer.from(finalSvg), top: 0, left: 0 }];
+        // Ordem = empilhamento: foto na faixa superior, depois gradiente/painel/texto.
+        const layers = [
+            { input: heroBuffer, top: 0, left: 0 },
+            { input: Buffer.from(finalSvg), top: 0, left: 0 }
+        ];
         if (circularLogoLayer) {
             layers.push({
                 input: circularLogoLayer,
