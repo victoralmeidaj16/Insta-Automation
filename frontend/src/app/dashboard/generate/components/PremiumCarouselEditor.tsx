@@ -354,6 +354,7 @@ function getPremiumTheme(layoutLike: Partial<PremiumLayout> | BuildLayoutOptions
             panelBackground: '#EEF2E8',
             gradientEnd: 'rgba(238,242,232,0.97)',
             text: '#111827',
+            subtitleColor: '#727983',
             divider: 'rgba(17,24,39,0.18)',
             logoBackground: '#ffffff',
             logoText: '#111827',
@@ -462,7 +463,7 @@ export function buildPremiumLayoutFromPrompt(
         highlightText: highlightText,
         description: subheadline || '',
         descriptionEnabled: Boolean(subheadline),
-        descriptionColor: '#d1d5db',
+        descriptionColor: isFitswapPremiumBrand(options) ? '#727983' : '#d1d5db',
         primaryColor: getReadablePremiumAccentColor(options),
         logoIcon: options.logoIcon || '🧠',
         logoUrl: options.logoUrl,
@@ -602,7 +603,7 @@ export async function renderPremiumPostToDataUrl({
     const CONTENT_W = canvas.width - PADDING_X * 2;     // 908px
 
     // 4. Micro-UI: divider lines + logo circle
-    const LOGO_Y  = IMAGE_H + Math.round(CONTENT_H * 0.18); // ~910px
+    const LOGO_Y  = IMAGE_H + Math.round(CONTENT_H * 0.14); // ~886px
     const LOGO_R  = 38;
     const LINE_GAP = LOGO_R + 18;
 
@@ -648,30 +649,34 @@ export async function renderPremiumPostToDataUrl({
 
     // ── Auto-scale headline & subheadline font ──────────────────────────────────────────────
     const hasSub = Boolean(layout.description && layout.descriptionEnabled !== false);
-    const TITLE_TOP    = LOGO_Y + LOGO_R + 36;
+    const TITLE_TOP    = LOGO_Y + LOGO_R + 22;
     const DOTS_H       = 40;
-    const AVAILABLE_H  = canvas.height - TITLE_TOP - DOTS_H - 45;
+    const AVAILABLE_H  = canvas.height - TITLE_TOP - DOTS_H - 30;
 
-    const MAX_FONT = hasSub ? 120 : 148;
-    const MIN_FONT = hasSub ? 44 : 56;
+    const MAX_FONT = hasSub ? 116 : 148;
+    const MIN_FONT = hasSub ? 38 : 56;
     const FONT_STEP = 4;
     const LH_RATIO = 0.96;
+    const SUB_LH_RATIO = 1.25;
+    const SUB_GAP = 14;
+
+    const subFontFor = (fs: number) => Math.min(42, Math.max(28, Math.round(fs * 0.42)));
 
     const sanitizedTitle = sanitizePremiumTitle(layout.title || '');
     let titleFontSize = MAX_FONT;
     let titleLines: string[] = [];
     let subLines: string[] = [];
-    let subFontSize = 28;
+    let subFontSize = 32;
 
     for (let fs = MAX_FONT; fs >= MIN_FONT; fs -= FONT_STEP) {
         context.font = `900 ${fs}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
         const candidateTitle = splitTitleLines(context, sanitizedTitle, CONTENT_W);
 
-        const candidateSubFont = Math.min(34, Math.max(22, Math.round(fs * 0.36)));
+        const candidateSubFont = subFontFor(fs);
         context.font = `500 ${candidateSubFont}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
         const candidateSubLines = hasSub ? splitTitleLines(context, layout.description!, CONTENT_W * 0.88) : [];
 
-        const blockH = candidateTitle.length * fs * LH_RATIO + (hasSub ? candidateSubLines.length * candidateSubFont * 1.3 + 16 : 0);
+        const blockH = candidateTitle.length * fs * LH_RATIO + (hasSub ? candidateSubLines.length * candidateSubFont * SUB_LH_RATIO + SUB_GAP : 0);
 
         if (blockH <= AVAILABLE_H) {
             titleFontSize = fs;
@@ -684,14 +689,14 @@ export async function renderPremiumPostToDataUrl({
             titleFontSize = MIN_FONT;
             context.font = `900 ${MIN_FONT}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
             titleLines = splitTitleLines(context, sanitizedTitle, CONTENT_W);
-            subFontSize = Math.min(34, Math.max(22, Math.round(MIN_FONT * 0.36)));
+            subFontSize = subFontFor(MIN_FONT);
             context.font = `500 ${subFontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
             subLines = hasSub ? splitTitleLines(context, layout.description!, CONTENT_W * 0.88) : [];
         }
     }
 
     const titleLineHeight = titleFontSize * LH_RATIO;
-    const totalBlockH = titleLines.length * titleLineHeight + (hasSub ? subLines.length * subFontSize * 1.3 + 16 : 0);
+    const totalBlockH = titleLines.length * titleLineHeight + (hasSub ? subLines.length * subFontSize * SUB_LH_RATIO + SUB_GAP : 0);
 
     let currentY = TITLE_TOP + Math.max(0, (AVAILABLE_H - totalBlockH) / 2) + titleFontSize * 0.8;
 
@@ -716,16 +721,18 @@ export async function renderPremiumPostToDataUrl({
 
     // ── Subheadline / Description ─────────────────────────────────────────────
     if (hasSub && subLines.length > 0) {
-        currentY += 12;
+        currentY += SUB_GAP;
         context.font = `500 ${subFontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
-        context.fillStyle = layout.descriptionColor || (theme.text === '#ffffff' ? 'rgba(255,255,255,0.85)' : 'rgba(17,24,39,0.85)');
+        const defaultSubColor = (theme as any).subtitleColor || (theme.text === '#ffffff' ? 'rgba(255,255,255,0.85)' : '#727983');
+        const finalSubColor = (layout.descriptionColor && layout.descriptionColor !== '#d1d5db') ? layout.descriptionColor : defaultSubColor;
+        context.fillStyle = finalSubColor;
         context.textAlign = 'center';
         context.textBaseline = 'alphabetic';
 
         subLines.forEach((subLine) => {
-            if (currentY < canvas.height - 65) {
+            if (currentY < canvas.height - 58) {
                 context.fillText(subLine, centerX, currentY);
-                currentY += subFontSize * 1.3;
+                currentY += subFontSize * SUB_LH_RATIO;
             }
         });
     }
@@ -898,15 +905,17 @@ export function PremiumPostPreview({ layout, backgroundImage, compact = false }:
                             {layout.description && layout.descriptionEnabled !== false && (
                                 <div
                                     style={{
-                                        fontSize: 'clamp(0.48rem, 3.4cqi, 1.05rem)',
+                                        fontSize: 'clamp(0.6rem, 4.2cqi, 1.25rem)',
                                         fontWeight: 500,
-                                        color: layout.descriptionColor || (theme.text === '#ffffff' ? 'rgba(255,255,255,0.85)' : 'rgba(17,24,39,0.85)'),
+                                        color: (layout.descriptionColor && layout.descriptionColor !== '#d1d5db')
+                                            ? layout.descriptionColor
+                                            : ((theme as any).subtitleColor || (theme.text === '#ffffff' ? 'rgba(255,255,255,0.85)' : '#727983')),
                                         fontFamily: "'Inter', -apple-system, sans-serif",
                                         textTransform: 'none',
                                         letterSpacing: 'normal',
                                         lineHeight: 1.25,
-                                        marginTop: '0.2rem',
-                                        opacity: 0.9,
+                                        marginTop: '0.3rem',
+                                        opacity: 0.95,
                                     }}
                                 >
                                     {layout.description}
@@ -1062,7 +1071,7 @@ export function PremiumEditorModal({
                                 </label>
                                 <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
                                     Cor Subtítulo
-                                    <input type="color" value={layout.descriptionColor || '#d1d5db'} onChange={event => onChange('descriptionColor', event.target.value)} style={{ width: '54px', height: '44px', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', padding: '0.15rem' }} />
+                                    <input type="color" value={layout.descriptionColor || '#727983'} onChange={event => onChange('descriptionColor', event.target.value)} style={{ width: '54px', height: '44px', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', padding: '0.15rem' }} />
                                 </label>
                             </div>
 
