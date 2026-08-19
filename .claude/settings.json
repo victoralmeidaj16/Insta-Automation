@@ -30,7 +30,13 @@
       "WebFetch(domain:docs.upload-post.com)",
       "WebFetch(domain:www.upload-post.com)",
       "Bash(node --check src/services/postService.js)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(awk '/export async function upsertUploadPostAccount/,/^}/' backend/src/services/accountService.js)",
+      "Bash(node /private/tmp/claude-501/-Users-victoralmeidaj16-Downloads-Insta-Automation/5cec7595-2d84-400e-a94e-14f567f6ae6c/scratchpad/diag-accounts.js)",
+      "Bash(sed -i '' \"s#'../../../../../Users/victoralmeidaj16/Downloads/Insta-Automation/backend/src/config/firebase.js'#'../src/config/firebase.js'#\" scripts/.tmp-diag-accounts.js)",
+      "Bash(node scripts/.tmp-diag-accounts.js)",
+      "Bash(node scripts/.tmp-diag-fitswap.js)",
+      "Bash(node scripts/.tmp-link-fitswap.js)"
     ]
   }
 }

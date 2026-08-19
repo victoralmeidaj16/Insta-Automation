@@ -36,8 +36,15 @@ function applyCleanLayout() {
     if (frame) frame.style.cssText = 'width:420px;height:525px;max-width:none;border-radius:0;box-shadow:none;overflow:hidden;margin:0;';
     const vp = document.querySelector('.carousel-viewport');
     if (vp) vp.style.cssText = 'width:420px;height:525px;aspect-ratio:unset;overflow:hidden;cursor:default;';
-    const wrap = document.querySelector('.carousel-wrap');
-    if (wrap) wrap.style.cssText = 'width:420px;height:525px;position:relative;overflow:hidden;box-shadow:none;border-radius:0;';
+    const wrappers = document.querySelectorAll('.carousel-wrap, .carousel-wrapper');
+    wrappers.forEach(wrap => {
+        wrap.style.width = '420px';
+        wrap.style.height = '525px';
+        wrap.style.position = 'relative';
+        wrap.style.overflow = 'hidden';
+        wrap.style.boxShadow = 'none';
+        wrap.style.borderRadius = '0';
+    });
     document.body.style.cssText = 'padding:0;margin:0;display:block;overflow:hidden;background:transparent;';
 }
 
@@ -87,9 +94,11 @@ function activateSlide(idx) {
     if (track) { track.style.transition = 'none'; track.style.transform = 'none'; }
     document.querySelectorAll('.slide').forEach((s, i) => {
         if (i === idx) {
-            s.style.display = 'block';
+            // Preserve the display mode defined by the template. Several slide
+            // families use display:flex to pin footers and distribute content;
+            // forcing block here collapses that layout during export.
+            s.style.removeProperty('display');
             s.style.opacity = '1';
-            s.style.position = 'relative';
             s.classList.add('active');
             s.classList.remove('exit');
             // Reset animations so they play from the beginning

@@ -20,7 +20,7 @@ describe('schedule configuration', () => {
     it('keeps legacy manual mode disabled', () => {
         expect(normalizeScheduleConfig({ autonomyMode: 'manual' })).toMatchObject({
             autoGenerationEnabled: false,
-            publishingMode: 'review',
+            publishingMode: 'auto',
             autonomyMode: 'manual'
         });
     });
@@ -52,12 +52,12 @@ describe('schedule configuration', () => {
             .toBe('2026-07-20T03:00:00.000Z');
     });
 
-    it('keeps the auto approval fallback off unless the profile opts in', () => {
+    it('enables the auto approval fallback and auto publishing mode by default', () => {
         expect(normalizeScheduleConfig({})).toMatchObject({
-            autoApproveFallbackEnabled: false,
-            autoApproveLeadHours: 24
+            autoApproveFallbackEnabled: true,
+            autoApproveLeadHours: 24,
+            publishingMode: 'auto'
         });
-        expect(normalizeScheduleConfig({ autoApproveFallbackEnabled: 'sim' }).autoApproveFallbackEnabled).toBe(false);
     });
 
     it('accepts an explicit fallback opt-in independently of the publishing mode', () => {

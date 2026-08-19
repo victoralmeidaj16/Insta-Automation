@@ -504,12 +504,25 @@ router.post('/:id/test-instagram', async (req, res) => {
 
         const instagramAccounts = Array.from(usernameSet).map(u => ({ username: u, platform: 'instagram' }));
 
+        // Uma verificação bem-sucedida também formaliza o vínculo usado pelo
+        // gerador/autopilot. Antes, a UI mostrava "Conectado", mas nenhuma
+        // entrada ativa era criada em `accounts`, então a geração automática
+        // falhava logo em seguida.
+        const account = configuredUsername
+            ? await upsertUploadPostAccount(req.userId, {
+                businessProfileId: profile.id,
+                profileUsername: configuredUsername,
+                instagramHandle: req.body?.instagramHandle?.trim() || ''
+            })
+            : null;
+
         return res.json({
             success: true,
             configuredUsername,
             accountCount: instagramAccounts.length,
             instagramAccounts,
             allAccounts: instagramAccounts,
+            account,
         });
     } catch (error) {
         const status = error?.response?.status;

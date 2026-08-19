@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import BackButton from '@/components/BackButton';
 import { buildPremiumLayoutFromPrompt, renderPremiumPostToDataUrl, PremiumPostPreview, InteractivePremiumPreview, PremiumCanvasPreview, PremiumEditorModal } from '../generate/components/PremiumCarouselEditor';
 import type { PremiumLayout } from '../generate/types';
+import { countHtmlCarouselSlides, prepareHtmlCarouselPreview } from '@/lib/htmlCarouselPreview';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -112,6 +113,7 @@ interface WeekPreview {
         hasSchedule: boolean;
         pillarWeightOk: boolean;
         autonomyMode: string;
+        publishingMode: 'review' | 'auto';
     };
     plan: PlannedSlot[];
     pillars: Pillar[];
@@ -370,15 +372,7 @@ function getDraftReviewTab(draft: DraftPost): 'feed' | 'stories' | 'reels' {
  * Helper to count slides inside raw HTML carousel code
  */
 function countCarouselSlidesInHtml(html: string): number {
-    if (!html) return 1;
-    try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const slides = doc.querySelectorAll('.slide');
-        return slides.length || 1;
-    } catch {
-        return 1;
-    }
+    return countHtmlCarouselSlides(html);
 }
 
 /**
@@ -386,121 +380,7 @@ function countCarouselSlidesInHtml(html: string): number {
  * positioned at slideIndex (0-indexed) while preserving original CSS, fonts, and DOM tree.
  */
 function wrapCarouselForSlide(html: string, slideIndex: number = 0, totalSlides?: number): string {
-    if (!html) return '';
-    const slideCount = totalSlides || countCarouselSlidesInHtml(html);
-    const safeIdx = Math.max(0, Math.min(slideIndex, slideCount - 1));
-
-    // Só o template `instagram` usa trilho horizontal; os outros empilham os
-    // slides com position:absolute e alternam a classe .active. Dimensionar
-    // `.slide` por fração do trilho espremia esses onze templates numa coluna
-    // estreita, então a seleção do slide é feita como na exportação.
-    const responsiveCss = `
-        /* Os templates usam medidas em px pensadas para 420x525, o mesmo
-           viewport que htmlExportService usa antes de rasterizar. Renderizamos
-           nesse tamanho e reduzimos por transform, senão a tipografia mantém o
-           tamanho original e vaza do card. */
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 420px !important;
-            height: 525px !important;
-            overflow: hidden !important;
-            background: #09090b !important;
-            transform-origin: top left !important;
-        }
-        .carousel-wrap, .ig-frame, .carousel-viewport, #viewport {
-            width: 100% !important;
-            height: 100% !important;
-            max-width: none !important;
-            margin: 0 !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            overflow: hidden !important;
-        }
-        /* Mesma cromagem que htmlExportService remove antes de rasterizar. */
-        .ig-header, .ig-dots, .ig-actions, .ig-caption,
-        .nav-btn, .nav-prev, .nav-next,
-        .progress-bar, .slide-counter,
-        .nav-dots, .bottom-bar .bb-swipe {
-            display: none !important;
-        }
-    `;
-
-    // Espelha activateSlide do exportador, para o preview mostrar o mesmo slide
-    // que a imagem publicada.
-    const activateScript = `
-        (function () {
-            function fit() {
-                var scale = Math.min(window.innerWidth / 420, window.innerHeight / 525);
-                document.documentElement.style.transform = 'scale(' + scale + ')';
-            }
-            // Espelha fitOversizedText do exportador: encolhe só o que seria
-            // cortado, para o card mostrar o mesmo que a imagem publicada.
-            function fitOversized(scope) {
-                var nodes = scope.querySelectorAll('h1, h2, h3, h4, p, div, span, li');
-                for (var i = 0; i < nodes.length; i++) {
-                    var el = nodes[i];
-                    if (!(el.textContent || '').trim()) continue;
-                    if (el.scrollWidth <= el.clientWidth + 1) continue;
-                    var start = parseFloat(getComputedStyle(el).fontSize);
-                    if (!start) continue;
-                    var guard = 0;
-                    while (el.scrollWidth > el.clientWidth + 1 && guard < 30) {
-                        var current = parseFloat(getComputedStyle(el).fontSize);
-                        var next = current - Math.max(1, current * 0.04);
-                        if (next < start * 0.6) break;
-                        el.style.fontSize = next + 'px';
-                        guard++;
-                    }
-                }
-            }
-            function activate() {
-                fit();
-                var index = ${safeIdx};
-                var slides = document.querySelectorAll('.slide');
-                if (!slides.length) return;
-                var track = document.querySelector('.carousel-track, #track');
-                if (track) {
-                    track.style.transition = 'none';
-                    track.style.display = 'flex';
-                    track.style.width = (slides.length * 100) + '%';
-                    track.style.transform = 'translateX(-' + (index * (100 / slides.length)) + '%)';
-                    for (var t = 0; t < slides.length; t++) {
-                        slides[t].style.flex = '0 0 ' + (100 / slides.length) + '%';
-                    }
-                    return;
-                }
-                for (var i = 0; i < slides.length; i++) {
-                    var slide = slides[i];
-                    if (i === index) {
-                        slide.style.opacity = '1';
-                        slide.style.display = 'block';
-                        slide.classList.add('active');
-                        slide.classList.remove('exit');
-                        fitOversized(slide);
-                    } else {
-                        slide.style.opacity = '0';
-                        slide.style.display = 'none';
-                        slide.classList.remove('active', 'exit');
-                    }
-                }
-            }
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', activate);
-            } else {
-                activate();
-            }
-            window.addEventListener('resize', fit);
-        })();
-    `;
-
-    const injected = `<style>${responsiveCss}</style><script>${activateScript}<\/script>`;
-
-    if (/<\/body>/i.test(html)) {
-        return html.replace(/<\/body>/i, `${injected}</body>`);
-    }
-
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${html}${injected}</body></html>`;
+    return prepareHtmlCarouselPreview(html, slideIndex);
 }
 
 function extractHtmlSlides(html: string): string[] {
@@ -1434,12 +1314,13 @@ export default function ReviewPage() {
     // ---------------------------------------------------------------------------
     // Render helpers
     // ---------------------------------------------------------------------------
-    // hasAccount é aviso, não bloqueio — conta só é necessária ao aprovar/postar
+    const automaticPublishingRequiresAccount = preview?.checks.publishingMode === 'auto';
     const allChecksOk = preview
         ? preview.checks.hasPillars &&
           preview.checks.hasSchedule &&
           preview.checks.pillarWeightOk &&
-          preview.checks.autonomyMode !== 'manual'
+          preview.checks.autonomyMode !== 'manual' &&
+          (!automaticPublishingRequiresAccount || preview.checks.hasAccount)
         : false;
     const canAdvanceToApprove = allChecksOk && editablePlan.length > 0;
 
@@ -1482,8 +1363,10 @@ export default function ReviewPage() {
                         <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verificações</h3>
                         <CheckItem
                             ok={preview.checks.hasAccount}
-                            label={preview.checks.hasAccount ? "Conta Instagram vinculada" : "Conta Instagram não vinculada"}
-                            fix="Isso não bloqueia o plano nem a geração. Vincule a conta só antes de aprovar/publicar os posts."
+                            label={preview.checks.hasAccount ? "Conta Instagram vinculada e ativa" : "Conta Instagram não vinculada ou inativa"}
+                            fix={automaticPublishingRequiresAccount
+                                ? "O modo automático exige uma conta ativa. Vá em Perfis de Negócio e verifique a conexão."
+                                : "No modo de revisão, isso não bloqueia a geração de rascunhos. Vincule a conta antes de publicar."}
                             tone="warning"
                         />
                         <CheckItem
@@ -1761,7 +1644,7 @@ export default function ReviewPage() {
                             </div>
                         )}
 
-                        {preview.checks.hasAccount === false && canAdvanceToApprove && (
+                        {preview.checks.hasAccount === false && !automaticPublishingRequiresAccount && canAdvanceToApprove && (
                             <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '0.5rem', fontSize: '0.875rem', color: '#fbbf24' }}>
                                 Você pode seguir para a aprovação do plano e gerar os rascunhos agora. A conta do Instagram só será exigida quando for aprovar/publicar os posts.
                             </div>

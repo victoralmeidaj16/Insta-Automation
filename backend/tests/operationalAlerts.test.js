@@ -83,7 +83,9 @@ describe('coverage_gap', () => {
     // Um rascunho só é cobertura se algo o publicaria sozinho. Sem
     // auto-aprovação a fila está cheia e mesmo assim nada vai ao ar.
     it('does not count drafts as coverage while approval is manual', async () => {
-        await seedProfile();
+        await seedProfile({
+            contentSchedule: { autoGenerationEnabled: true, publishingMode: 'review', autoApproveFallbackEnabled: false, timezone: 'America/Sao_Paulo' }
+        });
         await seedPost({ status: 'draft', scheduledFor: new Date(Date.now() + 6 * 24 * HOUR) });
 
         const alert = (await loadAlerts()).find(item => item.kind === 'coverage_gap');
