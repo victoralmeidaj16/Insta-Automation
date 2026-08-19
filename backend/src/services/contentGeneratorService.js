@@ -1386,6 +1386,7 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
     const schedule = normalizeScheduleConfig(merged.contentSchedule || {});
     const generationRunId = runOptions.generationRunId || null;
     const targetWeekKey = runOptions.targetWeekKey || null;
+    const isManualRun = Boolean(runOptions.isManual || runOptions.source === 'manual' || runOptions.skipAutoApprove);
 
     if (pillars.length === 0) {
         throw new Error('Nenhum pilar editorial configurado para este perfil.');
@@ -1444,7 +1445,7 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
                 post = await tagGeneratedSlot(post, generationRunId, generationSlotKey, targetWeekKey);
                 results.push(post);
 
-                if (schedule.publishingMode === 'auto') {
+                if (schedule.publishingMode === 'auto' && !isManualRun) {
                     try {
                         console.log(`🤖 [auto-generate] Autopilot ativo (plano customizado): auto-aprovando e agendando post ${post.id}`);
                         const { scheduleApprovedPost } = await import('./postService.js');
@@ -1555,7 +1556,7 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
 
             results.push(post);
 
-            if (schedule.publishingMode === 'auto') {
+            if (schedule.publishingMode === 'auto' && !isManualRun) {
                 try {
                     console.log(`🤖 [auto-generate] Autopilot ativo: auto-aprovando e agendando post ${post.id}`);
                     const { scheduleApprovedPost } = await import('./postService.js');

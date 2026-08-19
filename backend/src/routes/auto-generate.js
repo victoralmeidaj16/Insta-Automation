@@ -122,7 +122,11 @@ router.post('/weekly', async (req, res) => {
         runningJobs.set(businessProfileId, { ...current, ...event });
     };
 
-    generateWeeklyPlan(businessProfileId, startDate, customPlan, generationContextOverrides || {}, onProgress)
+    generateWeeklyPlan(businessProfileId, startDate, customPlan, generationContextOverrides || {}, onProgress, {
+        source: 'manual',
+        isManual: true,
+        skipAutoApprove: true
+    })
         .then(result => {
             runningJobs.set(businessProfileId, { status: 'done', finished: new Date(), ...result });
             console.log(`✅ [auto-generate] Plano concluído para ${businessProfileId}: ${result.generated} gerados`);
