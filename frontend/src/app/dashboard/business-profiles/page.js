@@ -161,6 +161,10 @@ export default function BusinessProfilesPage() {
     const [igTestStatus, setIgTestStatus] = useState(null); // null | 'loading' | 'ok' | 'error'
     const [igTestResult, setIgTestResult] = useState(null); // { accountCount, instagramAccounts }
     const [igTestError, setIgTestError] = useState('');
+    const canTestInstagram = Boolean(
+        formData.instagram?.uploadPostApiKey?.trim()
+        || formData.instagram?.hasUploadPostApiKey
+    );
 
     const handleTestInstagram = async () => {
         if (!editingProfile?.id) {
@@ -862,7 +866,7 @@ export default function BusinessProfilesPage() {
                                                         setIgTestStatus(null);
                                                         setFormData({ ...formData, instagram: { ...formData.instagram, uploadPostApiKey: e.target.value } });
                                                     }}
-                                                    placeholder="Cole a chave aqui..."
+                                                    placeholder={formData.instagram?.hasUploadPostApiKey ? 'Chave salva — deixe em branco para manter' : 'Cole a chave aqui...'}
                                                     style={{ paddingRight: '44px', fontFamily: showApiKey ? 'monospace' : 'inherit', letterSpacing: showApiKey ? '0.03em' : 'normal', fontSize: showApiKey ? '0.8rem' : 'inherit' }}
                                                 />
                                                 <button
@@ -885,8 +889,8 @@ export default function BusinessProfilesPage() {
                                             <button
                                                 type="button"
                                                 onClick={handleTestInstagram}
-                                                disabled={igTestStatus === 'loading' || !formData.instagram?.uploadPostApiKey?.trim()}
-                                                style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid rgba(167,139,250,0.4)', background: igTestStatus === 'loading' ? 'rgba(167,139,250,0.08)' : 'rgba(167,139,250,0.12)', color: '#a78bfa', fontWeight: 700, fontSize: '0.82rem', cursor: (!formData.instagram?.uploadPostApiKey?.trim() || igTestStatus === 'loading') ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', opacity: !formData.instagram?.uploadPostApiKey?.trim() ? 0.45 : 1, transition: 'all 0.15s' }}
+                                                disabled={igTestStatus === 'loading' || !canTestInstagram}
+                                                style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid rgba(167,139,250,0.4)', background: igTestStatus === 'loading' ? 'rgba(167,139,250,0.08)' : 'rgba(167,139,250,0.12)', color: '#a78bfa', fontWeight: 700, fontSize: '0.82rem', cursor: (!canTestInstagram || igTestStatus === 'loading') ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', opacity: !canTestInstagram ? 0.45 : 1, transition: 'all 0.15s' }}
                                             >
                                                 {igTestStatus === 'loading'
                                                     ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span> Verificando...</>

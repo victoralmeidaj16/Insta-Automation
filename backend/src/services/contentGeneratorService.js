@@ -1201,6 +1201,7 @@ export async function previewWeeklyPlan(businessProfileId, weekStartDate = new D
     const pillars = merged.editorialPillars || [];
     const schedule = normalizeScheduleConfig(merged.contentSchedule || {});
     const accounts = await getAccountsByProfile(businessProfileId);
+    const activeAccount = accounts.find(account => account.status === 'active' && account.isActive !== false) || null;
 
     const postCapacity = new Set(schedule.preferredDays || []).size
         * new Set(schedule.preferredTimes || []).size;
@@ -1210,7 +1211,7 @@ export async function previewWeeklyPlan(businessProfileId, weekStartDate = new D
     // Health checks
     const checks = {
         hasPillars: pillars.filter(p => p.enabled !== false).length > 0,
-        hasAccount: accounts.length > 0,
+        hasAccount: Boolean(activeAccount),
         hasSchedule: ((schedule.postsPerWeek || 0) + (schedule.storiesPerWeek || 0)) > 0,
         pillarWeightOk: pillars.reduce((s, p) => s + (p.weight || 0), 0) === 100,
         hasEnoughPostSlots: Number(schedule.postsPerWeek || 0) <= postCapacity,
@@ -1339,7 +1340,7 @@ Retorne SOMENTE um JSON válido com a chave "topics" contendo um array de ${plan
 
     return {
         profile: { id: businessProfileId, name: merged.name, brandKey: merged.brandKey },
-        account: accounts[0] || null,
+        account: activeAccount || accounts[0] || null,
         checks,
         plan,
         pillars: pillars.filter(p => p.enabled !== false),

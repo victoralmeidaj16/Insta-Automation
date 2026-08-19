@@ -112,6 +112,7 @@ interface WeekPreview {
         hasSchedule: boolean;
         pillarWeightOk: boolean;
         autonomyMode: string;
+        publishingMode: 'review' | 'auto';
     };
     plan: PlannedSlot[];
     pillars: Pillar[];
@@ -1434,12 +1435,13 @@ export default function ReviewPage() {
     // ---------------------------------------------------------------------------
     // Render helpers
     // ---------------------------------------------------------------------------
-    // hasAccount é aviso, não bloqueio — conta só é necessária ao aprovar/postar
+    const automaticPublishingRequiresAccount = preview?.checks.publishingMode === 'auto';
     const allChecksOk = preview
         ? preview.checks.hasPillars &&
           preview.checks.hasSchedule &&
           preview.checks.pillarWeightOk &&
-          preview.checks.autonomyMode !== 'manual'
+          preview.checks.autonomyMode !== 'manual' &&
+          (!automaticPublishingRequiresAccount || preview.checks.hasAccount)
         : false;
     const canAdvanceToApprove = allChecksOk && editablePlan.length > 0;
 
@@ -1482,8 +1484,10 @@ export default function ReviewPage() {
                         <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verificações</h3>
                         <CheckItem
                             ok={preview.checks.hasAccount}
-                            label={preview.checks.hasAccount ? "Conta Instagram vinculada" : "Conta Instagram não vinculada"}
-                            fix="Isso não bloqueia o plano nem a geração. Vincule a conta só antes de aprovar/publicar os posts."
+                            label={preview.checks.hasAccount ? "Conta Instagram vinculada e ativa" : "Conta Instagram não vinculada ou inativa"}
+                            fix={automaticPublishingRequiresAccount
+                                ? "O modo automático exige uma conta ativa. Vá em Perfis de Negócio e verifique a conexão."
+                                : "No modo de revisão, isso não bloqueia a geração de rascunhos. Vincule a conta antes de publicar."}
                             tone="warning"
                         />
                         <CheckItem
@@ -1761,7 +1765,7 @@ export default function ReviewPage() {
                             </div>
                         )}
 
-                        {preview.checks.hasAccount === false && canAdvanceToApprove && (
+                        {preview.checks.hasAccount === false && !automaticPublishingRequiresAccount && canAdvanceToApprove && (
                             <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '0.5rem', fontSize: '0.875rem', color: '#fbbf24' }}>
                                 Você pode seguir para a aprovação do plano e gerar os rascunhos agora. A conta do Instagram só será exigida quando for aprovar/publicar os posts.
                             </div>
