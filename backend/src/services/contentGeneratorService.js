@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { db } from '../config/firebase.js';
-import { getBusinessProfile, getAccountsByProfile } from './businessProfileService.js';
+import { getBusinessProfile, getAccountsByProfile, resolveActiveAccountForProfile } from './businessProfileService.js';
 import { generateImages, generateCarousel, generateImageCaption, generateImagePrompt, generateHtmlCarousel, generateSingleImage, generateContentPlan, serializeSlideToTagPrompt, countCarouselSlides } from './aiService.js';
 import { renderElevepicTemplate, ELEVEPIC_TEMPLATE_METADATA } from './carouselTemplateService.js';
 import { createPost } from './postService.js';
@@ -1201,7 +1201,7 @@ export async function previewWeeklyPlan(businessProfileId, weekStartDate = new D
     const pillars = merged.editorialPillars || [];
     const schedule = normalizeScheduleConfig(merged.contentSchedule || {});
     const accounts = await getAccountsByProfile(businessProfileId);
-    const activeAccount = accounts.find(account => account.status === 'active' && account.isActive !== false) || null;
+    const activeAccount = await resolveActiveAccountForProfile({ ...merged, id: businessProfileId });
 
     const postCapacity = new Set(schedule.preferredDays || []).size
         * new Set(schedule.preferredTimes || []).size;
@@ -1392,11 +1392,11 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
     }
 
     const accounts = await getAccountsByProfile(businessProfileId);
-    const activeAccount = accounts.find(account => account.status === 'active' && account.isActive !== false) || null;
+    const activeAccount = await resolveActiveAccountForProfile({ ...merged, id: businessProfileId });
     const accountId = (activeAccount || accounts[0])?.id || null;
 
     if (schedule.publishingMode === 'auto' && !activeAccount) {
-        throw new Error('Modo de publicação automática exige uma conta Instagram vinculada e ativa.');
+        throw new Error(`Modo de publicação automática exige uma conta Instagram vinculada e ativa. Configure o Upload-Post (username + API key) do perfil "${merged.name}" ou troque o modo de publicação para "Revisão".`);
     }
 
     const recentActivity = await analyzeRecentPosts(businessProfileId, 7);

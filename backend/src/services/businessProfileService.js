@@ -364,3 +364,42 @@ export async function getAccountsByProfile(profileId) {
         throw error;
     }
 }
+
+const isUsableAccount = (account) => account?.status === 'active' && account.isActive !== false;
+
+/**
+ * Conta ativa que o gerador/autopilot usa para publicar.
+ *
+ * Perfis conectados via Upload-Post guardam o vínculo em
+ * `instagram.uploadPostUsername`, mas a entrada em `accounts` só nascia quando
+ * alguém clicava "Testar conexão". Perfis configurados antes disso ficavam com
+ * a UI dizendo "Conectado" e a geração automática falhando com
+ * "exige uma conta Instagram vinculada e ativa". Aqui o vínculo é materializado
+ * sob demanda, a partir da configuração que o próprio perfil já tem.
+ *
+ * @param {Object} profile - Perfil de negócio (precisa de `id`, não sanitizado)
+ * @returns {Promise<Object|null>} Conta ativa ou null quando não há como derivar
+ */
+export async function resolveActiveAccountForProfile(profile) {
+    if (!profile?.id) return null;
+
+    const accounts = await getAccountsByProfile(profile.id);
+    const existing = accounts.find(isUsableAccount);
+    if (existing) return existing;
+
+    const uploadPostUsername = (profile.instagram?.uploadPostUsername || '').trim();
+    // Sem API key o vínculo não publica nada, então não vale materializá-lo.
+    if (!profile.userId || !uploadPostUsername || !profile.instagram?.uploadPostApiKey) {
+        return null;
+    }
+
+    const { upsertUploadPostAccount } = await import('./accountService.js');
+    const account = await upsertUploadPostAccount(profile.userId, {
+        businessProfileId: profile.id,
+        profileUsername: uploadPostUsername,
+        instagramHandle: (profile.instagram?.username || '').trim()
+    });
+
+    console.log(`🔗 Vínculo Upload-Post materializado para "${profile.name}" (@${uploadPostUsername}).`);
+    return { ...account, isActive: true };
+}
