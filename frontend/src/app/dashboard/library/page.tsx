@@ -16,6 +16,7 @@ import {
     renderPremiumPostToDataUrl
 } from '@/app/dashboard/generate/components/PremiumCarouselEditor';
 import type { PremiumLayout } from '@/app/dashboard/generate/types';
+import { prepareHtmlCarouselPreview } from '@/lib/htmlCarouselPreview';
 
 function getApiErrorMessage(error: unknown, fallback: string): string {
     if (typeof error === 'object' && error !== null) {
@@ -2348,7 +2349,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
 
                                                 {/* Scaled iframe preview */}
                                                 <iframe
-                                                    srcDoc={post.htmlCode}
+                                                    srcDoc={prepareHtmlCarouselPreview(post.htmlCode)}
                                                     sandbox="allow-scripts"
                                                     style={{
                                                         position: 'absolute',
@@ -2925,7 +2926,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                             onClick={e => e.stopPropagation()}
                         >
                             <iframe
-                                srcDoc={htmlPreviewPost.htmlCode}
+                                srcDoc={prepareHtmlCarouselPreview(htmlPreviewPost.htmlCode)}
                                 sandbox="allow-scripts"
                                 style={{ width: '420px', height: '525px', border: 'none', display: 'block' }}
                             />
@@ -3172,7 +3173,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         boxShadow: '0 20px 50px rgba(0,0,0,0.45)'
                                     }}>
                                         <iframe
-                                            srcDoc={editHtmlCode}
+                                            srcDoc={prepareHtmlCarouselPreview(editHtmlCode)}
                                             sandbox="allow-scripts"
                                             style={{
                                                 width: '100%',

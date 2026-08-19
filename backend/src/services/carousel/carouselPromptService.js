@@ -41,7 +41,8 @@ REGRAS DE TRAJETÓRIA NARRATIVA (ARCO PROGRESSIVO EM ${count} SLIDES):
 REGRAS TÉCNICAS:
 - Não descreva texto, logos, tipografia ou UI legível na imagem.
 - Reserve espaço negativo limpo para o overlay e não repita cena, ângulo ou composição entre os slides.
-- Headlines em português, CAIXA ALTA, curtas e de alto impacto. Não repita nem parafraseie o tema recebido.
+- Headlines em português, CAIXA ALTA, curtas e de alto impacto. Não repita nem parafraseie o tema recebido.${premium ? `
+- A arte premium mostra SOMENTE a headline, em tipografia gigante. Cada headline deve ter no máximo 6 palavras (≈45 caracteres) para ocupar 1 ou 2 linhas e sair no maior tamanho possível. A SUBHEADLINE é usada apenas na legenda, nunca na imagem.` : ''}
 - Use um arquétipo de copy da marca; na ausência dele, use quebra de mito, revelação, transformação, contraste ou permissão.
 - O tom é revelação e insight, não título de aula ou lista genérica.
 

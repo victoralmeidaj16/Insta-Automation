@@ -6,6 +6,7 @@ import PageHeader from '@/components/PageHeader';
 import ImageLightbox from '@/components/ImageLightbox';
 import { useBusinessProfile } from '@/contexts/BusinessProfileContext';
 import api from '@/lib/api';
+import { prepareHtmlCarouselPreview } from '@/lib/htmlCarouselPreview';
 import toast from 'react-hot-toast';
 import { useDropzone } from 'react-dropzone';
 
@@ -2305,7 +2306,7 @@ export default function GeneratePage() {
                                                 boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
                                             }}>
                                                 <iframe
-                                                    srcDoc={generatedHtml}
+                                                    srcDoc={prepareHtmlCarouselPreview(generatedHtml)}
                                                     style={{ width: '100%', height: '100%', border: 'none' }}
                                                     title="Preview HTML"
                                                 />

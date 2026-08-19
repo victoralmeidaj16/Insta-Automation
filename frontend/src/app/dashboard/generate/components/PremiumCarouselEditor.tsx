@@ -214,6 +214,61 @@ function getBackgroundProxyUrl(imageUrl: string, apiBaseUrl?: string) {
     return `${baseUrl}/api/proxy-download?url=${encodeURIComponent(imageUrl)}&filename=premium-background.jpg`;
 }
 
+// Escada de tipografia do título premium: cada quantidade de linhas tem UM
+// tamanho fixo, então dois posts com o mesmo número de linhas saem idênticos.
+// Espelhado no backend (premiumCompositionService.js) para preview == publicado.
+export const PREMIUM_TITLE_METRICS = {
+    paddingRatio: 0.10,     // margem lateral segura (10% de 1080 = 108px)
+    topGap: 30,             // respiro entre o logo/divisor e a primeira linha
+    bottomGap: 34,          // respiro entre a última linha e os swipe dots
+    lineHeightRatio: 1.0,
+    ladder: [
+        { maxLines: 1, fontSize: 150 },
+        { maxLines: 2, fontSize: 132 },
+        { maxLines: 3, fontSize: 104 },
+        { maxLines: 4, fontSize: 78 },
+        { maxLines: 5, fontSize: 62 },
+        { maxLines: 6, fontSize: 52 },
+    ],
+    minFontSize: 34,
+    fontStep: 4,
+};
+
+/**
+ * Escolhe o tamanho do título pela escada padronizada: usa o primeiro degrau em
+ * que o texto cabe na largura E na altura disponíveis. Títulos extremos caem
+ * para um ajuste fino abaixo do último degrau, ainda dentro do quadro.
+ */
+export function fitPremiumTitle(
+    title: string,
+    wrapAt: (text: string, fontSize: number) => string[],
+    availableHeight: number
+): { fontSize: number; lines: string[] } {
+    const { ladder, lineHeightRatio, minFontSize, fontStep } = PREMIUM_TITLE_METRICS;
+    const text = (title || '').trim();
+
+    for (const step of ladder) {
+        const lines = wrapAt(text, step.fontSize);
+        if (lines.length <= step.maxLines && lines.length * step.fontSize * lineHeightRatio <= availableHeight) {
+            return { fontSize: step.fontSize, lines };
+        }
+    }
+
+    const smallest = ladder[ladder.length - 1].fontSize;
+    let fallbackSize = minFontSize;
+    let fallbackLines = wrapAt(text, minFontSize);
+    for (let fs = smallest; fs >= minFontSize; fs -= fontStep) {
+        const lines = wrapAt(text, fs);
+        if (lines.length * fs * lineHeightRatio <= availableHeight) {
+            fallbackSize = fs;
+            fallbackLines = lines;
+            break;
+        }
+    }
+
+    return { fontSize: fallbackSize, lines: fallbackLines };
+}
+
 function splitTitleLines(
     context: CanvasRenderingContext2D,
     title: string,
@@ -599,8 +654,8 @@ export async function renderPremiumPostToDataUrl({
 
     // ── Content area: bottom 40% (IMAGE_H → canvas.height) ───────────────────
     const CONTENT_H = canvas.height - IMAGE_H;          // 540px
-    const PADDING_X = Math.round(canvas.width * 0.08);  // 86px
-    const CONTENT_W = canvas.width - PADDING_X * 2;     // 908px
+    const PADDING_X = Math.round(canvas.width * PREMIUM_TITLE_METRICS.paddingRatio); // 108px
+    const CONTENT_W = canvas.width - PADDING_X * 2;     // 864px
 
     // 4. Micro-UI: divider lines + logo circle
     const LOGO_Y  = IMAGE_H + Math.round(CONTENT_H * 0.14); // ~886px
@@ -647,60 +702,34 @@ export async function renderPremiumPostToDataUrl({
         context.fillText(initials, centerX, LOGO_Y);
     }
 
-    // ── Auto-scale headline & subheadline font ──────────────────────────────────────────────
-    const hasSub = Boolean(layout.description && layout.descriptionEnabled !== false);
-    const TITLE_TOP    = LOGO_Y + LOGO_R + 22;
+    // ── Título: tamanho padronizado por número de linhas ─────────────────────
+    // Só o título é desenhado; o subtítulo saiu da arte para o texto respirar.
+    const TITLE_TOP    = LOGO_Y + LOGO_R + PREMIUM_TITLE_METRICS.topGap;
     const DOTS_H       = 40;
-    const AVAILABLE_H  = canvas.height - TITLE_TOP - DOTS_H - 30;
-
-    const MAX_FONT = hasSub ? 116 : 148;
-    const MIN_FONT = hasSub ? 38 : 56;
-    const FONT_STEP = 4;
-    const LH_RATIO = 0.96;
-    const SUB_LH_RATIO = 1.25;
-    const SUB_GAP = 14;
-
-    const subFontFor = (fs: number) => Math.min(42, Math.max(28, Math.round(fs * 0.42)));
+    const AVAILABLE_H  = canvas.height - TITLE_TOP - DOTS_H - PREMIUM_TITLE_METRICS.bottomGap;
+    const LH_RATIO = PREMIUM_TITLE_METRICS.lineHeightRatio;
 
     const sanitizedTitle = sanitizePremiumTitle(layout.title || '');
-    let titleFontSize = MAX_FONT;
-    let titleLines: string[] = [];
-    let subLines: string[] = [];
-    let subFontSize = 32;
-
-    for (let fs = MAX_FONT; fs >= MIN_FONT; fs -= FONT_STEP) {
-        context.font = `900 ${fs}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
-        const candidateTitle = splitTitleLines(context, sanitizedTitle, CONTENT_W);
-
-        const candidateSubFont = subFontFor(fs);
-        context.font = `500 ${candidateSubFont}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
-        const candidateSubLines = hasSub ? splitTitleLines(context, layout.description!, CONTENT_W * 0.88) : [];
-
-        const blockH = candidateTitle.length * fs * LH_RATIO + (hasSub ? candidateSubLines.length * candidateSubFont * SUB_LH_RATIO + SUB_GAP : 0);
-
-        if (blockH <= AVAILABLE_H) {
-            titleFontSize = fs;
-            titleLines = candidateTitle;
-            subFontSize = candidateSubFont;
-            subLines = candidateSubLines;
-            break;
-        }
-        if (fs - FONT_STEP < MIN_FONT) {
-            titleFontSize = MIN_FONT;
-            context.font = `900 ${MIN_FONT}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
-            titleLines = splitTitleLines(context, sanitizedTitle, CONTENT_W);
-            subFontSize = subFontFor(MIN_FONT);
-            context.font = `500 ${subFontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
-            subLines = hasSub ? splitTitleLines(context, layout.description!, CONTENT_W * 0.88) : [];
-        }
-    }
+    const fitted = fitPremiumTitle(
+        sanitizedTitle,
+        (text, fontSize) => {
+            context.font = `900 ${fontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
+            return splitTitleLines(context, text, CONTENT_W);
+        },
+        AVAILABLE_H
+    );
+    const titleFontSize = fitted.fontSize;
+    const titleLines = fitted.lines;
 
     const titleLineHeight = titleFontSize * LH_RATIO;
-    const totalBlockH = titleLines.length * titleLineHeight + (hasSub ? subLines.length * subFontSize * SUB_LH_RATIO + SUB_GAP : 0);
+    const totalBlockH = titleLines.length * titleLineHeight;
 
     let currentY = TITLE_TOP + Math.max(0, (AVAILABLE_H - totalBlockH) / 2) + titleFontSize * 0.8;
 
     context.font = `900 ${titleFontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
+    // Tracking proporcional ao corpo (mesmo valor do SVG do backend).
+    (context as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing =
+        `${-(titleFontSize * 0.02).toFixed(2)}px`;
     context.textAlign = 'left';
     context.textBaseline = 'alphabetic';
 
@@ -718,24 +747,7 @@ export async function renderPremiumPostToDataUrl({
 
         currentY += titleLineHeight;
     });
-
-    // ── Subheadline / Description ─────────────────────────────────────────────
-    if (hasSub && subLines.length > 0) {
-        currentY += SUB_GAP;
-        context.font = `500 ${subFontSize}px Inter, -apple-system, BlinkMacSystemFont, sans-serif`;
-        const defaultSubColor = (theme as any).subtitleColor || (theme.text === '#ffffff' ? 'rgba(255,255,255,0.85)' : '#727983');
-        const finalSubColor = (layout.descriptionColor && layout.descriptionColor !== '#d1d5db') ? layout.descriptionColor : defaultSubColor;
-        context.fillStyle = finalSubColor;
-        context.textAlign = 'center';
-        context.textBaseline = 'alphabetic';
-
-        subLines.forEach((subLine) => {
-            if (currentY < canvas.height - 58) {
-                context.fillText(subLine, centerX, currentY);
-                currentY += subFontSize * SUB_LH_RATIO;
-            }
-        });
-    }
+    (context as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = '0px';
 
     // ── Swipe dots ────────────────────────────────────────────────────────────
     const DOT_Y = canvas.height - 50;
@@ -779,13 +791,21 @@ export function PremiumPostPreview({ layout, backgroundImage, compact = false }:
     const imageOffsetY = clampPremiumImageOffset(Number(layout.imageOffsetY || 0));
     const gradientOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? 1)));
 
-    // Auto-scale font using container queries (cqi) to fit the 40% content zone proportionally
-    const charCount = sanitizedTitle.length;
-    const charsPerLine = compact ? 11 : 16;
-    const estimatedLines = Math.max(1, Math.ceil(charCount / charsPerLine));
-    const baseCqi = compact ? 6.8 : 8.8;
-    const scaledCqi = Math.max(3.8, baseCqi / Math.pow(Math.max(1, estimatedLines), 0.5));
-    const titleFontSize = `clamp(0.65rem, ${scaledCqi.toFixed(2)}cqi, 2.8rem)`;
+    // Mesma escada da arte final (fitPremiumTitle), estimando a quebra por
+    // largura média de caractere — o preview usa cqi, então escala sozinho.
+    const CANVAS_W = 1080;
+    const CONTENT_W = CANVAS_W * (1 - PREMIUM_TITLE_METRICS.paddingRatio * 2); // 864px
+    const estimateLines = (fontSize: number) => {
+        const charsPerLine = Math.max(1, Math.floor(CONTENT_W / (fontSize * 0.58)));
+        return sanitizedTitle
+            .split('\n')
+            .filter(Boolean)
+            .reduce((total, line) => total + Math.max(1, Math.ceil(line.trim().length / charsPerLine)), 0) || 1;
+    };
+    const ladderStep = PREMIUM_TITLE_METRICS.ladder.find(step => estimateLines(step.fontSize) <= step.maxLines)
+        || PREMIUM_TITLE_METRICS.ladder[PREMIUM_TITLE_METRICS.ladder.length - 1];
+    const titleCqi = (ladderStep.fontSize / CANVAS_W) * 100;
+    const titleFontSize = `${titleCqi.toFixed(2)}cqi`;
 
     const logoSize = 'clamp(16px, 7cqi, 28px)';
     const logoFontSize = 'clamp(7px, 2.5cqi, 10px)';
@@ -847,7 +867,7 @@ export function PremiumPostPreview({ layout, backgroundImage, compact = false }:
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: compact ? '5% 7% 7%' : '6% 8% 8%',
+                        padding: compact ? '5% 10% 7%' : '6% 10% 8%',
                     }}
                 >
                     {/* Micro UI: divider + logo */}
@@ -883,44 +903,23 @@ export function PremiumPostPreview({ layout, backgroundImage, compact = false }:
                             fontSize: titleFontSize,
                             fontFamily: "'Bebas Neue', 'Inter', sans-serif",
                             fontWeight: 900,
-                            lineHeight: 0.95,
-                            letterSpacing: '-0.04em',
+                            lineHeight: PREMIUM_TITLE_METRICS.lineHeightRatio,
+                            letterSpacing: '-0.02em',
                             textTransform: 'uppercase',
                             textAlign: 'center',
                             color: theme.text,
                             padding: '4% 0',
                         }}
                     >
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem' }}>
-                            <div>
-                                {titleFragments.map((fragment, index) => (
-                                    <span
-                                        key={`${fragment.text}-${index}`}
-                                        style={{ color: fragment.highlighted ? accentColor : theme.text }}
-                                    >
-                                        {fragment.text}
-                                    </span>
-                                ))}
-                            </div>
-                            {layout.description && layout.descriptionEnabled !== false && (
-                                <div
-                                    style={{
-                                        fontSize: 'clamp(0.6rem, 4.2cqi, 1.25rem)',
-                                        fontWeight: 500,
-                                        color: (layout.descriptionColor && layout.descriptionColor !== '#d1d5db')
-                                            ? layout.descriptionColor
-                                            : ((theme as any).subtitleColor || (theme.text === '#ffffff' ? 'rgba(255,255,255,0.85)' : '#727983')),
-                                        fontFamily: "'Inter', -apple-system, sans-serif",
-                                        textTransform: 'none',
-                                        letterSpacing: 'normal',
-                                        lineHeight: 1.25,
-                                        marginTop: '0.3rem',
-                                        opacity: 0.95,
-                                    }}
+                        <div>
+                            {titleFragments.map((fragment, index) => (
+                                <span
+                                    key={`${fragment.text}-${index}`}
+                                    style={{ color: fragment.highlighted ? accentColor : theme.text }}
                                 >
-                                    {layout.description}
-                                </div>
-                            )}
+                                    {fragment.text}
+                                </span>
+                            ))}
                         </div>
                     </div>
 
@@ -1044,44 +1043,15 @@ export function PremiumEditorModal({
                     {!layout.hideOverlay && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', background: '#111113', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #27272a' }}>
                             <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700 }}>
-                                📝 Textos do Card (Headline & Subtítulo)
+                                📝 Texto do Card (Headline)
                             </span>
 
                             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
                                 Título Principal (Headline)
                                 <textarea value={layout.title} onChange={event => onChange('title', event.target.value)} className="input" rows={3} placeholder="Digite a headline..." />
-                            </label>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem', alignItems: 'end' }}>
-                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
-                                    Subtítulo (Subheadline)
-                                    <textarea
-                                        value={layout.description || ''}
-                                        onChange={event => {
-                                            const val = event.target.value;
-                                            onChange('description', val);
-                                            if (val && layout.descriptionEnabled === false) {
-                                                onChange('descriptionEnabled', true);
-                                            }
-                                        }}
-                                        className="input"
-                                        rows={2}
-                                        placeholder="Digite o subtítulo de apoio..."
-                                    />
-                                </label>
-                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
-                                    Cor Subtítulo
-                                    <input type="color" value={layout.descriptionColor || '#727983'} onChange={event => onChange('descriptionColor', event.target.value)} style={{ width: '54px', height: '44px', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', padding: '0.15rem' }} />
-                                </label>
-                            </div>
-
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#d4d4d8', fontSize: '0.85rem' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={layout.descriptionEnabled !== false && Boolean(layout.description)}
-                                    onChange={event => onChange('descriptionEnabled', event.target.checked)}
-                                />
-                                Exibir Subtítulo no slide
+                                <span style={{ fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'none' }}>
+                                    O tamanho do texto é padronizado pelo número de linhas. Títulos curtos (1–2 linhas) saem bem maiores e mais engajantes.
+                                </span>
                             </label>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

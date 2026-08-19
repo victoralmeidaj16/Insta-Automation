@@ -68,13 +68,13 @@ const normalizeBrandKitForm = (brandKit = {}) => {
 const normalizeScheduleForm = (schedule = {}) => {
     const legacyMode = ['manual', 'review', 'auto'].includes(schedule.autonomyMode)
         ? schedule.autonomyMode
-        : 'review';
+        : 'auto';
     const autoGenerationEnabled = typeof schedule.autoGenerationEnabled === 'boolean'
         ? schedule.autoGenerationEnabled
         : legacyMode !== 'manual';
     const publishingMode = ['review', 'auto'].includes(schedule.publishingMode)
         ? schedule.publishingMode
-        : (legacyMode === 'auto' ? 'auto' : 'review');
+        : (legacyMode === 'review' ? 'review' : 'auto');
 
     return {
         postsPerWeek: 5,
@@ -1847,7 +1847,7 @@ export default function BusinessProfilesPage() {
                                             </div>
                                             <div className="input-group" style={{ margin: 0 }}>
                                                 <label className="input-label" style={{ fontSize: '0.8rem' }}>Modo de publicação</label>
-                                                <select className="input" value={formData.contentSchedule?.publishingMode || 'review'}
+                                                <select className="input" value={formData.contentSchedule?.publishingMode || 'auto'}
                                                     onChange={(e) => {
                                                         const publishingMode = e.target.value;
                                                         const enabled = formData.contentSchedule?.autoGenerationEnabled !== false;

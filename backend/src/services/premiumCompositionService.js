@@ -13,6 +13,61 @@ function withAlpha(hexColor, alpha) {
     return `rgba(${r},${g},${b},${alpha})`;
 }
 
+// Escada de tipografia do título premium: cada quantidade de linhas tem UM
+// tamanho fixo, então dois posts com o mesmo número de linhas saem idênticos.
+// Espelhado no editor (PremiumCarouselEditor.renderPremiumPostToDataUrl).
+export const PREMIUM_TITLE_METRICS = {
+    paddingRatio: 0.10,     // margem lateral segura (10% de 1080 = 108px)
+    topGap: 30,             // respiro entre o logo/divisor e a primeira linha
+    bottomGap: 34,          // respiro entre a última linha e os swipe dots
+    lineHeightRatio: 1.0,
+    ladder: [
+        { maxLines: 1, fontSize: 150 },
+        { maxLines: 2, fontSize: 132 },
+        { maxLines: 3, fontSize: 104 },
+        { maxLines: 4, fontSize: 78 },
+        { maxLines: 5, fontSize: 62 },
+        { maxLines: 6, fontSize: 52 }
+    ],
+    minFontSize: 34,
+    fontStep: 4
+};
+
+/**
+ * Escolhe o tamanho do título pela escada padronizada: usa o primeiro degrau em
+ * que o texto cabe na largura E na altura disponíveis. Títulos extremos caem
+ * para um ajuste fino abaixo do último degrau, ainda dentro do quadro.
+ *
+ * @param {string} title
+ * @param {(text: string, fontSize: number) => string[]} wrapAt quebra o texto no tamanho dado
+ * @param {number} availableHeight altura livre do bloco de título
+ */
+export function fitPremiumTitle(title, wrapAt, availableHeight) {
+    const { ladder, lineHeightRatio, minFontSize, fontStep } = PREMIUM_TITLE_METRICS;
+    const text = String(title || '').trim();
+
+    for (const step of ladder) {
+        const lines = wrapAt(text, step.fontSize);
+        if (lines.length <= step.maxLines && lines.length * step.fontSize * lineHeightRatio <= availableHeight) {
+            return { fontSize: step.fontSize, lines };
+        }
+    }
+
+    const smallest = ladder[ladder.length - 1].fontSize;
+    let fallbackSize = minFontSize;
+    let fallbackLines = wrapAt(text, minFontSize);
+    for (let fs = smallest; fs >= minFontSize; fs -= fontStep) {
+        const lines = wrapAt(text, fs);
+        if (lines.length * fs * lineHeightRatio <= availableHeight) {
+            fallbackSize = fs;
+            fallbackLines = lines;
+            break;
+        }
+    }
+
+    return { fontSize: fallbackSize, lines: fallbackLines };
+}
+
 function escapeXml(value = '') {
     return String(value)
         .replace(/&/g, '&amp;')
@@ -261,14 +316,11 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
             highlightText = '',
             brandName = 'Sua Marca',
             logoUrl = null,
-            primaryColor = '#00C2FF',
-            description = '',
-            descriptionEnabled,
-            descriptionColor = null
+            primaryColor = '#00C2FF'
         } = layout;
 
-        const subheadline = String(description || '').trim();
-        const hasSub = Boolean(subheadline) && descriptionEnabled !== false;
+        // A arte premium é só título: um bloco grande, centralizado e enquadrado.
+        // `description` continua no draft (histórico/legenda), mas não é desenhada.
         // O editor deixa regular a intensidade do gradiente; ignorá-la aqui fazia
         // a arte publicada sair sempre com o gradiente no máximo.
         const gradientOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? 1)));
@@ -325,77 +377,51 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
         // Todas as medidas espelham renderPremiumPostToDataUrl() no editor.
         const ZONE_TOP = IMAGE_H;
         const ZONE_HEIGHT = height - IMAGE_H;              // 540
-        const PADDING_X = Math.round(width * 0.08);        // 86
+        // Margem lateral de 10% (108px): o título nunca encosta na borda do post.
+        const PADDING_X = Math.round(width * PREMIUM_TITLE_METRICS.paddingRatio); // 108
         const LOGO_Y = IMAGE_H + Math.round(ZONE_HEIGHT * 0.14); // 886
         const LOGO_R = 38;
         const LINE_GAP = LOGO_R + 18;                      // 56
-        const TITLE_TOP = LOGO_Y + LOGO_R + 22;            // 946
+        const TITLE_TOP = LOGO_Y + LOGO_R + PREMIUM_TITLE_METRICS.topGap;   // 954
         const DOTS_H = 40;
-        const AVAILABLE_TITLE = height - TITLE_TOP - DOTS_H - 30;
+        const AVAILABLE_TITLE = height - TITLE_TOP - DOTS_H - PREMIUM_TITLE_METRICS.bottomGap;
 
-        // ─── Auto-scale font size to fit title within available space ───────────
-        const contentWidth = width - PADDING_X * 2;        // 908
-        // Com subheadline o título cede espaço para o bloco de baixo, espelhando o
-        // canvas do editor (PremiumCarouselEditor) para que preview e imagem batam.
-        const MAX_FONT = hasSub ? 116 : 148;
-        const MIN_FONT = hasSub ? 38 : 56;
-        const FONT_STEP = 4;
-        const LH_RATIO = 0.96;
-        const SUB_LH_RATIO = 1.25;
-        const SUB_GAP = 14;
-
-        const subFontFor = fontSize => Math.min(42, Math.max(28, Math.round(fontSize * 0.42)));
+        // ─── Tamanho padronizado por número de linhas ───────────────────────────
+        const contentWidth = width - PADDING_X * 2;        // 864
+        const LH_RATIO = PREMIUM_TITLE_METRICS.lineHeightRatio;
 
         function wrapTextSvg(text, maxWidth, fontSize) {
             const avgCharWidth = fontSize * 0.58;
-            const charsPerLine = Math.floor(maxWidth / avgCharWidth);
-            const words = text.split(/\s+/).filter(Boolean);
+            const charsPerLine = Math.max(1, Math.floor(maxWidth / avgCharWidth));
             const lines = [];
-            let current = '';
-            words.forEach(word => {
-                const candidate = current ? `${current} ${word}` : word;
-                if (candidate.length <= charsPerLine) {
-                    current = candidate;
-                } else {
-                    if (current) lines.push(current);
-                    current = word;
-                }
+
+            String(text || '').split('\n').forEach(sourceLine => {
+                const words = sourceLine.split(/\s+/).filter(Boolean);
+                let current = '';
+                words.forEach(word => {
+                    const candidate = current ? `${current} ${word}` : word;
+                    if (candidate.length <= charsPerLine) {
+                        current = candidate;
+                    } else {
+                        if (current) lines.push(current);
+                        current = word;
+                    }
+                });
+                if (current) lines.push(current);
             });
-            if (current) lines.push(current);
+
             return lines.length > 0 ? lines : [''];
         }
 
-        let titleFontSize = MAX_FONT;
-        let titleLines = [];
-        let subFontSize = subFontFor(MAX_FONT);
-        let subLines = [];
-
-        for (let fs = MAX_FONT; fs >= MIN_FONT; fs -= FONT_STEP) {
-            const candidate = wrapTextSvg(title, contentWidth, fs);
-            const candidateSubFont = subFontFor(fs);
-            const candidateSubLines = hasSub
-                ? wrapTextSvg(subheadline, contentWidth * 0.88, candidateSubFont)
-                : [];
-            const blockHeight = candidate.length * fs * LH_RATIO
-                + (hasSub ? candidateSubLines.length * candidateSubFont * SUB_LH_RATIO + SUB_GAP : 0);
-
-            if (blockHeight <= AVAILABLE_TITLE) {
-                titleFontSize = fs;
-                titleLines = candidate;
-                subFontSize = candidateSubFont;
-                subLines = candidateSubLines;
-                break;
-            }
-            if (fs - FONT_STEP < MIN_FONT) {
-                titleFontSize = MIN_FONT;
-                titleLines = wrapTextSvg(title, contentWidth, MIN_FONT);
-                subFontSize = subFontFor(MIN_FONT);
-                subLines = hasSub ? wrapTextSvg(subheadline, contentWidth * 0.88, subFontSize) : [];
-            }
-        }
+        const fitted = fitPremiumTitle(
+            title,
+            (text, fontSize) => wrapTextSvg(text, contentWidth, fontSize),
+            AVAILABLE_TITLE
+        );
+        const titleFontSize = fitted.fontSize;
+        const titleLines = fitted.lines;
         const lineHeight = titleFontSize * LH_RATIO;
-        const totalBlockHeight = titleLines.length * lineHeight
-            + (hasSub ? subLines.length * subFontSize * SUB_LH_RATIO + SUB_GAP : 0);
+        const totalBlockHeight = titleLines.length * lineHeight;
 
         // ─── 4. Layout SVG ────────────────────────────────────────────────────
         const svgParts = [];
@@ -446,6 +472,8 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
         }
 
         // Title — auto-scaled, bloco centralizado na zona livre (igual ao editor)
+        // Tracking proporcional ao corpo, para o título grande não abrir demais.
+        const letterSpacing = -(titleFontSize * 0.02).toFixed(2);
         let titleY = TITLE_TOP
             + Math.max(0, (AVAILABLE_TITLE - totalBlockHeight) / 2)
             + titleFontSize * 0.8;
@@ -462,29 +490,12 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
             }).join('');
 
             svgParts.push(`
-            <text x="${width / 2}" y="${titleY}" font-family="Inter, -apple-system, sans-serif" font-size="${titleFontSize}" font-weight="900" text-anchor="middle" letter-spacing="-2">
+            <text x="${width / 2}" y="${titleY}" font-family="Inter, -apple-system, sans-serif" font-size="${titleFontSize}" font-weight="900" text-anchor="middle" letter-spacing="${letterSpacing}">
                 ${tspanContent}
             </text>
             `);
             titleY += lineHeight;
         });
-
-        // Subheadline — abaixo do título, sem invadir a faixa dos swipe dots
-        if (hasSub && subLines.length > 0) {
-            const defaultSubColor = theme.subtitleColor || (theme.text === '#FFFFFF' ? 'rgba(255,255,255,0.85)' : '#727983');
-            const subColor = (descriptionColor && descriptionColor !== '#d1d5db') ? descriptionColor : defaultSubColor;
-            let subY = titleY + SUB_GAP;
-
-            subLines.forEach(line => {
-                if (subY >= height - 58) return;
-                svgParts.push(`
-                <text x="${width / 2}" y="${subY}" font-family="Inter, -apple-system, sans-serif" font-size="${subFontSize}" font-weight="500" fill="${escapeXml(subColor)}" text-anchor="middle">
-                    ${escapeXml(line)}
-                </text>
-                `);
-                subY += subFontSize * SUB_LH_RATIO;
-            });
-        }
 
         // Swipe dots
         const dotY = height - 50;
