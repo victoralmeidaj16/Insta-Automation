@@ -204,7 +204,11 @@ export default function CalendarPage() {
 
     // Handlers
     const handleFileUpload = async (e) => {
-        const files = Array.from(e.target.files);
+        const selected = Array.from(e.target.files);
+        const files = selected.filter(file => file.type.startsWith('image/'));
+        if (files.length !== selected.length) {
+            toast.error('Apenas imagens podem ser enviadas pelo calendário.');
+        }
         if (files.length === 0) return;
 
         const formData = new FormData();
@@ -899,7 +903,7 @@ export default function CalendarPage() {
                             )}
                             <label style={{ cursor: 'pointer', padding: '6px 14px', background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.35)', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 ➕ Upload Rápido
-                                <input type="file" accept="image/*,video/mp4" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
+                                <input type="file" accept="image/*" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
                             </label>
                         </div>
                     </div>
@@ -1157,8 +1161,6 @@ export default function CalendarPage() {
                                 >
                                     <option value="static">📸 Post Estático (1 imagem)</option>
                                     <option value="carousel">🎠 Carrossel (múltiplas imagens)</option>
-                                    <option value="video">🎥 Vídeo</option>
-                                    <option value="reel">🎬 Reel</option>
                                     <option value="story">📖 Story</option>
                                 </select>
                             </div>

@@ -55,7 +55,4 @@ services:
       - { key: UPLOAD_POST_API_KEY, sync: false }
       - { key: OPENAI_API_KEY, sync: false }
       - { key: GEMINI_API_KEY, sync: false }
-      - { key: REPLICATE_API_TOKEN, sync: false }
       - { key: SEEDREAM_API_TOKEN, sync: false }
-      - { key: KLING_ACCESS_KEY, sync: false }
-      - { key: KLING_SECRET_KEY, sync: false }

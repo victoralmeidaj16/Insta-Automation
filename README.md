@@ -1,13 +1,13 @@
 # Insta-Automation — Plataforma de Automação de Conteúdo para Instagram
 
-Plataforma web completa para criação, geração com IA, agendamento e publicação automatizada de conteúdo no Instagram. Suporta múltiplas contas, perfis de negócio, geração semanal de conteúdo com aprovação e criação de Reels com IA.
+Plataforma web completa para criação, geração com IA, agendamento e publicação automatizada de conteúdo no Instagram. Suporta múltiplas contas, perfis de negócio e geração semanal de conteúdo com aprovação.
 
 ---
 
 ## Funcionalidades
 
 ### Geração de Conteúdo com IA
-- Geração de imagens via OpenAI (GPT-4o), Google Gemini e Replicate
+- Geração de imagens via OpenAI, Google Gemini e Seedream
 - Carrossel com sequenciamento inteligente de slides
 - Carrossel em HTML com templates editáveis
 - Carrossel premium com composição científica e overlay de titular
@@ -23,17 +23,11 @@ Plataforma web completa para criação, geração com IA, agendamento e publica�
 - Preferências de IA por perfil
 
 ### Posts e Agendamento
-- Formatos suportados: estático, carrossel, vídeo, Story, Reel
+- Formatos suportados na criação e revisão: estático, carrossel e Story
 - Agendamento por data e hora
 - Edição de posts pendentes
 - Calendário visual de posts agendados
 - Rastreamento de status em tempo real (`draft`, `scheduled`, `schedule_error`, `processing`, `success` e `failed`)
-
-### Video Reels
-- Pipeline completo: roteiro → âncora visual → cenas → animação → merge final
-- Aprovação de cada cena antes da animação
-- Geração de vídeo com Kling AI
-- Player com suporte a range requests (streaming)
 
 ### Biblioteca e Upload
 - Biblioteca de mídia com detecção de duplicatas por hash
@@ -55,18 +49,17 @@ Plataforma web completa para criação, geração com IA, agendamento e publica�
 Insta-Automation/
 ├── backend/                   # Node.js + Express (ES Modules)
 │   └── src/
-│       ├── routes/            # API REST (accounts, posts, ai, library, auto-generate, video-reels, ...)
+│       ├── routes/            # API REST (accounts, posts, ai, library, auto-generate, ...)
 │       ├── services/          # Lógica de negócio
-│       │   ├── aiService.js             # Geração de imagens e texto (OpenAI, Gemini, Replicate)
+│       │   ├── aiService.js             # Geração de imagens e texto (OpenAI, Gemini, Seedream)
 │       │   ├── postService.js           # CRUD de posts + publicação
 │       │   ├── schedulerService.js      # Lease/heartbeat do cron externo e fallback local opcional
 │       │   ├── businessProfileService.js
 │       │   ├── contentGeneratorService.js  # Geração semanal por pilar
-│       │   ├── htmlExportService.js     # Carrossel HTML
-│       │   └── videoReelsService.js     # Pipeline de Reels
+│       │   └── htmlExportService.js     # Carrossel HTML
 │       ├── automation/        # Puppeteer / Playwright (publicação Instagram)
 │       ├── domain/            # Modelos e regras de formatação
-│       ├── utils/             # brandProfiles, klingClient, helpers
+│       ├── utils/             # brandProfiles e helpers
 │       ├── middleware/        # Auth Firebase, rate limiting
 │       ├── config/            # Firebase Admin
 │       └── queues/            # Sistema de filas (Bull)
@@ -83,8 +76,7 @@ Insta-Automation/
         │   ├── library/
         │   ├── posts/
         │   ├── review/
-        │   ├── upload-manager/
-        │   └── video-reels/
+        │   └── upload-manager/
         ├── components/        # Header, PostsStatusWidget, ProfileSwitcher, ...
         ├── contexts/          # AuthContext, BusinessProfileContext
         └── lib/               # Firebase client, Axios API client
@@ -97,8 +89,7 @@ Insta-Automation/
 | Camada | Tecnologias |
 |--------|-------------|
 | Backend | Node.js, Express 4, ES Modules |
-| IA / Imagens | OpenAI GPT-4o, Google Gemini, Replicate |
-| IA / Vídeo | Kling AI |
+| IA / Imagens | OpenAI, Google Gemini, Seedream |
 | Automação | Puppeteer, Playwright |
 | Banco de Dados | Firebase Firestore |
 | Storage | Firebase Storage |
@@ -120,7 +111,7 @@ Insta-Automation/
 - Node.js 18+
 - Redis (para filas)
 - Firebase Project (Firestore + Storage + Auth habilitados)
-- Chaves de API: OpenAI, Google Generative AI, Replicate, Kling
+- Chaves de API: OpenAI, Google Generative AI e Seedream
 
 ### 1. Clone e instale
 
@@ -162,9 +153,6 @@ ENCRYPTION_KEY=<openssl rand -base64 32>
 # IA
 OPENAI_API_KEY=sk-...
 GEMINI_API_KEY=AIza...
-REPLICATE_API_TOKEN=r8_...
-KLING_API_KEY=...
-KLING_API_SECRET=...
 ```
 
 ### 3. Variáveis de ambiente — Frontend (`frontend/.env.local`)
@@ -278,8 +266,8 @@ Acesse: `http://localhost:3000`
   "userId": "string",
   "accountId": "string",
   "businessProfileId": "string",
-  "type": "static | carousel | video | story | reel",
-  "format": "image | carousel | carousel-html | carousel-premium | video | reel",
+  "type": "static | carousel | story",
+  "format": "image | carousel | carousel-html | carousel-premium | story",
   "mediaUrls": ["array"],
   "caption": "string",
   "scheduledFor": "timestamp | null",

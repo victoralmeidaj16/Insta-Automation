@@ -39,6 +39,14 @@ interface PremiumEditorModalProps {
     secondaryActionDisabled?: boolean;
 }
 
+// Enquadramento padrão da foto no hero: sobe 10% da altura da faixa, senão o
+// motivo da imagem nasce baixo demais e some atrás do gradiente.
+// Espelhado no backend (premiumCompositionService: PREMIUM_HERO_LIFT_RATIO).
+export const PREMIUM_HERO_LIFT_RATIO = 0.10;
+
+// Intensidade padrão do gradiente de transição foto → painel.
+export const PREMIUM_GRADIENT_OPACITY_DEFAULT = 0.8;
+
 function clampPremiumImageScale(value: number) {
     return Math.min(2.0, Math.max(1, Number.isFinite(value) ? value : 1));
 }
@@ -47,7 +55,7 @@ function clampPremiumImageOffset(value: number) {
     return Math.min(150, Math.max(-150, Number.isFinite(value) ? value : 0));
 }
 
-function getPremiumImageFrame(layout: PremiumLayout, imageWidth: number, imageHeight: number, targetWidth: number, targetHeight: number) {
+function getPremiumImageFrame(layout: PremiumLayout, imageWidth: number, imageHeight: number, targetWidth: number, targetHeight: number, heroLiftRatio = 0) {
     const safeScale = clampPremiumImageScale(Number(layout.imageScale || 1));
     const safeOffsetY = clampPremiumImageOffset(Number(layout.imageOffsetY || 0));
     const safeOffsetX = clampPremiumImageOffset(Number(layout.imageOffsetX || 0));
@@ -63,6 +71,12 @@ function getPremiumImageFrame(layout: PremiumLayout, imageWidth: number, imageHe
         : maxTravelY * (safeOffsetY / 150);
     const xOffset = maxTravelX * (safeOffsetX / 150);
 
+    const centeredY = (targetHeight - renderHeight) / 2 + yOffset;
+    // Subir a foto = desenhá-la mais alto; limitado ao que ainda existe de
+    // imagem abaixo do quadro, para não abrir faixa vazia no pé do hero.
+    const liftRoom = Math.max(0, centeredY - (targetHeight - renderHeight));
+    const heroLift = Math.min(targetHeight * heroLiftRatio, liftRoom);
+
     return {
         safeScale,
         safeOffsetX,
@@ -70,7 +84,7 @@ function getPremiumImageFrame(layout: PremiumLayout, imageWidth: number, imageHe
         renderWidth,
         renderHeight,
         x: (targetWidth - renderWidth) / 2 + xOffset,
-        y: (targetHeight - renderHeight) / 2 + yOffset
+        y: centeredY - heroLift
     };
 }
 
@@ -526,7 +540,7 @@ export function buildPremiumLayoutFromPrompt(
         imageOffsetX: 0,
         imageOffsetY: 0,
         imageScale: 1,
-        gradientOpacity: 1,
+        gradientOpacity: PREMIUM_GRADIENT_OPACITY_DEFAULT,
         slideIndex: 0,
         slideCount: 5
     };
@@ -628,13 +642,13 @@ export async function renderPremiumPostToDataUrl({
     if (resolvedBackground) {
         const background = await loadImage(resolvedBackground);
         context.filter = theme.imageFilter;
-        const frame = getPremiumImageFrame(layout, background.width, background.height, canvas.width, IMAGE_H);
+        const frame = getPremiumImageFrame(layout, background.width, background.height, canvas.width, IMAGE_H, PREMIUM_HERO_LIFT_RATIO);
         context.drawImage(background, frame.x, frame.y, frame.renderWidth, frame.renderHeight);
         context.filter = 'none';
     }
 
     // 3. Gradient overlay — compressed zone (28%→60%), stronger curve
-    const gradOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? 1)));
+    const gradOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT)));
     const gradStart = Math.round(canvas.height * 0.28);
     const gradEnd   = IMAGE_H; // 60% — exactly where panel begins
     const gradient = context.createLinearGradient(0, gradStart, 0, gradEnd);
@@ -789,7 +803,10 @@ export function PremiumPostPreview({ layout, backgroundImage, compact = false }:
     const imageScale = clampPremiumImageScale(Number(layout.imageScale || 1));
     const imageOffsetX = clampPremiumImageOffset(Number(layout.imageOffsetX || 0));
     const imageOffsetY = clampPremiumImageOffset(Number(layout.imageOffsetY || 0));
-    const gradientOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? 1)));
+    const gradientOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT)));
+    // Faixa da foto = 60% de um quadro 4:5, ou seja 75cqi de altura. O lift
+    // padrão sobe 10% dela; em object-position, comprimento negativo = foto sobe.
+    const heroLiftCqi = layout.hideOverlay ? 0 : (0.6 * 1.25 * 100 * PREMIUM_HERO_LIFT_RATIO).toFixed(2);
 
     // Mesma escada da arte final (fitPremiumTitle), estimando a quebra por
     // largura média de caractere — o preview usa cqi, então escala sozinho.
@@ -833,7 +850,7 @@ export function PremiumPostPreview({ layout, backgroundImage, compact = false }:
                         width: '100%',
                         height: layout.hideOverlay ? '100%' : '60%',
                         objectFit: 'cover',
-                        objectPosition: `calc(50% + ${imageOffsetX * 1.5}px) calc(50% + ${imageOffsetY * 1.5}px)`,
+                        objectPosition: `calc(50% + ${imageOffsetX * 1.5}px) calc(50% + ${imageOffsetY * 1.5}px - ${heroLiftCqi}cqi)`,
                         transform: `scale(${imageScale})`,
                         transformOrigin: 'center center',
                         filter: theme.imageFilter
@@ -1098,19 +1115,19 @@ export function PremiumEditorModal({
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
                             Gradiente de Transição
                             <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr 48px', gap: '0.6rem', alignItems: 'center' }}>
-                                <button type="button" className="btn" onClick={() => onChange('gradientOpacity', Math.max(0, Number(layout.gradientOpacity ?? 1) - 0.05))} style={{ padding: 0 }}>−</button>
+                                <button type="button" className="btn" onClick={() => onChange('gradientOpacity', Math.max(0, Number(layout.gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT) - 0.05))} style={{ padding: 0 }}>−</button>
                                 <input
                                     type="range"
                                     min="0"
                                     max="1"
                                     step="0.01"
-                                    value={Number(layout.gradientOpacity ?? 1)}
+                                    value={Number(layout.gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT)}
                                     onChange={event => onChange('gradientOpacity', Number(event.target.value))}
                                 />
-                                <button type="button" className="btn" onClick={() => onChange('gradientOpacity', Math.min(1, Number(layout.gradientOpacity ?? 1) + 0.05))} style={{ padding: 0 }}>+</button>
+                                <button type="button" className="btn" onClick={() => onChange('gradientOpacity', Math.min(1, Number(layout.gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT) + 0.05))} style={{ padding: 0 }}>+</button>
                             </div>
                             <span style={{ fontSize: '0.8rem', color: '#d4d4d8', textTransform: 'none' }}>
-                                {Math.round(Number(layout.gradientOpacity ?? 1) * 100)}% opacidade
+                                {Math.round(Number(layout.gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT) * 100)}% opacidade
                             </span>
                         </div>
                     </div>

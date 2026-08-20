@@ -3,6 +3,7 @@ import sharp from 'sharp';
 import {
     createPremiumComposition,
     fitPremiumTitle,
+    PREMIUM_GRADIENT_OPACITY_DEFAULT,
     PREMIUM_TITLE_METRICS
 } from '../src/services/premiumCompositionService.js';
 
@@ -119,13 +120,28 @@ describe('createPremiumComposition sem subtítulo', () => {
     });
 });
 
+describe('gradiente de transição', () => {
+    it('usa 80% quando o layout não define a intensidade', async () => {
+        const background = await splitBackground();
+
+        const implicit = await createPremiumComposition(background, baseLayout);
+        const explicit80 = await createPremiumComposition(background, { ...baseLayout, gradientOpacity: PREMIUM_GRADIENT_OPACITY_DEFAULT });
+        const full = await createPremiumComposition(background, { ...baseLayout, gradientOpacity: 1 });
+
+        expect(PREMIUM_GRADIENT_OPACITY_DEFAULT).toBe(0.8);
+        expect(implicit).toBe(explicit80);
+        expect(implicit).not.toBe(full);
+    });
+});
+
 describe('createPremiumComposition hero framing', () => {
     it('centra a foto na faixa superior de 60%, como o editor — e não no canvas inteiro', async () => {
         const result = await createPremiumComposition(await splitBackground(), baseLayout);
 
-        // Centro da foto cai em ~y=405 (metade da faixa de 810px), não em y=675.
-        expect(isRed(await pixelAt(result, 540, 340))).toBe(true);
-        expect(isBlue(await pixelAt(result, 540, 460))).toBe(true);
+        // A foto vive na faixa de 810px, não no canvas inteiro: a fronteira
+        // vermelho/azul cai em ~y=324 (405 do centro menos o lift de 10%).
+        expect(isRed(await pixelAt(result, 540, 260))).toBe(true);
+        expect(isBlue(await pixelAt(result, 540, 380))).toBe(true);
 
         // Se a foto fosse esticada no canvas inteiro, a fronteira estaria em 675 e
         // o topo do gradiente (y=378) ainda mostraria vermelho lá embaixo.
@@ -135,6 +151,34 @@ describe('createPremiumComposition hero framing', () => {
         const panel = await pixelAt(result, 540, 830);
         expect(panel.r).toBeGreaterThan(220);
         expect(panel.g).toBeGreaterThan(220);
+    });
+
+    it('sobe a foto 10% da faixa por padrão, sem abrir faixa vazia embaixo', async () => {
+        const background = await splitBackground();
+        const result = await createPremiumComposition(background, baseLayout);
+
+        // Fronteira vermelho/azul da foto (y=675 na origem) sai em 675-351=324:
+        // o recorte desceu 81px (10% de 810) dentro da imagem.
+        expect(isRed(await pixelAt(result, 540, 316))).toBe(true);
+        expect(isBlue(await pixelAt(result, 540, 332))).toBe(true);
+
+    });
+
+    it('limita o lift ao que a foto permite, sem forçar recorte fora da imagem', async () => {
+        // Foto na mesma proporção da faixa (1080x810): não há folga vertical,
+        // então o lift precisa ser 0 em vez de arrastar o recorte para fora.
+        const svg = `<svg width="1080" height="810" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="1080" height="405" fill="#FF0000" />
+            <rect x="0" y="405" width="1080" height="405" fill="#0000FF" />
+        </svg>`;
+        const png = await sharp(Buffer.from(svg)).png().toBuffer();
+        const exactFit = `data:image/png;base64,${png.toString('base64')}`;
+
+        const result = await createPremiumComposition(exactFit, baseLayout);
+
+        // Topo e fronteira permanecem onde a foto os coloca (405), sem lift.
+        expect(isRed(await pixelAt(result, 540, 40))).toBe(true);
+        expect(isRed(await pixelAt(result, 540, 396))).toBe(true);
     });
 
     it('desloca a imagem para cima com imageOffsetY negativo, revelando a parte de baixo da foto', async () => {

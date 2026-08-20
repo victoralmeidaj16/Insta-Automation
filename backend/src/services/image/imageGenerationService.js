@@ -1,4 +1,3 @@
-import Replicate from 'replicate';
 import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
@@ -28,10 +27,6 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-const replicate = new Replicate({
-    auth: process.env.REPLICATE_API_TOKEN,
-});
-
 /**
  * Verifica se o prompt menciona elementos de interface de celular/app
  */
@@ -46,9 +41,63 @@ function promptMentionsPhoneScreen(prompt) {
 }
 
 /**
+ * Provedores de imagem, em ordem. O Gemini é o padrão do produto; o Seedream
+ * (BytePlus) cobre indisponibilidade ou falta de quota do provedor principal.
+ *
+ * @param {string} model - provedor pedido ('gemini' | 'seedream')
+ * @returns {Promise<string>} URL ou data URL da imagem
+ */
+async function generateWithProviders(model, prompt, aspectRatio, referenceImages = []) {
+    const references = referenceImages.length > 0 ? referenceImages : null;
+    const providers = [
+        {
+            name: 'Gemini',
+            enabled: Boolean(process.env.GEMINI_API_KEY),
+            missing: 'GEMINI_API_KEY não configurada',
+            run: () => generateImageWithGemini(prompt, aspectRatio, referenceImages)
+        },
+        {
+            name: 'Seedream (BytePlus)',
+            enabled: Boolean(process.env.SEEDREAM_API_TOKEN),
+            missing: 'SEEDREAM_API_TOKEN não configurada',
+            run: () => generateImageWithSeedream(prompt, aspectRatio, references)
+        }
+    ];
+
+    // Um pedido explícito por Seedream inverte a ordem, sem tirar o Gemini da fila.
+    if (model === 'seedream') providers.reverse();
+
+    const failures = [];
+
+    for (const provider of providers) {
+        if (!provider.enabled) {
+            failures.push(`${provider.name}: ${provider.missing}`);
+            continue;
+        }
+
+        console.log(`🤖 Gerando imagem com ${provider.name}...`);
+        try {
+            const imageUrl = await provider.run();
+            if (!imageUrl) throw new Error('nenhuma imagem retornada');
+            console.log(`📡 finalImageUrl após ${provider.name}: type=${typeof imageUrl}, value=${typeof imageUrl === 'string' ? imageUrl.substring(0, 100) : 'NOT_A_STRING'}`);
+            return imageUrl;
+        } catch (error) {
+            console.error(`⚠️ Falha no ${provider.name}:`, error.message);
+            failures.push(`${provider.name}: ${error.message}`);
+        }
+    }
+
+    throw new Error(`Falha na geração de imagem em todos os provedores — ${failures.join(' | ')}`);
+}
+
+/**
  * Gera UMA imagem (Abstração principal)
  */
-export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingStyle = '', isEditorial = false, context = {}, referenceImage = null, model = 'gemini') {
+export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingStyle = '', isEditorial = false, context = {}, referenceImage = null, model = 'gemini', businessProfileId = null) {
+    if (businessProfileId) {
+        context = { ...context, businessProfileId };
+    }
+
     let finalPrompt = prompt || '';
     const brandKey = context.brandKey || normalizeBrandKey(context);
     const isFitswap = isFitswapBrand({ brandKey, brandName: context.brandName, name: context.name });
@@ -224,69 +273,7 @@ export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingS
             finalPrompt += `\n\n[INSTRUÇÃO DO SISTEMA]: A arte gerada NÃO PODE CONTER LOGOMARCAS, ASSINATURAS OU MARCAS D'ÁGUA ("Inner Boost" ou outras). A logomarca oficial do cliente será inserida eletronicamente pelo nosso sistema na imagem final, então mantenha os cantos inferiores limpos para encaixe perfeito. Foque absolutamente apenas no conceito criativo solicitado no prompt.`;
         }
 
-        if (model === 'gemini' && process.env.GEMINI_API_KEY) {
-            try {
-                finalImageUrl = await generateImageWithGemini(finalPrompt, aspectRatio, enhancedReferenceImages);
-                console.log(`📡 finalImageUrl após Gemini: type=${typeof finalImageUrl}, value=${typeof finalImageUrl === 'string' ? finalImageUrl.substring(0, 100) : 'NOT_A_STRING'}`);
-            } catch (geminiError) {
-                console.error('⚠️ Falha no Gemini, tentando Replicate (Fallback)...', geminiError.message);
-            }
-        } else if (model === 'seedream') {
-            console.log('🤖 Usando modelo Seedream 4.5 (via BytePlus)...');
-            try {
-                finalImageUrl = await generateImageWithSeedream(finalPrompt, aspectRatio, enhancedReferenceImages.length > 0 ? enhancedReferenceImages : null);
-                console.log(`📡 finalImageUrl após Seedream (BytePlus): type=${typeof finalImageUrl}, value=${typeof finalImageUrl === 'string' ? finalImageUrl.substring(0, 100) : 'NOT_A_STRING'}`);
-            } catch (seedreamError) {
-                console.error('⚠️ Falha no Seedream (BytePlus):', seedreamError.message);
-                if (!process.env.REPLICATE_API_TOKEN) throw seedreamError;
-            }
-        }
-    }
-
-    console.log(`📡 finalImageUrl antes do Replicate Fallback: type=${typeof finalImageUrl}, value=${typeof finalImageUrl === 'string' ? finalImageUrl.substring(0, 50) : 'NOT_A_STRING'}`);
-
-    // Replicate (Fallback) if not generated yet
-    if (!finalImageUrl) {
-        const aspectRatioMap = {
-            '1:1': '1:1',
-            '4:5': '3:4',
-            '16:9': '16:9',
-            '9:16': '9:16'
-        };
-
-        const replicateAspectRatio = aspectRatioMap[aspectRatio] || '1:1';
-        const seed = Math.floor(Math.random() * 2147483647);
-        console.log(`🎲 Seed gerada: ${seed}`);
-
-        let input = {
-            prompt: finalPrompt,
-            aspect_ratio: replicateAspectRatio,
-            seed: seed,
-            disable_safety_checker: true,
-            safety_tolerance: 5
-        };
-
-        if (!process.env.REPLICATE_API_TOKEN) {
-            throw new Error('Todas as tentativas falharam e REPLICATE_API_TOKEN não está configurado.');
-        }
-
-        const client = replicate;
-
-        console.log(`🚀 Enviando requisição para Replicate (Fallback/Default)...`);
-
-        if (enhancedReferenceImages.length > 0) {
-            input.image = enhancedReferenceImages;
-        }
-
-        const output = await client.run('bytedance/seedream-4.5', { input });
-
-        if (output && output.length > 0) {
-            const rawOutput = typeof output[0] === 'string' ? output[0] : (output[0].url ? (typeof output[0].url === 'function' ? output[0].url() : output[0].url) : output[0]);
-            finalImageUrl = String(rawOutput);
-            console.log(`📡 finalImageUrl após Replicate (Fallback): type=${typeof finalImageUrl}, value=${finalImageUrl.substring(0, 100)}`);
-        } else {
-            throw new Error('Nenhuma imagem retornada pela API (Replicate e Gemini falharam)');
-        }
+        finalImageUrl = await generateWithProviders(model, finalPrompt, aspectRatio, enhancedReferenceImages);
     }
 
     console.log(`📡 finalImageUrl após toda geração: type=${typeof finalImageUrl}, value=${typeof finalImageUrl === 'string' ? finalImageUrl.substring(0, 50) : 'NOT_A_STRING'}`);
@@ -397,7 +384,7 @@ export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingS
  */
 export async function generateImages(prompt, aspectRatio = '1:1', count = 1, brandingStyle = '', isEditorial = false, context = {}, referenceImage = null, model = 'gemini') {
     try {
-        console.log('🎨 Gerando imagens com Replicate (modo simples)...');
+        console.log('🎨 Gerando imagens (modo simples)...');
         console.log(`🖼️ PROMPT GERADO (Single Image):\n${prompt}`);
         console.log(`Aspect Ratio: ${aspectRatio}`);
         console.log(`Count: ${count}`);
@@ -421,7 +408,7 @@ export async function generateImages(prompt, aspectRatio = '1:1', count = 1, bra
 }
 
 /**
- * Gera carrossel inteligente: usa OpenAI para criar prompts individuais e Replicate para gerar as imagens
+ * Gera carrossel inteligente: usa OpenAI para criar prompts individuais e o gerador de imagens configurado
  */
 export async function generateCarousel(promptsOrDescription, aspectRatio = '1:1', count = 1, brandingStyle = '', model = 'gemini', context = {}, businessProfileId = null) {
     try {

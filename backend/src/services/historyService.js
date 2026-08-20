@@ -48,7 +48,7 @@ export async function uploadImage(imageInput) {
         }
     }
 
-    // 2. Handle External URL (e.g. Replicate) - Persist to own storage
+    // 2. Persist an external provider URL to our own storage
     if (imageInput.startsWith('http')) {
         // Skip if already on our storage
         if (imageInput.includes('firebasestorage.googleapis.com') ||

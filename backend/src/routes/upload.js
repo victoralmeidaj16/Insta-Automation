@@ -13,18 +13,18 @@ const upload = multer({
         fileSize: 100 * 1024 * 1024, // 100MB
     },
     fileFilter: (req, file, cb) => {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'video/mp4'];
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
 
         if (allowedTypes.includes(file.mimetype)) {
             cb(null, true);
         } else {
-            cb(new Error('Tipo de arquivo não suportado. Use: JPG, PNG ou MP4'));
+            cb(new Error('Tipo de arquivo não suportado. Use JPG ou PNG.'));
         }
     },
 });
 
 /**
- * POST /api/upload - Upload de mídia(s) para Firebase Storage
+ * POST /api/upload - Upload de imagem(ns) para Firebase Storage
  */
 router.post('/', upload.array('files', 50), async (req, res) => {
     try {

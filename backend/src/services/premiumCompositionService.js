@@ -33,6 +33,14 @@ export const PREMIUM_TITLE_METRICS = {
     fontStep: 4
 };
 
+// Enquadramento padrão da foto no hero: o recorte sobe 10% da altura da faixa,
+// senão o motivo da imagem nasce baixo demais e some atrás do gradiente.
+// Espelhado no editor (PremiumCarouselEditor: PREMIUM_HERO_LIFT_RATIO).
+export const PREMIUM_HERO_LIFT_RATIO = 0.10;
+
+// Intensidade padrão do gradiente de transição foto → painel.
+export const PREMIUM_GRADIENT_OPACITY_DEFAULT = 0.8;
+
 /**
  * Escolhe o tamanho do título pela escada padronizada: usa o primeiro degrau em
  * que o texto cabe na largura E na altura disponíveis. Títulos extremos caem
@@ -236,7 +244,7 @@ function clampPremiumImageOffset(value) {
     return Math.min(150, Math.max(-150, Number.isFinite(value) ? value : 0));
 }
 
-async function buildPositionedBackground(backgroundBuffer, targetWidth, targetHeight, layout = {}) {
+async function buildPositionedBackground(backgroundBuffer, targetWidth, targetHeight, layout = {}, heroLiftRatio = 0) {
     const metadata = await sharp(backgroundBuffer).metadata();
     const imageWidth = metadata.width || targetWidth;
     const imageHeight = metadata.height || targetHeight;
@@ -257,7 +265,12 @@ async function buildPositionedBackground(backgroundBuffer, targetWidth, targetHe
         ? -Math.round(maxTravelY * 1.5 * (imageOffsetY / 150))
         : -Math.round(maxTravelY * (imageOffsetY / 150));
     const left = Math.round((renderWidth - targetWidth) / 2 + xOffset);
-    const top = Math.round((renderHeight - targetHeight) / 2 + yOffset);
+    const centeredTop = Math.round((renderHeight - targetHeight) / 2 + yOffset);
+    // Descer o RECORTE dentro da imagem = subir a FOTO no quadro. O lift é
+    // limitado ao que ainda existe de imagem abaixo, para não abrir faixa vazia.
+    const liftRoom = Math.max(0, renderHeight - targetHeight - centeredTop);
+    const heroLift = Math.min(Math.round(targetHeight * heroLiftRatio), liftRoom);
+    const top = centeredTop + heroLift;
 
     // O pan de 1.5x pode empurrar o recorte para fora da imagem (o editor
     // simplesmente deixa sobrar fundo). Preenchemos essa sobra com a cor do tema
@@ -323,7 +336,7 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
         // `description` continua no draft (histórico/legenda), mas não é desenhada.
         // O editor deixa regular a intensidade do gradiente; ignorá-la aqui fazia
         // a arte publicada sair sempre com o gradiente no máximo.
-        const gradientOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? 1)));
+        const gradientOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT)));
 
         const width = 1080;
         const height = 1350;
@@ -353,7 +366,7 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
             return backgroundUrl;
         }
 
-        const heroBuffer = await buildPositionedBackground(bgBuffer, width, IMAGE_H, themedLayout);
+        const heroBuffer = await buildPositionedBackground(bgBuffer, width, IMAGE_H, themedLayout, PREMIUM_HERO_LIFT_RATIO);
         const baseImage = sharp({ create: { width, height, channels: 3, background: theme.panelFill } });
         const highlightColor = theme.accent;
         const normalizedHighlights = normalizeHighlights(highlights, highlightText, title);

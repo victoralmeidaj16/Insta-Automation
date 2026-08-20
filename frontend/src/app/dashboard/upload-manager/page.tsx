@@ -17,10 +17,15 @@ export default function UploadManagerPage() {
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            const newFiles = Array.from(e.target.files).map((file: File) => ({
+            const selectedFiles = Array.from(e.target.files);
+            const imageFiles = selectedFiles.filter((file: File) => file.type.startsWith('image/'));
+            if (imageFiles.length !== selectedFiles.length) {
+                toast.error('Apenas imagens podem ser enviadas.');
+            }
+            const newFiles = imageFiles.map((file: File) => ({
                 file,
                 preview: URL.createObjectURL(file),
-                type: file.type.startsWith('video') ? 'video' : 'image'
+                type: 'image'
             }));
             setFiles((prev: any) => [...prev, ...newFiles] as any);
         }
@@ -96,7 +101,7 @@ export default function UploadManagerPage() {
                     const formData = new FormData();
                     formData.append('files', fileObj.file);
                     formData.append('businessProfileId', selectedProfile.id);
-                    formData.append('type', fileObj.type === 'video' ? 'reel' : 'static');
+                    formData.append('type', 'static');
                     formData.append('tag', 'pronto'); // Default to pronto or edit? Let's say edit for new uploads
 
                     await api.post('/api/library/upload', formData, {
@@ -178,7 +183,7 @@ export default function UploadManagerPage() {
                                     gap: '0.5rem'
                                 }}>
                                     + Adicionar Arquivos
-                                    <input type="file" multiple accept="image/*,video/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+                                    <input type="file" multiple accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
                                 </label>
                             </div>
                         </div>

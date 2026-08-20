@@ -36,7 +36,11 @@
       "Bash(sed -i '' \"s#'../../../../../Users/victoralmeidaj16/Downloads/Insta-Automation/backend/src/config/firebase.js'#'../src/config/firebase.js'#\" scripts/.tmp-diag-accounts.js)",
       "Bash(node scripts/.tmp-diag-accounts.js)",
       "Bash(node scripts/.tmp-diag-fitswap.js)",
-      "Bash(node scripts/.tmp-link-fitswap.js)"
+      "Bash(node scripts/.tmp-link-fitswap.js)",
+      "Bash(node scripts/.tmp-diag-runs.js)",
+      "Bash(perl -pi -e 's/gradientOpacity \\\\?\\\\? 1\\\\\\)/gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT\\)/g' frontend/src/app/dashboard/generate/components/PremiumCarouselEditor.tsx)",
+      "Bash(perl -pi -e 's/^\\(\\\\s+\\)gradientOpacity: 1,$/$1gradientOpacity: PREMIUM_GRADIENT_OPACITY_DEFAULT,/' frontend/src/app/dashboard/generate/components/PremiumCarouselEditor.tsx)",
+      "Bash(node .tmp-chain-check.mjs)"
     ]
   }
 }

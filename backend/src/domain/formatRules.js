@@ -100,6 +100,36 @@ const FORMAT_RULES = {
     }
 };
 
+const LIBRARY_VIDEO_FORMATS = new Set(['video', 'reel', 'carousel-html-video']);
+
+export const LIBRARY_VIDEO_REJECTION_MESSAGE = 'Vídeos e Reels não são aceitos na Library.';
+
+export function isVideoMediaUrl(url = '') {
+    return /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(String(url));
+}
+
+export function isVideoLibraryItem(item = {}) {
+    const formats = [item.format, item.type]
+        .map(value => String(value || '').trim().toLowerCase())
+        .filter(Boolean);
+    const contentFamily = String(item.contentFamily || '').trim().toLowerCase();
+    const mediaUrls = Array.isArray(item.mediaUrls) ? item.mediaUrls : [];
+
+    return formats.some(format => LIBRARY_VIDEO_FORMATS.has(format))
+        || contentFamily === 'video'
+        || contentFamily === 'reel'
+        || isVideoMediaUrl(item.videoUrl)
+        || mediaUrls.some(isVideoMediaUrl);
+}
+
+export function assertLibraryItemAccepted(item = {}) {
+    if (!isVideoLibraryItem(item)) return;
+
+    const error = new Error(LIBRARY_VIDEO_REJECTION_MESSAGE);
+    error.statusCode = 400;
+    throw error;
+}
+
 export function getFormatRule(format = 'static') {
     return FORMAT_RULES[format] || FORMAT_RULES.static;
 }

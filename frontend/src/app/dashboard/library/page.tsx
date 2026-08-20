@@ -923,7 +923,11 @@ Replace broken text with refined, natural English that elevates the concept.`,
     };
 
     const handleFileSelect = (e) => {
-        const files = Array.from<File>(e.target.files || []);
+        const selected = Array.from<File>(e.target.files || []);
+        const files = selected.filter(file => file.type.startsWith('image/'));
+        if (files.length !== selected.length) {
+            toast.error('A Library aceita somente imagens.');
+        }
         setSelectedFiles(files);
 
         // Auto-detect type based on file count
@@ -1539,8 +1543,6 @@ Replace broken text with refined, natural English that elevates the concept.`,
         const emojis = {
             static: '📸',
             carousel: '🖼️',
-            video: '🎥',
-            reel: '🎬',
             story: '📱',
         };
         return emojis[type] || '📸';
@@ -2004,7 +2006,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         <input
                                             type="file"
                                             multiple
-                                            accept="image/*,video/*"
+                                            accept="image/*"
                                             onChange={handleFileSelect}
                                             style={{ display: 'none' }}
                                         />
@@ -3283,29 +3285,16 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                 position: 'relative',
                                                 border: isDup ? '2px solid #ef4444' : 'none'
                                             }}>
-                                                {file.type.startsWith('image/') ? (
-                                                    <img
-                                                        src={URL.createObjectURL(file)}
-                                                        alt={`Preview ${index + 1}`}
-                                                        style={{
-                                                            width: '100%',
-                                                            height: '100%',
-                                                            objectFit: 'cover',
-                                                            opacity: isDup ? 0.6 : 1
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <div style={{
+                                                <img
+                                                    src={URL.createObjectURL(file)}
+                                                    alt={`Preview ${index + 1}`}
+                                                    style={{
                                                         width: '100%',
                                                         height: '100%',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        fontSize: '2rem'
-                                                    }}>
-                                                        🎥
-                                                    </div>
-                                                )}
+                                                        objectFit: 'cover',
+                                                        opacity: isDup ? 0.6 : 1
+                                                    }}
+                                                />
 
                                                 {isDup && (
                                                     <div style={{

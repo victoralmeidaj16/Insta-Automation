@@ -109,22 +109,6 @@ export function createStoryDraftRecord(input = {}) {
     });
 }
 
-export function createReelDraftRecord(input = {}) {
-    return createDraftRecord({
-        ...input,
-        format: 'reel',
-        mediaUrls: input.mediaUrls || (input.videoUrl ? [input.videoUrl] : []),
-        extra: {
-            entitySubType: 'reel-draft',
-            videoUrl: input.videoUrl || input.mediaUrls?.[0] || null,
-            thumbnailUrl: input.thumbnailUrl || null,
-            script: input.script || '',
-            duration: input.duration || null,
-            ...(input.extra || {})
-        }
-    });
-}
-
 export function createScheduledPostRecord({
     userId,
     accountId,

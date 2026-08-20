@@ -1628,7 +1628,6 @@ export default function BusinessProfilesPage() {
                                                         ['carousel-premium', '✨ Premium'],
                                                         ['carousel-html', '🎨 HTML'],
                                                         ['story', '📱 Story'],
-                                                        ['reel', '🎬 Reel'],
                                                     ].map(([fmt, label]) => (
                                                         <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: '#a1a1aa', cursor: 'pointer' }}>
                                                             <input

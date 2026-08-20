@@ -126,7 +126,7 @@ interface DraftPost {
     type: string;
     format?: string;
     contentFamily?: string;
-    draftModel?: 'FeedPostDraft' | 'StoryDraft' | 'ReelDraft' | 'HtmlCarouselDraft';
+    draftModel?: 'FeedPostDraft' | 'StoryDraft' | 'HtmlCarouselDraft';
     reviewState?: 'draft' | 'ready_for_review' | 'ready_for_publish' | 'scheduled' | 'published' | 'failed' | string;
     draftDetails?: Record<string, unknown>;
     mediaUrls: string[];
@@ -152,10 +152,6 @@ interface DraftPost {
     slideCount?: number;
     frameCount?: number;
     interactiveElements?: string[];
-    videoUrl?: string | null;
-    thumbnailUrl?: string | null;
-    script?: string;
-    duration?: number | null;
     theme?: string | null;
     exportStatus?: string | null;
     qaWarnings?: QaWarning[] | null;
@@ -215,7 +211,6 @@ const FORMAT_LABELS: Record<string, string> = {
     'carousel-premium': 'Carrossel Premium',
     'carousel-html': 'Carrossel HTML',
     story: 'Story',
-    reel: 'Reel',
 };
 
 const FORMAT_ICONS: Record<string, string> = {
@@ -224,13 +219,11 @@ const FORMAT_ICONS: Record<string, string> = {
     'carousel-premium': '✨',
     'carousel-html': '🎨',
     story: '📱',
-    reel: '🎬',
 };
 
 const REVIEW_TABS = [
     { key: 'feed', label: 'Feed', icon: '🖼️' },
     { key: 'stories', label: 'Stories', icon: '📱' },
-    { key: 'reels', label: 'Reels', icon: '🎬' },
 ] as const;
 
 function getPillarColor(index: number) {
@@ -354,12 +347,20 @@ function getDraftFormat(draft: DraftPost): string {
     return draft.format || draft.type || 'static';
 }
 
-function getDraftReviewTab(draft: DraftPost): 'feed' | 'stories' | 'reels' {
+function isVideoDraft(draft: DraftPost): boolean {
+    const format = getDraftFormat(draft);
+    return draft.contentFamily === 'reel'
+        || draft.contentFamily === 'video'
+        || format === 'reel'
+        || format === 'video'
+        || format === 'carousel-html-video';
+}
+
+function getDraftReviewTab(draft: DraftPost): 'feed' | 'stories' {
     const format = getDraftFormat(draft);
     // HTML Carousels appear inside Feed
     if (draft.draftModel === 'HtmlCarouselDraft' || draft.contentFamily === 'html-carousel' || format === 'carousel-html') return 'feed';
     if (draft.draftModel === 'StoryDraft' || draft.contentFamily === 'story' || format === 'story') return 'stories';
-    if (draft.draftModel === 'ReelDraft' || draft.contentFamily === 'reel' || format === 'reel' || format === 'video') return 'reels';
     return 'feed';
 }
 
@@ -405,13 +406,12 @@ function cleanHtmlCarousel(html: string): string {
 
 function getDraftAspectRatio(draft: DraftPost): string {
     const tab = getDraftReviewTab(draft);
-    return tab === 'stories' || tab === 'reels' ? '9 / 16' : '4 / 5';
+    return tab === 'stories' ? '9 / 16' : '4 / 5';
 }
 
 function getCaptionLabel(draft: DraftPost): string {
     const tab = getDraftReviewTab(draft);
     if (tab === 'stories') return 'Texto de apoio';
-    if (tab === 'reels') return 'Script';
     return 'Caption';
 }
 
@@ -425,11 +425,6 @@ function getReviewStateLabel(state?: string): string {
         failed: 'Falhou'
     };
     return labels[state || 'draft'] || (state || 'Draft');
-}
-
-function isLikelyVideoUrl(url?: string | null): boolean {
-    if (!url) return false;
-    return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url);
 }
 
 function shouldRenderPremiumOverlay(draft: DraftPost) {
@@ -746,7 +741,7 @@ export default function ReviewPage() {
         setLoadingDrafts(true);
         try {
             const res = await api.get('/api/auto-generate/drafts');
-            setDrafts(res.data.drafts || []);
+            setDrafts((res.data.drafts || []).filter((draft: DraftPost) => !isVideoDraft(draft)));
         } catch { } finally {
             setLoadingDrafts(false);
         }
@@ -2072,7 +2067,7 @@ export default function ReviewPage() {
                                                 title={`Compare ${draft.id}`}
                                             />
                                         ) : (
-                                            <img src={draft.thumbnailUrl || draft.mediaUrls?.[0]} alt="Comparação" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <img src={draft.mediaUrls?.[0]} alt="Comparação" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         )}
                                     </div>
                                     <div style={{ padding: '0.85rem' }}>
@@ -2080,7 +2075,7 @@ export default function ReviewPage() {
                                             {draft.pillarName || 'Sem pilar'} · {getCampaignLabel(draft.scheduledFor)}
                                         </div>
                                         <div style={{ fontSize: '0.8rem', color: '#e4e4e7', lineHeight: 1.45 }}>
-                                            {(editingCaption[draft.id] ?? draft.caption ?? draft.script ?? '').slice(0, 180) || 'Sem texto'}
+                                            {(editingCaption[draft.id] ?? draft.caption ?? '').slice(0, 180) || 'Sem texto'}
                                         </div>
                                     </div>
                                 </div>
@@ -2136,7 +2131,6 @@ export default function ReviewPage() {
                             {' · '}
                             {reviewTab === 'feed' && 'preview com imagem, carrosséis HTML e caption/agendamento'}
                             {reviewTab === 'stories' && 'preview vertical com frames e elementos interativos'}
-                            {reviewTab === 'reels' && 'preview com vídeo/capa, script e duração'}
                         </div>
 
                         {visibleDrafts.length === 0 ? (
@@ -2146,7 +2140,7 @@ export default function ReviewPage() {
                         ) : (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
                                 {visibleDrafts.map(draft => {
-                                    const caption = editingCaption[draft.id] !== undefined ? editingCaption[draft.id] : (draft.caption || draft.script || '');
+                                    const caption = editingCaption[draft.id] !== undefined ? editingCaption[draft.id] : (draft.caption || '');
                                     const pillarIdx = preview?.pillars.findIndex(p => p.id === draft.pillarId) ?? -1;
                                     const color = pillarIdx >= 0 ? getPillarColor(pillarIdx) : '#7c3aed';
                                     const draftFormat = getDraftFormat(draft);
@@ -2155,9 +2149,7 @@ export default function ReviewPage() {
                                     const tab = getDraftReviewTab(draft);
                                     const idx = slideIndex[draft.id] || 0;
                                     const total = draft.mediaUrls?.length || 0;
-                                    const currentMediaUrl = tab === 'reels'
-                                        ? (draft.videoUrl || draft.thumbnailUrl || draft.mediaUrls?.[0])
-                                        : draft.mediaUrls?.[idx];
+                                    const currentMediaUrl = draft.mediaUrls?.[idx];
                                     const goTo = (n: number) => setSlideIndex(prev => ({ ...prev, [draft.id]: Math.max(0, Math.min(total - 1, n)) }));
                                     const profileName = profiles.find(profile => profile.id === draft.businessProfileId)?.name;
 
@@ -2217,9 +2209,7 @@ export default function ReviewPage() {
                                                         <input type="checkbox" checked={selectedDraftIds.includes(draft.id)} onChange={() => toggleDraftSelection(draft.id)} />
                                                         Comparar
                                                     </label>
-                                                    {tab === 'reels' && isLikelyVideoUrl(draft.videoUrl || draft.mediaUrls?.[0]) ? (
-                                                        <video src={draft.videoUrl || draft.mediaUrls?.[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted controls playsInline />
-                                                    ) : renderPremiumOverlay ? (
+                                                    {renderPremiumOverlay ? (
                                                         /* Premium: canvas-accurate preview (matches what gets saved) */
                                                         <PremiumCanvasPreview
                                                             backgroundImage={draft.mediaUrls[idx]}
@@ -2229,7 +2219,7 @@ export default function ReviewPage() {
                                                     ) : (
                                                         <img src={currentMediaUrl} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     )}
-                                                    {total > 1 && tab !== 'reels' && !renderPremiumOverlay && (
+                                                    {total > 1 && !renderPremiumOverlay && (
                                                         <>
                                                             <span style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '999px' }}>
                                                                 {idx + 1} / {total}
@@ -2251,7 +2241,7 @@ export default function ReviewPage() {
                                                             </div>
                                                         </>
                                                     )}
-                                                    {total > 1 && tab !== 'reels' && renderPremiumOverlay && (
+                                                    {total > 1 && renderPremiumOverlay && (
                                                         /* Premium: ‹ › arrows for slide nav */
                                                         <>
                                                             <button
@@ -2271,7 +2261,7 @@ export default function ReviewPage() {
                                             ) : null}
 
                                             {/* ── Premium filmstrip ─────────────────────────────── */}
-                                            {renderPremiumOverlay && total > 1 && tab !== 'reels' && (
+                                            {renderPremiumOverlay && total > 1 && (
                                                 <div style={{
                                                     display: 'flex',
                                                     gap: '6px',
@@ -2329,7 +2319,7 @@ export default function ReviewPage() {
                                             )}
 
                                             {/* ── Refinar imagem com IA ────────────────────────── */}
-                                            {!draft.htmlContent && (draft.mediaUrls?.length > 0) && tab !== 'reels' && (
+                                            {!draft.htmlContent && (draft.mediaUrls?.length > 0) && (
                                                 <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(139,92,246,0.06)', borderTop: '1px solid rgba(139,92,246,0.15)' }}>
                                                     {refinedPreview[draft.id] ? (
                                                         /* Show refined result with accept/discard */
@@ -2416,7 +2406,6 @@ export default function ReviewPage() {
                                                     {tab === 'feed' && draft.htmlContent && <span>exportação: {draft.exportStatus || 'not_exported'}</span>}
                                                     {tab === 'stories' && <span>{draft.frameCount || draft.mediaUrls.length || 0} frame(s)</span>}
                                                     {tab === 'stories' && <span>{(draft.interactiveElements || []).length} interação(ões)</span>}
-                                                    {tab === 'reels' && <span>{draft.duration ? `${draft.duration}s` : 'duração pendente'}</span>}
                                                 </div>
 
                                                 <div>
@@ -2445,10 +2434,10 @@ export default function ReviewPage() {
                                                     <textarea
                                                         value={caption}
                                                         onChange={e => setEditingCaption(prev => ({ ...prev, [draft.id]: e.target.value }))}
-                                                        rows={tab === 'reels' ? 5 : 4}
+                                                        rows={4}
                                                         style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid #27272a', borderRadius: '0.375rem', color: '#e4e4e7', padding: '0.5rem', fontSize: '0.8rem', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, boxSizing: 'border-box' }}
                                                     />
-                                                    {editingCaption[draft.id] !== undefined && editingCaption[draft.id] !== (draft.caption || draft.script || '') && (
+                                                    {editingCaption[draft.id] !== undefined && editingCaption[draft.id] !== (draft.caption || '') && (
                                                         <p style={{ fontSize: '0.7rem', color: '#60a5fa', margin: '0.2rem 0 0' }}>Editado · será salvo ao aprovar</p>
                                                     )}
                                                 </div>
@@ -2551,7 +2540,7 @@ export default function ReviewPage() {
         // For premium carousels: reuse the same slideIndex tracked in the card grid
         const modalSlideIdx = slideIndex[confirmingDraft.id] || 0;
         const modalSlideTotal = (confirmingDraft.mediaUrls || []).length;
-        const previewMedia = confirmingDraft.videoUrl || confirmingDraft.thumbnailUrl || confirmingDraft.mediaUrls[modalSlideIdx] || confirmingDraft.mediaUrls[0];
+        const previewMedia = confirmingDraft.mediaUrls[modalSlideIdx] || confirmingDraft.mediaUrls[0];
         // For HTML carousels: extract individual slides for navigation
         const htmlModalSlides = isHtmlDraft
             ? (htmlSlideCache[confirmingDraft.id] || (htmlSlideCache[confirmingDraft.id] = extractHtmlSlides(confirmingDraft.htmlContent || '')))
@@ -2574,7 +2563,7 @@ export default function ReviewPage() {
                         {/* Preview Area */}
                         <div style={{ flex: 1, padding: '2rem', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ position: 'relative', width: '100%', maxWidth: reviewTabForDraft === 'stories' || reviewTabForDraft === 'reels' ? '270px' : '320px', aspectRatio, background: '#000', borderRadius: '0.75rem', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', border: '1px solid #27272a' }}>
+                                <div style={{ position: 'relative', width: '100%', maxWidth: reviewTabForDraft === 'stories' ? '270px' : '320px', aspectRatio, background: '#000', borderRadius: '0.75rem', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', border: '1px solid #27272a' }}>
                                     {isHtmlDraft ? (
                                         <>
                                             <iframe
@@ -2607,8 +2596,6 @@ export default function ReviewPage() {
                                                 </>
                                             )}
                                         </>
-                                    ) : reviewTabForDraft === 'reels' && isLikelyVideoUrl(confirmingDraft.videoUrl || confirmingDraft.mediaUrls[0]) ? (
-                                        <video src={confirmingDraft.videoUrl || confirmingDraft.mediaUrls[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} controls muted playsInline />
                                     ) : (
                                         <img src={previewMedia} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Preview" />
                                     )}

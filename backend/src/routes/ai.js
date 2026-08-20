@@ -67,7 +67,7 @@ router.post('/generate', async (req, res) => {
             individualPrompts = result.prompts;
 
         } else {
-            // Modo simples (sem OpenAI, apenas Replicate)
+            // Modo simples, sem refinamento adicional pelo OpenAI
             console.log('🎨 Modo: Simples');
 
             if (!prompt) {

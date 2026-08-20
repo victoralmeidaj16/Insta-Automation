@@ -8,11 +8,11 @@ import {
     createFeedPostDraftRecord,
     createHtmlCarouselDraftRecord,
     createLibraryItemRecord,
-    createReelDraftRecord,
     createStoryDraftRecord,
     normalizeStoredPostRecord
 } from '../domain/contentModels.js';
 import {
+    assertLibraryItemAccepted,
     getAspectRatioForFormat,
     getBaseTypeForFormat,
     isHtmlFormat,
@@ -20,7 +20,7 @@ import {
     normalizeFormat
 } from '../domain/formatRules.js';
 import { mergeBrandProfileDefaults } from '../utils/brandProfiles.js';
-import { createPremiumComposition } from './premiumCompositionService.js';
+import { createPremiumComposition, PREMIUM_GRADIENT_OPACITY_DEFAULT } from './premiumCompositionService.js';
 import { recordGenerationRun } from './generationRunsService.js';
 import { uploadImage } from './historyService.js';
 import {
@@ -766,6 +766,12 @@ export async function generateDraftPost(businessProfileId, pillarId, format, sch
     const resolvedFormat = normalizeFormat(format, 'static');
 
     try {
+        if (resolvedFormat === 'reel') {
+            const error = new Error('Reels não são suportados pelo Content Autopilot.');
+            error.statusCode = 400;
+            throw error;
+        }
+
         const post = await generateDraftPostInternal(businessProfileId, pillarId, format, scheduledFor, accountId, options, telemetry);
         recordGenerationRun({
             kind: 'draft-post',
@@ -1001,7 +1007,7 @@ async function generateDraftPostInternal(businessProfileId, pillarId, format, sc
         mediaUrls = (result.images || []).filter(Boolean);
 
     } else {
-        // static, story, reel
+        // static ou story
         const concept = generationSeed;
         const prompt = await generateImagePrompt(concept, context);
         const images = await generateImages(prompt, aspectRatio, 1, brandingStyle, false, context);
@@ -1172,13 +1178,7 @@ async function generateDraftPostInternal(businessProfileId, pillarId, format, sc
         };
         const postDoc = resolvedFormat === 'story'
             ? createStoryDraftRecord(commonDraftInput)
-            : resolvedFormat === 'reel'
-                ? createReelDraftRecord({
-                    ...commonDraftInput,
-                    videoUrl: mediaUrls[0] || null,
-                    thumbnailUrl: mediaUrls[1] || mediaUrls[0] || null
-                })
-                : createFeedPostDraftRecord(commonDraftInput);
+            : createFeedPostDraftRecord(commonDraftInput);
         const ref = await db.collection('posts').add(postDoc);
         post = { id: ref.id, ...postDoc };
     }
@@ -1853,6 +1853,12 @@ export async function syncDraftToLibrary(postId, options = {}) {
     const data = { id: doc.id, ...doc.data() };
     if (!data.businessProfileId) return null;
 
+    assertLibraryItemAccepted({
+        ...data,
+        format: normalizeFormat(data.format || data.type, 'static'),
+        mediaUrls: getDraftLibraryMediaUrls(data)
+    });
+
     const libraryRef = await resolveDraftLibraryItemRef(postId, data);
     const update = buildLibraryUpdateFromDraft(data, {
         destination: options.destination || null,
@@ -1951,7 +1957,7 @@ function normalizePremiumLayout(layout = {}, profile = {}, fallbackText = '') {
         imageOffsetX: Number.isFinite(Number(layout.imageOffsetX)) ? Math.min(150, Math.max(-150, Number(layout.imageOffsetX))) : 0,
         imageOffsetY: Number.isFinite(Number(layout.imageOffsetY)) ? Math.min(150, Math.max(-150, Number(layout.imageOffsetY))) : 0,
         imageScale: Number.isFinite(Number(layout.imageScale)) ? Math.min(2.0, Math.max(1, Number(layout.imageScale))) : 1,
-        gradientOpacity: Number.isFinite(Number(layout.gradientOpacity)) ? Math.min(1, Math.max(0, Number(layout.gradientOpacity))) : 1,
+        gradientOpacity: Number.isFinite(Number(layout.gradientOpacity)) ? Math.min(1, Math.max(0, Number(layout.gradientOpacity))) : PREMIUM_GRADIENT_OPACITY_DEFAULT,
         slideIndex: Number.isFinite(layout.slideIndex) ? Number(layout.slideIndex) : null,
         slideCount: Number.isFinite(layout.slideCount) ? Number(layout.slideCount) : null,
         hideOverlay: Boolean(layout.hideOverlay)
@@ -2037,6 +2043,14 @@ export async function approveDraftPost(postId, accountId = null, options = {}) {
 
     const data = doc.data();
     const destination = options.destination === 'library' ? 'library' : 'schedule';
+
+    if (destination === 'library') {
+        assertLibraryItemAccepted({
+            ...data,
+            format: normalizeFormat(data.format || data.type, 'static'),
+            mediaUrls: getDraftLibraryMediaUrls(data)
+        });
+    }
     // Fallback: use businessProfileId as virtual accountId (same pattern as createPost/executePost)
     const finalAccountId = accountId || data.accountId || data.businessProfileId || null;
     if (destination === 'schedule' && !finalAccountId) {

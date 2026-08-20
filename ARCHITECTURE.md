@@ -47,7 +47,7 @@ Plataforma SaaS de automação de conteúdo para Instagram. Usuários criam **pe
 |---------|-----|
 | OpenAI (GPT-4 Vision) | Geração de prompts, legendas, ideias, HTML |
 | Google Gemini Vision | Geração de imagens (primário) |
-| Replicate / Seedream | Geração de imagens (alternativo) |
+| Gemini / Seedream | Geração de imagens |
 | ElevenLabs | TTS para narração de Reels |
 | Upload-Post API | Agendamento e publicação no Instagram |
 | Firebase | Auth, Firestore, Cloud Storage |
@@ -105,7 +105,6 @@ Plataforma SaaS de automação de conteúdo para Instagram. Usuários criam **pe
         │       ├── calendar/      # Calendário de publicações
         │       ├── business-profiles/
         │       ├── accounts/
-        │       ├── video-reels/
         │       ├── competitors/
         │       └── review/
         ├── components/            # Componentes reutilizáveis
@@ -182,7 +181,7 @@ Plataforma SaaS de automação de conteúdo para Instagram. Usuários criam **pe
 {
   userId: string,
   businessProfileId: string,
-  type: 'image' | 'carousel' | 'video' | 'html',
+  type: 'image' | 'carousel' | 'story' | 'html',
   mediaUrls: string[],
   caption: string,
   tag: 'editar' | 'pronto' | 'postado',
@@ -637,9 +636,6 @@ OPENAI_API_KEY=
 
 # Google Gemini
 GEMINI_API_KEY=
-
-# Replicate (integrações que ainda o utilizam)
-REPLICATE_API_TOKEN=
 
 # Seedream (alternativo)
 SEEDREAM_API_KEY=

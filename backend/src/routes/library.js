@@ -6,7 +6,14 @@ import { createPost } from '../services/postService.js';
 import { uploadImage } from '../services/historyService.js';
 import { generateImages } from '../services/aiService.js';
 import { createLibraryItemRecord } from '../domain/contentModels.js';
-import { inferLibraryType, isHtmlFormat, isStoryFormat, normalizeFormat } from '../domain/formatRules.js';
+import {
+    inferLibraryType,
+    isHtmlFormat,
+    isStoryFormat,
+    isVideoLibraryItem,
+    LIBRARY_VIDEO_REJECTION_MESSAGE,
+    normalizeFormat
+} from '../domain/formatRules.js';
 import { getOwnedBusinessProfile } from '../services/businessProfileService.js';
 
 const router = express.Router();
@@ -35,6 +42,11 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
         fileSize: 100 * 1024 * 1024, // 100MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+        if (allowedTypes.includes(file.mimetype)) return cb(null, true);
+        return cb(new Error('A Library aceita somente imagens JPG, PNG ou WebP.'));
     }
 });
 
@@ -82,6 +94,10 @@ router.post('/upload', upload.array('files', 50), async (req, res) => {
         }
 
         await getOwnedBusinessProfile(businessProfileId, req.userId);
+
+        if (isVideoLibraryItem({ type })) {
+            return res.status(400).json({ error: LIBRARY_VIDEO_REJECTION_MESSAGE });
+        }
 
         // Upload files to Firebase Storage
         const mediaUrls = [];
@@ -279,6 +295,10 @@ router.post('/', async (req, res) => {
         
         const resolvedType = inferLibraryType({ type: normalizeFormat(type || '', ''), mediaUrls, htmlCode });
 
+        if (isVideoLibraryItem({ type: resolvedType, mediaUrls })) {
+            return res.status(400).json({ error: LIBRARY_VIDEO_REJECTION_MESSAGE });
+        }
+
         if (!isHtmlFormat(resolvedType) && (!mediaUrls || !Array.isArray(mediaUrls))) {
             return res.status(400).json({
                 error: 'mediaUrls (array) são obrigatórios, exceto no modo HTML'
@@ -398,6 +418,7 @@ router.get('/', async (req, res) => {
                 caption: isStory ? '' : (data.caption || '')
             };
         })
+            .filter(item => !isVideoLibraryItem(item))
             .filter(item => {
                 if (!hasTypeFilter) return true;
                 if (normalizedTypeFilter === 'carousel') {
@@ -584,6 +605,15 @@ router.put('/:id', async (req, res) => {
         const { item: existingItem } = await requireOwnedLibraryItem(id, req.userId);
         const nextFormat = normalizeFormat(updates.format || updates.type || existingItem.format || existingItem.type, existingItem.format || existingItem.type || 'static');
         const shouldBlankCaption = isStoryFormat(nextFormat);
+
+        const nextItem = {
+            ...existingItem,
+            ...updates,
+            mediaUrls: updates.mediaUrls ?? existingItem.mediaUrls
+        };
+        if (isVideoLibraryItem(nextItem)) {
+            return res.status(400).json({ error: LIBRARY_VIDEO_REJECTION_MESSAGE });
+        }
 
         // Verify if there are base64 images to upload to Firebase Storage
         if (updates.mediaUrls && Array.isArray(updates.mediaUrls)) {
