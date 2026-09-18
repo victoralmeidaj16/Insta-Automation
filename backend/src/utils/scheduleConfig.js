@@ -146,3 +146,87 @@ export function addDaysInTimeZone(date, days, timeZone = DEFAULT_SCHEDULE_TIMEZO
     const [hour, minute] = time.split(':').map(Number);
     return zonedDateTimeToUtc({ ...target, hour, minute }, timeZone);
 }
+
+// ---------------------------------------------------------------------------
+// Alocação de horários
+//
+// A data só é atribuída ao post no momento da aprovação. Até lá o rascunho fica
+// sem `scheduledFor`, para que excluir uma ideia no plano ou rejeitar um
+// rascunho na revisão não deixe buraco no calendário.
+// ---------------------------------------------------------------------------
+
+export const DEFAULT_SLOT_LEAD_MINUTES = 10;
+const DEFAULT_SLOT_HORIZON_WEEKS = 12;
+
+function normalizeSlotDays(days) {
+    const normalized = (Array.isArray(days) ? days : [])
+        .filter(day => DAY_NAMES.includes(day));
+    return normalized.length > 0 ? [...new Set(normalized)] : [...DAY_NAMES];
+}
+
+function normalizeSlotTimes(times) {
+    const normalized = (Array.isArray(times) ? times : [])
+        .map(time => (typeof time === 'string' ? time.trim() : ''))
+        .filter(time => /^\d{2}:\d{2}$/.test(time));
+    return normalized.length > 0
+        ? [...new Set(normalized)].sort()
+        : ['09:00'];
+}
+
+/**
+ * Dias e horários configurados para um tipo de conteúdo, já normalizados.
+ */
+export function getSlotPreferences(schedule = {}, kind = 'post') {
+    const normalized = normalizeScheduleConfig(schedule);
+    const isStory = kind === 'story';
+    return {
+        timeZone: normalized.timezone,
+        days: normalizeSlotDays(isStory ? normalized.storyPreferredDays : normalized.preferredDays),
+        times: normalizeSlotTimes(isStory ? normalized.storyPreferredTimes : normalized.preferredTimes)
+    };
+}
+
+/**
+ * Quantos conteúdos cabem numa semana sem repetir dia+horário.
+ */
+export function getWeeklySlotCapacity(schedule = {}, kind = 'post') {
+    const { days, times } = getSlotPreferences(schedule, kind);
+    return days.length * times.length;
+}
+
+/**
+ * Percorre o cronograma a partir de `from` e devolve os próximos horários
+ * livres. `isSlotTaken` marca os horários já ocupados por outros posts; quando
+ * a semana enche, a busca continua nas semanas seguintes.
+ */
+export function findAvailableScheduleSlots({
+    schedule = {},
+    kind = 'post',
+    count = 1,
+    from = new Date(),
+    isSlotTaken = () => false,
+    horizonWeeks = DEFAULT_SLOT_HORIZON_WEEKS,
+    leadMinutes = DEFAULT_SLOT_LEAD_MINUTES
+} = {}) {
+    if (!Number.isFinite(count) || count <= 0) return [];
+
+    const { timeZone, days, times } = getSlotPreferences(schedule, kind);
+    const earliest = new Date(from.getTime() + leadMinutes * 60 * 1000);
+    const horizonDays = Math.max(7, Math.round(horizonWeeks * 7));
+    const found = [];
+
+    for (let daysAhead = 0; daysAhead <= horizonDays && found.length < count; daysAhead++) {
+        const dayName = getZonedDateParts(addDaysInTimeZone(from, daysAhead, timeZone), timeZone).dayName;
+        if (!days.includes(dayName)) continue;
+
+        for (const time of times) {
+            if (found.length >= count) break;
+            const slot = addDaysInTimeZone(from, daysAhead, timeZone, time);
+            if (slot < earliest) continue;
+            if (isSlotTaken(slot)) continue;
+            found.push(slot);
+        }
+    }
+
+    return found;
+}

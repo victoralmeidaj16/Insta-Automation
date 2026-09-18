@@ -25,9 +25,11 @@ import { recordGenerationRun } from './generationRunsService.js';
 import { uploadImage } from './historyService.js';
 import {
     addDaysInTimeZone,
+    getWeeklySlotCapacity,
     getZonedDateParts,
     normalizeScheduleConfig
 } from '../utils/scheduleConfig.js';
+import { allocateNextScheduleSlot } from './slotAllocationService.js';
 
 const FORMAT_SLIDE_LIMITS = {
     carousel: { min: 4, max: 10, fallback: 5 },
@@ -543,6 +545,29 @@ function buildSlots({ days, times, count, weekStartDate, slotKind, timeZone, now
     }
 
     return slots;
+}
+
+/**
+ * Composição da semana sem datas: quantos posts e quantos stories o plano deve
+ * conter. Usada na revisão manual, onde o horário só é definido na aprovação —
+ * por isso o total depende só da frequência configurada, e não de quantos
+ * horários ainda restam na semana corrente.
+ */
+function getWeeklyPlanComposition(contentSchedule) {
+    const schedule = normalizeScheduleConfig(contentSchedule);
+    const posts = Math.min(
+        Math.max(0, Number(schedule.postsPerWeek || 0)),
+        getWeeklySlotCapacity(schedule, 'post')
+    );
+    const stories = Math.min(
+        Math.max(0, Number(schedule.storiesPerWeek || 0)),
+        getWeeklySlotCapacity(schedule, 'story')
+    );
+
+    return [
+        ...Array.from({ length: posts }, () => ({ kind: 'post' })),
+        ...Array.from({ length: stories }, () => ({ kind: 'story' }))
+    ];
 }
 
 function getWeeklySlots(contentSchedule, weekStartDate = new Date()) {
@@ -1222,7 +1247,9 @@ export async function previewWeeklyPlan(businessProfileId, weekStartDate = new D
         timezone: schedule.timezone
     };
 
-    const slots = getWeeklySlots(schedule, weekStartDate);
+    // Ideias nascem sem data: o horário só é atribuído na aprovação, para que
+    // excluir uma ideia aqui não deixe lacuna no calendário.
+    const slots = getWeeklyPlanComposition(schedule);
     const recentActivity = accounts.length > 0
         ? await analyzeRecentPosts(businessProfileId, 7)
         : { byPilar: {}, byFormat: {}, total: 0 };
@@ -1250,8 +1277,8 @@ export async function previewWeeklyPlan(businessProfileId, weekStartDate = new D
         if (!format) continue;
 
         plan.push({
-            slot: slot.date.toISOString(),
-            slotLabel: slot.date.toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+            slot: null,
+            slotLabel: null,
             pillarId: pillar.id,
             pillarName: pillar.name,
             pillarColor: null, // será definido no frontend
@@ -1414,7 +1441,11 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
 
         for (let i = 0; i < customPlan.length; i++) {
             const slotItem = customPlan[i];
-            const slotDate = slotItem.slot ? new Date(slotItem.slot) : new Date();
+            // Sem data no plano, o rascunho nasce sem `scheduledFor` e recebe o
+            // próximo horário livre só quando for aprovado.
+            const rawSlotDate = slotItem.slot ? new Date(slotItem.slot) : null;
+            const slotDate = rawSlotDate && !isNaN(rawSlotDate.getTime()) ? rawSlotDate : null;
+            const slotRef = slotDate ? slotDate.toISOString() : `plano-${i + 1}`;
             const pillar = pillars.find(p => p.id === slotItem.pillarId) || pillars[0];
             const format = slotItem.format;
             const slideCount = getReviewModeSlideCount(format, slotItem.slideCount);
@@ -1432,7 +1463,7 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
                     continue;
                 }
 
-                console.log(`  [${i + 1}/${customPlan.length}] Pilar: "${pillar.name}" | Formato: ${format} | Slot: ${slotDate.toLocaleString('pt-BR')}`);
+                console.log(`  [${i + 1}/${customPlan.length}] Pilar: "${pillar.name}" | Formato: ${format} | Slot: ${slotDate ? slotDate.toLocaleString('pt-BR') : 'sem data (definida na aprovação)'}`);
                 let post = await generateDraftPost(businessProfileId, pillar.id, format, slotDate, accountId, {
                     customTopic: slotItem.customTopic || '',
                     customBriefing: slotItem.customBriefing || '',
@@ -1453,7 +1484,7 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
                         await scheduleApprovedPost(post.id, accountId);
                     } catch (approveErr) {
                         console.error(`⚠️ [auto-generate] Falha ao auto-aprovar/agendar post customizado ${post.id}:`, approveErr.message);
-                        errors.push({ slot: slotDate.toISOString(), stage: 'scheduling', error: approveErr.message });
+                        errors.push({ slot: slotRef, stage: 'scheduling', error: approveErr.message });
                         completedItems.push({ index: i, title, format, status: 'error' });
                         onProgress?.({ completedItems: [...completedItems] });
                         continue;
@@ -1464,7 +1495,7 @@ export async function generateWeeklyPlan(businessProfileId, weekStartDate = new 
                 onProgress?.({ completedItems: [...completedItems] });
             } catch (err) {
                 console.error(`  ❌ Erro no post ${i + 1}: ${err.message}`);
-                errors.push({ slot: slotDate.toISOString(), error: err.message });
+                errors.push({ slot: slotRef, error: err.message });
                 completedItems.push({ index: i, title, format, status: 'error' });
                 onProgress?.({ completedItems: [...completedItems] });
             }
@@ -1623,11 +1654,15 @@ export async function getDraftPosts(userId) {
         drafts.push({ id: doc.id, ...normalizeStoredPostRecord(doc.data()) });
     });
 
-    drafts.sort((a, b) => {
-        const dateA = a.scheduledFor?.toDate?.() || new Date(a.scheduledFor || 0);
-        const dateB = b.scheduledFor?.toDate?.() || new Date(b.scheduledFor || 0);
-        return dateA - dateB;
-    });
+    // Rascunhos sem data ainda não têm horário (definido só na aprovação), então
+    // a ordem deles vem da criação — que é a ordem do plano gerado.
+    const sortKey = draft => {
+        const value = draft.scheduledFor || draft.createdAt;
+        const date = value?.toDate?.() || new Date(value || 0);
+        return isNaN(date.getTime()) ? 0 : date.getTime();
+    };
+
+    drafts.sort((a, b) => sortKey(a) - sortKey(b));
 
     return drafts;
 }
@@ -2033,8 +2068,32 @@ async function bakePremiumDraftMedia(data = {}) {
 }
 
 /**
+ * Próximo horário livre para um rascunho, conforme o cronograma do perfil.
+ * Devolve null quando não há vaga dentro do horizonte de busca.
+ */
+export async function allocateSlotForDraft(postId, draft = {}) {
+    if (!draft.businessProfileId) return null;
+
+    const profile = await getBusinessProfile(draft.businessProfileId).catch(err => {
+        console.warn(`⚠️ Não foi possível carregar o perfil para alocar horário (postId: ${postId}):`, err.message);
+        return null;
+    });
+
+    const schedule = normalizeScheduleConfig(profile?.contentSchedule || {});
+    const kind = isStoryFormat(normalizeFormat(draft.format || draft.type, 'static')) ? 'story' : 'post';
+
+    return allocateNextScheduleSlot({
+        businessProfileId: draft.businessProfileId,
+        schedule,
+        kind,
+        excludePostIds: [postId]
+    });
+}
+
+/**
  * Aprova um rascunho: define status como 'pending' para o scheduler local processá-lo.
- * Se o post tiver data futura, o scheduler irá despachá-lo no momento certo via executePost.
+ * Rascunho sem data recebe aqui o próximo horário livre do cronograma; com data
+ * futura, o scheduler o despacha no momento certo via executePost.
  * Suporta passar um accountId caso o rascunho não tenha um (ex: perfil não tinha conta na geração).
  */
 export async function approveDraftPost(postId, accountId = null, options = {}) {
@@ -2057,7 +2116,22 @@ export async function approveDraftPost(postId, accountId = null, options = {}) {
         throw new Error('Vincule uma conta Instagram antes de aprovar este rascunho.');
     }
 
-    const scheduledDate = data.scheduledFor?.toDate?.() || (data.scheduledFor ? new Date(data.scheduledFor) : null);
+    const storedDate = data.scheduledFor?.toDate?.() || (data.scheduledFor ? new Date(data.scheduledFor) : null);
+    let scheduledDate = storedDate && !isNaN(storedDate.getTime()) ? storedDate : null;
+    let allocatedSlot = null;
+
+    // Rascunho sem data: o horário é atribuído agora, no primeiro slot livre do
+    // cronograma. É isso que impede que ideias excluídas no plano — ou
+    // rascunhos rejeitados na revisão — deixem buracos entre um post e outro.
+    if (destination === 'schedule' && !scheduledDate) {
+        allocatedSlot = await allocateSlotForDraft(postId, data);
+        if (!allocatedSlot) {
+            throw new Error('Nenhum horário livre encontrado no cronograma do perfil. Ajuste os dias/horários preferidos ou defina a data manualmente antes de aprovar.');
+        }
+        scheduledDate = allocatedSlot;
+        data.scheduledFor = allocatedSlot;
+    }
+
     const newStatus = destination === 'library'
         ? 'library'
         : (scheduledDate && scheduledDate > new Date() ? 'scheduled' : 'processing');
@@ -2070,6 +2144,11 @@ export async function approveDraftPost(postId, accountId = null, options = {}) {
         approvedAt: new Date(),
         updatedAt: new Date()
     };
+
+    if (allocatedSlot) {
+        updates.scheduledFor = allocatedSlot;
+        updates.slotAssignedAt = new Date();
+    }
 
     let finalMediaUrls = Array.isArray(data.mediaUrls) ? data.mediaUrls : [];
 

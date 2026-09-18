@@ -15,6 +15,9 @@ import {
 } from '../services/contentGeneratorService.js';
 import { getBusinessProfile } from '../services/businessProfileService.js';
 import { scheduleApprovedPost } from '../services/postService.js';
+import { allocateSlotsForKinds } from '../services/slotAllocationService.js';
+import { normalizeScheduleConfig } from '../utils/scheduleConfig.js';
+import { isStoryFormat, normalizeFormat } from '../domain/formatRules.js';
 
 const router = express.Router();
 const runningJobs = new Map();
@@ -223,10 +226,12 @@ router.post('/drafts/:postId/approve', async (req, res) => {
         const draft = await requireOwnedDraft(req.params.postId, userId);
         const { accountId, destination } = req.body;
 
-        if (destination === 'schedule') {
-            const scheduledDate = draft.scheduledFor?.toDate?.() || (draft.scheduledFor ? new Date(draft.scheduledFor) : null);
-            if (!scheduledDate || isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
-                return res.status(400).json({ error: 'A data de agendamento deve ser no futuro para agendar o post.' });
+        // Sem data, o horário é atribuído na aprovação (primeiro slot livre do
+        // cronograma). Só uma data manual no passado bloqueia o agendamento.
+        if (destination === 'schedule' && draft.scheduledFor) {
+            const scheduledDate = draft.scheduledFor?.toDate?.() || new Date(draft.scheduledFor);
+            if (isNaN(scheduledDate.getTime()) || scheduledDate <= new Date()) {
+                return res.status(400).json({ error: 'A data de agendamento definida manualmente já passou. Ajuste a data para o futuro ou limpe o campo para usar o próximo horário livre.' });
             }
         }
 
@@ -236,7 +241,11 @@ router.post('/drafts/:postId/approve', async (req, res) => {
             await scheduleApprovedPost(req.params.postId, approval.accountId);
         }
 
-        res.json({ success: true, destination: approval.destination });
+        res.json({
+            success: true,
+            destination: approval.destination,
+            scheduledFor: approval.scheduledFor ? new Date(approval.scheduledFor).toISOString() : null
+        });
     } catch (error) {
         sendAutoGenerateError('auto-generate/approve', error, res);
     }
@@ -281,6 +290,48 @@ router.post('/drafts/approve-all-week', async (req, res) => {
         res.json({ success: true, approvedCount, totalCount: profileDrafts.length, errors });
     } catch (error) {
         sendAutoGenerateError('auto-generate/approve-all-week', error, res);
+    }
+});
+
+/**
+ * POST /api/auto-generate/drafts/slot-projection
+ * Projeta em que horário cada rascunho cairia se fosse aprovado agora, na ordem
+ * enviada. Não grava nada — serve para a revisão mostrar o calendário sem
+ * lacunas antes da aprovação.
+ * Body: { businessProfileId, drafts: [{ id, format }] }
+ */
+router.post('/drafts/slot-projection', async (req, res) => {
+    try {
+        const userId = req.user?.uid;
+        if (!userId) return res.status(401).json({ error: 'Não autenticado.' });
+
+        const { businessProfileId, drafts } = req.body;
+        if (!businessProfileId) {
+            return res.status(400).json({ error: 'businessProfileId é obrigatório.' });
+        }
+        if (!Array.isArray(drafts)) {
+            return res.status(400).json({ error: 'drafts deve ser uma lista.' });
+        }
+
+        const profile = await requireOwnedProfile(businessProfileId, userId);
+        const schedule = normalizeScheduleConfig(profile.contentSchedule || {});
+        const pending = drafts.filter(draft => draft?.id && !draft.scheduledFor);
+
+        const slots = await allocateSlotsForKinds({
+            businessProfileId,
+            schedule,
+            kinds: pending.map(draft => (isStoryFormat(normalizeFormat(draft.format || draft.type, 'static')) ? 'story' : 'post')),
+            excludePostIds: pending.map(draft => draft.id)
+        });
+
+        const projection = {};
+        pending.forEach((draft, index) => {
+            projection[draft.id] = slots[index] ? slots[index].toISOString() : null;
+        });
+
+        res.json({ success: true, projection });
+    } catch (error) {
+        sendAutoGenerateError('auto-generate/slot-projection', error, res);
     }
 });
 

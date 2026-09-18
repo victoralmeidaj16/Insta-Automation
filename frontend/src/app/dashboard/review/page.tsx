@@ -23,8 +23,10 @@ interface Pillar {
 }
 
 interface PlannedSlot {
-    slot: string;
-    slotLabel: string;
+    // Ideias não têm data: o horário é atribuído na aprovação, no próximo slot
+    // livre do cronograma. Assim excluir uma ideia não deixa lacuna.
+    slot?: string | null;
+    slotLabel?: string | null;
     pillarId: string;
     pillarName: string;
     format: string;
@@ -136,6 +138,7 @@ interface DraftPost {
     pillarId?: string;
     businessProfileId?: string;
     scheduledFor?: string | number | Date | FirestoreDateLike | null;
+    createdAt?: string | number | Date | FirestoreDateLike | null;
     status: string;
     needsAccount?: boolean;
     generationPrompt?: string;
@@ -275,8 +278,10 @@ function startOfWeek(date: Date) {
     return result;
 }
 
-function getCampaignLabel(value: DraftPost['scheduledFor']) {
-    const date = toDate(value);
+// Rascunho sem data ainda não pertence a uma semana agendada: a campanha vem da
+// semana em que ele foi gerado.
+function getCampaignLabel(value: DraftPost['scheduledFor'], fallback?: DraftPost['createdAt']) {
+    const date = toDate(value) || toDate(fallback);
     if (!date) return 'Sem campanha';
     const weekStart = startOfWeek(date);
     return `Semana ${weekStart.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
@@ -505,6 +510,8 @@ export default function ReviewPage() {
     // Inline schedule editing
     const [editingSchedule, setEditingSchedule] = useState<Record<string, string>>({});
     const [savingSchedule, setSavingSchedule] = useState<Record<string, boolean>>({});
+    // Horário que cada rascunho sem data receberia se fosse aprovado agora
+    const [slotProjection, setSlotProjection] = useState<Record<string, string | null>>({});
 
     const [confirmingDraft, setConfirmingDraft] = useState<DraftPost | null>(null);
     const [approvalSelection, setApprovalSelection] = useState<ApprovalSelectionState | null>(null);
@@ -581,6 +588,11 @@ export default function ReviewPage() {
     useEffect(() => {
         if (selectedProfileId) loadPreview(selectedProfileId);
     }, [selectedProfileId]);
+
+    // Reprojeta os horários sempre que a lista de rascunhos muda
+    useEffect(() => {
+        loadSlotProjection(drafts);
+    }, [drafts]);
 
     // Sync editable plan when preview changes
     useEffect(() => {
@@ -670,25 +682,6 @@ export default function ReviewPage() {
         setEditablePlan(prev => prev.map((slot, i) => i === idx ? { ...slot, [field]: value } : slot));
     };
 
-    const updateSlotDate = (idx: number, value: string) => {
-        const nextDate = new Date(value);
-        if (isNaN(nextDate.getTime())) return;
-
-        setEditablePlan(prev => prev.map((slot, i) => (
-            i === idx ? {
-                ...slot,
-                slot: nextDate.toISOString(),
-                slotLabel: nextDate.toLocaleString('pt-BR', {
-                    weekday: 'short',
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                })
-            } : slot
-        )));
-    };
-
     const updateSlotPillar = (idx: number, pillarId: string) => {
         const pillar = preview?.pillars.find(item => item.id === pillarId);
         if (!pillar) return;
@@ -723,8 +716,8 @@ export default function ReviewPage() {
         const pillar = preview.pillars[0];
         const formats = pillar.formats || ['static'];
         setEditablePlan(prev => [...prev, {
-            slot: new Date().toISOString(),
-            slotLabel: 'Novo slot',
+            slot: null,
+            slotLabel: null,
             pillarId: pillar.id,
             pillarName: pillar.name,
             format: formats[0],
@@ -745,6 +738,38 @@ export default function ReviewPage() {
         } catch { } finally {
             setLoadingDrafts(false);
         }
+    };
+
+    // Projeta o horário de cada rascunho sem data, na ordem em que aparecem.
+    // Recalculado a cada mudança na lista: ao rejeitar um rascunho, os
+    // seguintes assumem os horários liberados em vez de deixar lacuna.
+    const loadSlotProjection = async (list: DraftPost[]) => {
+        const pending = list.filter(draft => !draft.scheduledFor && draft.businessProfileId);
+        if (pending.length === 0) {
+            setSlotProjection({});
+            return;
+        }
+
+        const byProfile = new Map<string, DraftPost[]>();
+        pending.forEach(draft => {
+            const key = draft.businessProfileId as string;
+            byProfile.set(key, [...(byProfile.get(key) || []), draft]);
+        });
+
+        const merged: Record<string, string | null> = {};
+        await Promise.all([...byProfile.entries()].map(async ([businessProfileId, items]) => {
+            try {
+                const res = await api.post('/api/auto-generate/drafts/slot-projection', {
+                    businessProfileId,
+                    drafts: items.map(draft => ({ id: draft.id, format: draft.format || draft.type }))
+                });
+                Object.assign(merged, res.data.projection || {});
+            } catch {
+                // Projeção é informativa: sem ela a aprovação continua funcionando.
+            }
+        }));
+
+        setSlotProjection(merged);
     };
 
     const loadScheduledPosts = async (businessProfileId?: string) => {
@@ -919,14 +944,17 @@ export default function ReviewPage() {
     const approveDraftIds = async (postIds: string[], destination: ApprovalDestination) => {
         if (postIds.length === 0) return;
 
+        // Rascunho sem data recebe o próximo horário livre na aprovação; só uma
+        // data manual já vencida impede o agendamento.
         if (destination === 'schedule') {
             const now = new Date();
             const invalidDrafts = drafts.filter(d => {
+                if (!postIds.includes(d.id) || !d.scheduledFor) return false;
                 const scheduledFor = toDate(d.scheduledFor);
-                return postIds.includes(d.id) && (!scheduledFor || scheduledFor <= now);
+                return !scheduledFor || scheduledFor <= now;
             });
             if (invalidDrafts.length > 0) {
-                toast.error(`Existem ${invalidDrafts.length} posts com data de agendamento no passado ou sem data. Ajuste a data para o futuro antes de agendar.`);
+                toast.error(`Existem ${invalidDrafts.length} posts com data manual no passado. Ajuste a data para o futuro antes de agendar.`);
                 return;
             }
         }
@@ -937,21 +965,29 @@ export default function ReviewPage() {
         }));
 
         let ok = 0;
+        const assignedDates: string[] = [];
         try {
             for (const postId of postIds) {
                 if (editingCaption[postId] !== undefined) {
                     await api.patch(`/api/auto-generate/drafts/${postId}/caption`, { caption: editingCaption[postId] });
                 }
 
-                await api.post(`/api/auto-generate/drafts/${postId}/approve`, { destination });
+                const res = await api.post(`/api/auto-generate/drafts/${postId}/approve`, { destination });
+                if (res.data?.scheduledFor) assignedDates.push(res.data.scheduledFor);
                 ok++;
             }
 
             if (ok > 0) {
+                const scheduleSummary = assignedDates.length === 1
+                    ? ` Agendado para ${formatDate(assignedDates[0])}.`
+                    : assignedDates.length > 1
+                        ? ` Primeiro em ${formatDate(assignedDates[0])}, último em ${formatDate(assignedDates[assignedDates.length - 1])}.`
+                        : '';
+
                 toast.success(
                     destination === 'library'
                         ? `${ok} ${ok === 1 ? 'conteúdo enviado para a Library' : 'conteúdos enviados para a Library'}!`
-                        : `${ok} ${ok === 1 ? 'post aprovado para agendamento/publicação' : 'posts aprovados para agendamento/publicação'}!`
+                        : `${ok} ${ok === 1 ? 'post aprovado' : 'posts aprovados'} para agendamento/publicação!${scheduleSummary}`
                 );
             }
 
@@ -1504,10 +1540,14 @@ export default function ReviewPage() {
                             </div>
                         </div>
 
+                        <div style={{ marginBottom: '1rem', padding: '0.7rem 0.9rem', background: 'rgba(96,165,250,0.07)', border: '1px solid rgba(96,165,250,0.18)', borderRadius: '0.5rem', fontSize: '0.78rem', color: '#93c5fd' }}>
+                            🗓️ As ideias ainda não têm data. Cada post só recebe dia e horário quando você aprova o rascunho — sempre no próximo horário livre do cronograma. Pode excluir o que não quiser: as demais avançam e não sobra lacuna.
+                        </div>
+
                         {editablePlan.length === 0 ? (
                             <div style={{ border: '2px dashed #27272a', borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', color: '#52525b' }}>
-                                <p>Nenhum slot disponível esta semana.</p>
-                                <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>Todos os horários configurados já passaram ou a frequência está como 0.</p>
+                                <p>Nenhum conteúdo previsto para a semana.</p>
+                                <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>A frequência semanal está como 0 ou não há dias/horários configurados no perfil.</p>
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1519,18 +1559,10 @@ export default function ReviewPage() {
 
                                     return (
                                         <div key={i} style={{ background: '#18181b', border: isExpanded ? `1px solid ${color}66` : '1px solid #27272a', borderRadius: '0.75rem', padding: '0.9rem 1rem' }}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '34px minmax(170px, 1fr) minmax(170px, 1fr) 170px 44px 44px', gap: '0.75rem', alignItems: 'center' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '34px minmax(170px, 1fr) 170px 44px 44px', gap: '0.75rem', alignItems: 'center' }}>
                                                 <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: `${color}22`, border: `1px solid ${color}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color, fontWeight: 700 }}>
                                                     {i + 1}
                                                 </div>
-
-                                                <input
-                                                    type="datetime-local"
-                                                    value={formatDateTimeLocal(slot.slot)}
-                                                    onChange={e => updateSlotDate(i, e.target.value)}
-                                                    className="input"
-                                                    style={{ padding: '0.55rem 0.65rem', fontSize: '0.8rem', minWidth: 0 }}
-                                                />
 
                                                 <select
                                                     value={slot.pillarId}
@@ -1575,7 +1607,9 @@ export default function ReviewPage() {
                                                 <span style={{ fontSize: '0.75rem', color: color, background: `${color}14`, border: `1px solid ${color}33`, borderRadius: '999px', padding: '0.18rem 0.55rem' }}>
                                                     {slot.pillarName}
                                                 </span>
-                                                <span style={{ fontSize: '0.75rem', color: '#71717a' }}>{slot.slotLabel}</span>
+                                                <span style={{ fontSize: '0.75rem', color: '#71717a' }}>
+                                                    {slot.slotKind === 'story' ? 'Story' : 'Post'} · sem data
+                                                </span>
                                                 {slot.customTopic && (
                                                     <span style={{ fontSize: '0.75rem', color: '#e4e4e7', background: 'rgba(255,255,255,0.04)', borderRadius: '999px', padding: '0.18rem 0.55rem' }}>
                                                         Tema: {slot.customTopic}
@@ -1665,13 +1699,15 @@ export default function ReviewPage() {
                     <p style={{ margin: 0, color: '#71717a', fontSize: '0.875rem' }}>
                         Revise os {editablePlan.length} conteúdos que serão gerados para <strong style={{ color: '#e4e4e7' }}>{profile.name}</strong>. Após confirmar, a IA começará a criar as imagens e captions usando o contexto ajustado do perfil.
                     </p>
+                    <p style={{ margin: '0.6rem 0 0', color: '#93c5fd', fontSize: '0.8rem' }}>
+                        🗓️ Os rascunhos nascem sem data. O dia e o horário são definidos na aprovação de cada post, no próximo horário livre do cronograma.
+                    </p>
                 </div>
 
                 {/* Plan table — editable preview */}
                 <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '0.75rem', overflow: 'hidden', marginBottom: '1.5rem' }}>
-                    <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #27272a', display: 'grid', gridTemplateColumns: '2rem 135px 1fr 110px 1.6fr 2rem', gap: '0.75rem', fontSize: '0.7rem', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #27272a', display: 'grid', gridTemplateColumns: '2rem 1fr 110px 1.6fr 2rem', gap: '0.75rem', fontSize: '0.7rem', color: '#52525b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         <span>#</span>
-                        <span>Data / Hora</span>
                         <span>Pilar</span>
                         <span>Formato</span>
                         <span>Tema / Briefing</span>
@@ -1682,15 +1718,8 @@ export default function ReviewPage() {
                         const pillarObj = preview?.pillars.find(p => p.id === slot.pillarId);
                         const availableFormats = pillarObj?.formats || Object.keys(FORMAT_LABELS);
                         return (
-                            <div key={i} style={{ padding: '0.75rem 1.25rem', borderBottom: i < editablePlan.length - 1 ? '1px solid #1c1c1f' : 'none', display: 'grid', gridTemplateColumns: '2rem 135px 1fr 110px 1.6fr 2rem', gap: '0.75rem', alignItems: 'center' }}>
+                            <div key={i} style={{ padding: '0.75rem 1.25rem', borderBottom: i < editablePlan.length - 1 ? '1px solid #1c1c1f' : 'none', display: 'grid', gridTemplateColumns: '2rem 1fr 110px 1.6fr 2rem', gap: '0.75rem', alignItems: 'center' }}>
                                 <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: `${color}22`, border: `1px solid ${color}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color, fontWeight: 700 }}>{i + 1}</span>
-                                <input
-                                    type="datetime-local"
-                                    value={formatDateTimeLocal(slot.slot)}
-                                    onChange={e => updateSlotDate(i, e.target.value)}
-                                    className="input"
-                                    style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem', minWidth: 0, width: '100%' }}
-                                />
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                     <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, flexShrink: 0 }} />
                                     <span style={{ fontSize: '0.75rem', color: '#e4e4e7' }}>{slot.pillarName}</span>
@@ -1861,11 +1890,11 @@ export default function ReviewPage() {
             ? profileScopedDrafts.filter(draft => recentGeneratedDraftIds.includes(draft.id))
             : profileScopedDrafts;
         const pillarOptions = Array.from(new Set(generationScopedDrafts.map(draft => draft.pillarName).filter(Boolean))) as string[];
-        const campaignOptions = Array.from(new Set(generationScopedDrafts.map(draft => getCampaignLabel(draft.scheduledFor))));
+        const campaignOptions = Array.from(new Set(generationScopedDrafts.map(draft => getCampaignLabel(draft.scheduledFor, draft.createdAt))));
 
         const filteredDrafts = generationScopedDrafts.filter(draft => {
             if (pillarFilter !== 'all' && draft.pillarName !== pillarFilter) return false;
-            if (campaignFilter !== 'all' && getCampaignLabel(draft.scheduledFor) !== campaignFilter) return false;
+            if (campaignFilter !== 'all' && getCampaignLabel(draft.scheduledFor, draft.createdAt) !== campaignFilter) return false;
             return true;
         });
 
@@ -2072,7 +2101,7 @@ export default function ReviewPage() {
                                     </div>
                                     <div style={{ padding: '0.85rem' }}>
                                         <div style={{ fontSize: '0.75rem', color: '#a78bfa', marginBottom: '0.35rem' }}>
-                                            {draft.pillarName || 'Sem pilar'} · {getCampaignLabel(draft.scheduledFor)}
+                                            {draft.pillarName || 'Sem pilar'} · {getCampaignLabel(draft.scheduledFor, draft.createdAt)}
                                         </div>
                                         <div style={{ fontSize: '0.8rem', color: '#e4e4e7', lineHeight: 1.45 }}>
                                             {(editingCaption[draft.id] ?? draft.caption ?? '').slice(0, 180) || 'Sem texto'}
@@ -2382,13 +2411,20 @@ export default function ReviewPage() {
                                                     <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(124,58,237,0.12)', color: '#c4b5fd' }}>
                                                         {getReviewStateLabel(draft.reviewState)}
                                                     </span>
-                                                    {draft.scheduledFor && (
+                                                    {draft.scheduledFor ? (
                                                         <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(255,255,255,0.06)', color: '#71717a' }}>
                                                             📅 {formatDate(draft.scheduledFor)}
                                                         </span>
+                                                    ) : (
+                                                        <span
+                                                            title="A data é atribuída na aprovação, no próximo horário livre do cronograma."
+                                                            style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(148,163,184,0.12)', color: '#94a3b8', cursor: 'help' }}
+                                                        >
+                                                            🕒 {slotProjection[draft.id] ? `Ao aprovar: ${formatDate(slotProjection[draft.id])}` : 'Sem data até a aprovação'}
+                                                        </span>
                                                     )}
                                                     <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(96,165,250,0.12)', color: '#93c5fd' }}>
-                                                        🎯 {getCampaignLabel(draft.scheduledFor)}
+                                                        🎯 {getCampaignLabel(draft.scheduledFor, draft.createdAt)}
                                                     </span>
                                                     {getDraftQaWarnings(draft).length > 0 && (
                                                         <span
@@ -2409,7 +2445,16 @@ export default function ReviewPage() {
                                                 </div>
 
                                                 <div>
-                                                    <label style={{ fontSize: '0.7rem', color: '#52525b', display: 'block', marginBottom: '0.3rem' }}>📅 Agendamento</label>
+                                                    <label style={{ fontSize: '0.7rem', color: '#52525b', display: 'block', marginBottom: '0.3rem' }}>
+                                                        📅 Agendamento {!draft.scheduledFor && <span style={{ color: '#3f3f46' }}>(opcional)</span>}
+                                                    </label>
+                                                    {!draft.scheduledFor && (
+                                                        <p style={{ margin: '0 0 0.35rem', fontSize: '0.7rem', color: '#71717a', lineHeight: 1.4 }}>
+                                                            {slotProjection[draft.id]
+                                                                ? <>Ao aprovar, vai para <strong style={{ color: '#a1a1aa' }}>{formatDate(slotProjection[draft.id])}</strong> — o próximo horário livre. Preencha abaixo só se quiser outra data.</>
+                                                                : <>Recebe o próximo horário livre do cronograma ao ser aprovado. Preencha abaixo só se quiser outra data.</>}
+                                                        </p>
+                                                    )}
                                                     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                                                         <input
                                                             type="datetime-local"
