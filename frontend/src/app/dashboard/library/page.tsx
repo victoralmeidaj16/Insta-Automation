@@ -3727,7 +3727,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     background: '#18181b',
                                     borderRadius: '1rem',
                                     padding: '2rem',
-                                    maxWidth: '600px',
+                                    maxWidth: '960px',
                                     width: '100%',
                                     maxHeight: '90vh',
                                     overflow: 'auto',
@@ -3740,17 +3740,32 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                 {/* Image Preview */}
                                 {selectedPost.mediaUrls && selectedPost.mediaUrls[0] && (
                                     <div style={{ marginBottom: '1.5rem' }}>
-                                        <img
-                                            src={selectedPost.mediaUrls[0]}
-                                            alt="Preview"
-                                            style={{
-                                                width: '100%',
-                                                height: '300px',
-                                                objectFit: 'cover',
-                                                borderRadius: '0.75rem',
-                                                marginBottom: isPremiumEditorAvailable(selectedPost) ? '0.75rem' : 0
-                                            }}
-                                        />
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: '100%',
+                                            minHeight: 'min(45vh, 360px)',
+                                            maxHeight: '65vh',
+                                            marginBottom: isPremiumEditorAvailable(selectedPost) ? '0.75rem' : 0,
+                                            overflow: 'hidden',
+                                            borderRadius: '0.75rem',
+                                            background: '#09090b',
+                                            border: '1px solid rgba(255, 255, 255, 0.08)'
+                                        }}>
+                                            <img
+                                                src={selectedPost.mediaUrls[0]}
+                                                alt="Imagem completa do conteúdo"
+                                                style={{
+                                                    display: 'block',
+                                                    width: 'auto',
+                                                    height: 'auto',
+                                                    maxWidth: '100%',
+                                                    maxHeight: '65vh',
+                                                    objectFit: 'contain'
+                                                }}
+                                            />
+                                        </div>
 
                                         {isPremiumEditorAvailable(selectedPost) && (
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
