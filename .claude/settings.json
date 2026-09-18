@@ -40,7 +40,12 @@
       "Bash(node scripts/.tmp-diag-runs.js)",
       "Bash(perl -pi -e 's/gradientOpacity \\\\?\\\\? 1\\\\\\)/gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT\\)/g' frontend/src/app/dashboard/generate/components/PremiumCarouselEditor.tsx)",
       "Bash(perl -pi -e 's/^\\(\\\\s+\\)gradientOpacity: 1,$/$1gradientOpacity: PREMIUM_GRADIENT_OPACITY_DEFAULT,/' frontend/src/app/dashboard/generate/components/PremiumCarouselEditor.tsx)",
-      "Bash(node .tmp-chain-check.mjs)"
+      "Bash(node .tmp-chain-check.mjs)",
+      "Bash(perl -0pi -e 's/getCampaignLabel\\\\\\(draft\\\\.scheduledFor\\\\\\)/getCampaignLabel\\(draft.scheduledFor, draft.createdAt\\)/g' frontend/src/app/dashboard/review/page.tsx)",
+      "Bash(node --check src/routes/auto-generate.js)",
+      "Bash(node --check src/services/slotAllocationService.js)",
+      "Bash(node --check src/utils/scheduleConfig.js)",
+      "Bash(node --check src/services/contentGeneratorService.js)"
     ]
   }
 }
