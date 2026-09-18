@@ -1692,8 +1692,13 @@ export default function BusinessProfilesPage() {
                                             </div>
                                             <div className="input-group" style={{ margin: 0 }}>
                                                 <label className="input-label" style={{ fontSize: '0.8rem' }}>Stories por semana</label>
-                                                <input className="input" type="number" min="0" max="21" value={formData.contentSchedule?.storiesPerWeek || 7}
+                                                <input className="input" type="number" min="0" max="21" value={formData.contentSchedule?.storiesPerWeek ?? 7}
                                                     onChange={(e) => setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, storiesPerWeek: Number(e.target.value) } })} />
+                                                <small style={{ display: 'block', color: Number(formData.contentSchedule?.storiesPerWeek) === 0 ? '#fbbf24' : '#a1a1aa', marginTop: '0.35rem' }}>
+                                                    {Number(formData.contentSchedule?.storiesPerWeek) === 0
+                                                        ? 'Pausado para revisão: geração e publicação de stories bloqueadas. Para retomar, defina uma frequência maior que zero e salve.'
+                                                        : 'Defina 0 para pausar a geração e a publicação de stories.'}
+                                                </small>
                                             </div>
                                         </div>
 

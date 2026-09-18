@@ -83,6 +83,13 @@ export default function LibraryPage() {
     const [editTag, setEditTag] = useState('');
     const [editType, setEditType] = useState('static');
     const [replaceFiles, setReplaceFiles] = useState([]);
+    const [editSlideIndex, setEditSlideIndex] = useState(0);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [originalEditState, setOriginalEditState] = useState('');
+    const [linkedScheduledPosts, setLinkedScheduledPosts] = useState<any[]>([]);
+    const [cancellingSchedule, setCancellingSchedule] = useState(false);
+    const [editImageHistory, setEditImageHistory] = useState<string[][]>([]);
+    const [editZoom, setEditZoom] = useState(false);
 
     // AI Refinement states
     const [refinePrompt, setRefinePrompt] = useState('');
@@ -160,11 +167,10 @@ export default function LibraryPage() {
         setFormattingIds(prev => new Set(prev).add(post.id));
         const toastId = toast.loading('🎨 Reformatando imagem com Gemini...');
         try {
-            const response = await api.post(`/api/library/${post.id}/format`);
-            toast.success(response.data.message || 'Imagem reformatada!', { id: toastId });
-            // Remove cached dimensions so the badge disappears after reload
-            setImageDimensions(prev => { const next = { ...prev }; delete next[post.id]; return next; });
-            loadPosts();
+            const response = await api.post(`/api/library/${post.id}/format`, { preview: true, slideIndex: 0 });
+            handleEditPost(post);
+            setRefinedImageUrl(response.data.mediaUrls[0]);
+            toast.success('Nova proporção pronta para comparação. Aplique e salve se gostar.', { id: toastId });
         } catch (error) {
             console.error('Format error:', error);
             toast.error(error.response?.data?.error || 'Erro ao formatar imagem', { id: toastId });
@@ -173,18 +179,21 @@ export default function LibraryPage() {
         }
     };
 
-    // Stats state
-    const [stats, setStats] = useState({
-        total: 0,
-        published: 0,
-        scheduled: 0,
-    });
+    const stats = {
+        total: posts.length,
+        published: posts.filter(post => post.isPosted || post.status === 'success' || post.status === 'posted').length,
+        scheduled: posts.filter(post => post.isScheduled).length,
+    };
 
     useEffect(() => {
         if (selectedProfile) {
             loadPosts();
         }
     }, [selectedProfile, typeFilter, statusFilter]);
+
+    useEffect(() => {
+        setSelectedItems(new Set());
+    }, [selectedProfile?.id, typeFilter, tagFilter, statusFilter]);
 
     useEffect(() => {
         if (didAutoSelectProfile || selectedProfile || profiles.length === 0) {
@@ -244,7 +253,7 @@ export default function LibraryPage() {
             if (statusFilter === 'success') params.append('isPosted', 'true');
 
             const response = await api.get(`/api/library?${params}`);
-            const { items: rawItems, hasMore: more } = response.data;
+            const { items: rawItems, hasMore: more, nextCursor } = response.data;
 
             // Apply light normalization, but filtering is now server-side
             let items = rawItems.map(item => ({
@@ -258,17 +267,12 @@ export default function LibraryPage() {
 
             if (reset) {
                 setPosts(sortPosts(items));
-                setStats({
-                    total: items.length,
-                    published: 0,
-                    scheduled: items.filter(item => item.isScheduled).length,
-                });
             } else {
-                setPosts(prev => sortPosts([...prev, ...items]));
+                setPosts(prev => sortPosts([...prev, ...items.filter(item => !prev.some(existing => existing.id === item.id))]));
             }
 
             setHasMore(more);
-            if (rawItems.length > 0) setLastItemId(rawItems[rawItems.length - 1].id);
+            if (nextCursor) setLastItemId(nextCursor);
         } catch (error) {
             console.error('Error loading library items:', error);
             toast.error('Erro ao carregar biblioteca');
@@ -287,18 +291,22 @@ export default function LibraryPage() {
             loadPosts();
         } catch (error) {
             console.error('Delete error:', error);
-            toast.error('Erro ao deletar item');
+            toast.error(error.response?.data?.error || 'Erro ao deletar item');
         }
     };
 
     const handleBulkDelete = async () => {
-        if (!confirm(`Tem certeza que deseja deletar os ${selectedItems.size} itens selecionados?`)) return;
+        const visibleIds = posts.filter(post => selectedItems.has(post.id)).map(post => post.id);
+        if (!visibleIds.length) return;
+        if (!confirm(`Tem certeza que deseja deletar os ${visibleIds.length} itens visíveis selecionados?`)) return;
 
-        const toastId = toast.loading(`Deletando ${selectedItems.size} itens...`);
+        const toastId = toast.loading(`Deletando ${visibleIds.length} itens...`);
         try {
-            await Promise.all(Array.from(selectedItems).map(id => api.delete(`/api/library/${id}`)));
+            const results = await Promise.allSettled(visibleIds.map(id => api.delete(`/api/library/${id}`)));
+            const failed = results.filter(result => result.status === 'rejected').length;
             toast.dismiss(toastId);
-            toast.success(`${selectedItems.size} itens deletados com sucesso!`);
+            if (failed) toast.error(`${failed} item(ns) não foram excluídos. Verifique agendamentos ativos e tente novamente.`);
+            if (failed < visibleIds.length) toast.success(`${visibleIds.length - failed} item(ns) excluídos.`);
             setSelectedItems(new Set());
             loadPosts();
         } catch (error) {
@@ -631,7 +639,7 @@ export default function LibraryPage() {
                 });
             } else {
                 response = await api.post('/api/ai/generate-caption-from-image', {
-                    imageUrl: selectedPost.mediaUrls[0],
+                    imageUrl: selectedPost.mediaUrls[editSlideIndex],
                     profileName: selectedProfile?.name,
                     profileDescription: selectedProfile?.description,
                     guidelines: selectedProfile?.guidelines
@@ -665,7 +673,7 @@ export default function LibraryPage() {
 
             const response = await api.post('/api/ai/generate-single-image', {
                 prompt: formattedPrompt,
-                referenceImage: selectedPost.mediaUrls[0],
+                referenceImage: selectedPost.mediaUrls[editSlideIndex],
                 aspectRatio: targetRatio,
                 businessProfileId: selectedProfile?.id,
                 model: 'gemini',
@@ -679,6 +687,20 @@ export default function LibraryPage() {
         } catch (error) {
             console.error('Refine image error:', error);
             toast.error('Erro ao refinar imagem com IA');
+        } finally {
+            setIsRefining(false);
+        }
+    };
+
+    const handleFormatSelectedSlide = async () => {
+        if (!selectedPost || isRefining) return;
+        setIsRefining(true);
+        try {
+            const response = await api.post(`/api/library/${selectedPost.id}/format`, { preview: true, slideIndex: editSlideIndex, targetFormat: editType });
+            setRefinedImageUrl(response.data.mediaUrls[editSlideIndex]);
+            toast.success('Compare a nova proporção e escolha aplicar ou descartar.');
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'Erro ao ajustar proporção.');
         } finally {
             setIsRefining(false);
         }
@@ -699,7 +721,7 @@ export default function LibraryPage() {
 
             const response = await api.post('/api/ai/generate-single-image', {
                 prompt: prompt,
-                referenceImage: [selectedPost.mediaUrls[0], selectedProfile.brandKit.appScreenshotUrl],
+                referenceImage: [selectedPost.mediaUrls[editSlideIndex], selectedProfile.brandKit.appScreenshotUrl],
                 aspectRatio: targetRatio,
                 businessProfileId: selectedProfile?.id,
                 model: 'gemini',
@@ -721,25 +743,11 @@ export default function LibraryPage() {
 
     const handleAcceptRefinedImage = async () => {
         if (!refinedImageUrl) return;
-
-        try {
-            setLoading(true);
-            await api.put(`/api/library/${selectedPost.id}`, {
-                mediaUrls: [refinedImageUrl],
-                tag: 'pronto'
-            });
-
-            toast.success('Imagem atualizada e marcada como "pronto"!');
-            setRefinedImageUrl(null);
-            setRefinePrompt('');
-            setShowEditModal(false);
-            loadPosts();
-        } catch (error) {
-            console.error('Error accepting refined image:', error);
-            toast.error('Erro ao salvar imagem refinada');
-        } finally {
-            setLoading(false);
-        }
+        setEditImageHistory(prev => [...prev, [...selectedPost.mediaUrls]]);
+        setSelectedPost(prev => ({ ...prev, mediaUrls: prev.mediaUrls.map((url, index) => index === editSlideIndex ? refinedImageUrl : url) }));
+        setRefinedImageUrl(null);
+        setRefinePrompt('');
+        toast.success('Imagem aplicada ao rascunho. Salve para confirmar.');
     };
 
     const handleQuickRefine = async (post) => {
@@ -783,7 +791,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
 
                 // Automatically accept and mark as ready
                 await api.put(`/api/library/${post.id}`, {
-                    mediaUrls: [newImageUrl],
+                    mediaUrls: post.mediaUrls.map((url, index) => index === 0 ? newImageUrl : url),
                     tag: 'pronto'
                 });
 
@@ -865,10 +873,18 @@ Replace broken text with refined, natural English that elevates the concept.`,
         }
 
         setSelectedPost(post);
+        setLinkedScheduledPosts([]);
+        api.get(`/api/library/${post.id}/scheduled-posts`)
+            .then(response => setLinkedScheduledPosts(response.data.posts || []))
+            .catch(() => toast.error('Não foi possível verificar os agendamentos vinculados.'));
         setEditCaption(post.caption || '');
         setEditScheduledFor(post.scheduledFor ? formatDateForInput(post.scheduledFor) : '');
         setEditTag(post.tag || 'editar');
         setEditType(post.type || 'static');
+        setEditSlideIndex(0);
+        setEditImageHistory([]);
+        setEditZoom(false);
+        setOriginalEditState(JSON.stringify({ caption: post.caption || '', scheduledFor: post.scheduledFor ? formatDateForInput(post.scheduledFor) : '', tag: post.tag || 'editar', type: post.type || 'static', mediaUrls: post.mediaUrls || [] }));
         setReplaceFiles([]);
 
         // Reset refinement states
@@ -881,36 +897,29 @@ Replace broken text with refined, natural English that elevates the concept.`,
     };
 
     const handleSaveEdit = async () => {
+        if (isSavingEdit) return;
+        setIsSavingEdit(true);
         try {
-            // Auto-format check: if image is out of ideal ratio for the selected type, reformat first
-            if (selectedPost?.id && imageDimensions[selectedPost.id]) {
-                const outOfFormat = isOutOfFormat(selectedPost.id, editType);
-                if (outOfFormat) {
-                    toast.loading('📐 Reformatando imagem para o tamanho ideal...', { id: 'auto-format' });
-                    try {
-                        // Temporarily override the type in the DB so the format endpoint uses the right ratio
-                        await api.put(`/api/library/${selectedPost.id}`, { type: editType });
-                        await api.post(`/api/library/${selectedPost.id}/format`);
-                        toast.success('✅ Imagem reformatada automaticamente!', { id: 'auto-format' });
-                        // Reload updated mediaUrls
-                        const updatedDoc = await api.get(`/api/library?businessProfileId=${selectedPost.businessProfileId}`);
-                        const updated = updatedDoc.data.items.find(p => p.id === selectedPost.id);
-                        if (updated) selectedPost.mediaUrls = updated.mediaUrls;
-                    } catch (fmtErr) {
-                        toast.dismiss('auto-format');
-                        console.warn('Auto-format failed, continuing save:', fmtErr.message);
-                    }
-                }
-            }
-
-            // Update library item with new data
-            await api.put(`/api/library/${selectedPost.id}`, {
+            const draft = {
                 caption: editCaption,
                 scheduledFor: editScheduledFor || null,
                 tag: editTag,
                 type: editType,
                 mediaUrls: selectedPost.mediaUrls
-            });
+            };
+            const original = JSON.parse(originalEditState || '{}');
+            const updates = Object.fromEntries(Object.entries(draft).filter(([key, value]) => {
+                const before = key === 'scheduledFor' ? (original[key] || null) : original[key];
+                return JSON.stringify(before) !== JSON.stringify(value);
+            }));
+            if (Object.keys(updates).length > 0) {
+                if (updates.scheduledFor) updates.scheduledFor = new Date(updates.scheduledFor as string).toISOString();
+                const changesPublishingContent = ['mediaUrls', 'caption', 'scheduledFor', 'type', 'format'].some(key => Object.hasOwn(updates, key));
+                const endpoint = linkedScheduledPosts.length && changesPublishingContent
+                    ? `/api/library/${selectedPost.id}/update-schedule`
+                    : `/api/library/${selectedPost.id}`;
+                await api.put(endpoint, updates);
+            }
 
             toast.success('Conteúdo atualizado!');
             setShowEditModal(false);
@@ -919,7 +928,50 @@ Replace broken text with refined, natural English that elevates the concept.`,
         } catch (error) {
             console.error('Save edit error:', error);
             toast.error(error.response?.data?.error || 'Erro ao atualizar');
+        } finally {
+            setIsSavingEdit(false);
         }
+    };
+
+    const editIsDirty = selectedPost && originalEditState !== JSON.stringify({
+        caption: editCaption,
+        scheduledFor: editScheduledFor,
+        tag: editTag,
+        type: editType,
+        mediaUrls: selectedPost.mediaUrls || []
+    });
+
+    const closeEditModal = () => {
+        if (isSavingEdit) return;
+        if (editIsDirty && !window.confirm('Descartar alterações não salvas?')) return;
+        setShowEditModal(false);
+        setRefinedImageUrl(null);
+    };
+
+    const handleCancelLinkedSchedule = async () => {
+        if (!selectedPost || cancellingSchedule) return;
+        if (!window.confirm(`Cancelar ${linkedScheduledPosts.length} agendamento(s) vinculado(s) a este item?`)) return;
+        setCancellingSchedule(true);
+        try {
+            const response = await api.post(`/api/library/${selectedPost.id}/cancel-schedule`);
+            setLinkedScheduledPosts([]);
+            toast.success(`${response.data.cancelled} agendamento(s) cancelado(s).`);
+            loadPosts();
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'Falha ao cancelar agendamento. Confira o provedor antes de tentar novamente.');
+            const response = await api.get(`/api/library/${selectedPost.id}/scheduled-posts`).catch(() => null);
+            if (response) setLinkedScheduledPosts(response.data.posts || []);
+        } finally {
+            setCancellingSchedule(false);
+        }
+    };
+
+    const undoEditImage = () => {
+        const previous = editImageHistory.at(-1);
+        if (!previous) return;
+        setSelectedPost(post => ({ ...post, mediaUrls: previous }));
+        setEditImageHistory(history => history.slice(0, -1));
+        setRefinedImageUrl(null);
     };
 
     const handleFileSelect = (e) => {
@@ -1748,13 +1800,14 @@ Replace broken text with refined, natural English that elevates the concept.`,
     };
 
     const handleBulkTagUpdate = async () => {
-        if (selectedItems.size === 0) return;
+        const visibleIds = posts.filter(post => selectedItems.has(post.id)).map(post => post.id);
+        if (visibleIds.length === 0) return;
 
-        toast.loading(`Atualizando ${selectedItems.size} itens...`, { id: 'bulk-update' });
+        toast.loading(`Atualizando ${visibleIds.length} itens...`, { id: 'bulk-update' });
         try {
             // Since we don't have a bulk endpoint, we'll run parallel requests
             // In a real production app, you should create a bulk endpoint
-            const updatePromises = Array.from(selectedItems).map(id =>
+            const updatePromises = visibleIds.map(id =>
                 api.put(`/api/library/${id}`, { tag: bulkTagTarget })
             );
 
@@ -1856,7 +1909,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                 <span style={{ fontSize: '1.25rem' }}>📊</span>
                                 <div>
                                     <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{stats.total}</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Total</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Itens carregados</div>
                                 </div>
                             </div>
                             <div style={{
@@ -1871,7 +1924,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                 <span style={{ fontSize: '1.25rem' }}>✅</span>
                                 <div>
                                     <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#4ade80' }}>{stats.published}</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Publicados</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Publicados carregados</div>
                                 </div>
                             </div>
                             <div style={{
@@ -1886,7 +1939,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                 <span style={{ fontSize: '1.25rem' }}>⏰</span>
                                 <div>
                                     <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#a78bfa' }}>{stats.scheduled}</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Agendados</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Agendados carregados</div>
                                 </div>
                             </div>
                         </section>
@@ -3016,7 +3069,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     }}>
                                         <div>
                                             <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.8rem', color: '#a1a1aa' }}>
-                                                Caption
+                                                Legenda
                                             </label>
                                             <input
                                                 type="text"
@@ -3720,7 +3773,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                             zIndex: 1000,
                             padding: '2rem'
                         }}
-                            onClick={() => setShowEditModal(false)}
+                            onClick={closeEditModal}
                         >
                             <div
                                 style={{
@@ -3731,12 +3784,26 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     width: '100%',
                                     maxHeight: '90vh',
                                     overflow: 'auto',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
+                                    alignItems: 'start',
+                                    gap: '0 1.5rem'
                                 }}
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <h2 style={{ marginBottom: '1.5rem', color: '#a78bfa' }}>✏️ Editar Conteúdo</h2>
+                                <h2 style={{ marginBottom: '0.5rem', color: '#a78bfa', gridColumn: '1 / -1' }}>✏️ Editar Conteúdo</h2>
+                                <p style={{ color: '#a1a1aa', fontSize: '0.85rem', gridColumn: '1 / -1' }}>{selectedProfile?.name} · {editType} · {selectedPost.status || 'Biblioteca'}</p>
+                                {linkedScheduledPosts.length > 0 && (
+                                    <div style={{ padding: '0.75rem', marginBottom: '1rem', border: '1px solid #f59e0b', borderRadius: 8, color: '#fbbf24', gridColumn: '1 / -1' }}>
+                                        {linkedScheduledPosts.length} agendamento(s) ativo(s). Salvar mídia, legenda, tipo ou data substitui os jobs no provedor. Você também pode cancelar. IDs: {linkedScheduledPosts.map(post => post.id).join(', ')}.
+                                        <button onClick={handleCancelLinkedSchedule} disabled={cancellingSchedule} className="btn btn-secondary" style={{ display: 'block', marginTop: '0.6rem' }}>
+                                            {cancellingSchedule ? 'Cancelando...' : 'Cancelar agendamento'}
+                                        </button>
+                                    </div>
+                                )}
 
+                                <div style={{ minWidth: 0 }}>
                                 {/* Image Preview */}
                                 {selectedPost.mediaUrls && selectedPost.mediaUrls[0] && (
                                     <div style={{ marginBottom: '1.5rem' }}>
@@ -3748,13 +3815,13 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                             minHeight: 'min(45vh, 360px)',
                                             maxHeight: '65vh',
                                             marginBottom: isPremiumEditorAvailable(selectedPost) ? '0.75rem' : 0,
-                                            overflow: 'hidden',
+                                            overflow: editZoom ? 'auto' : 'hidden',
                                             borderRadius: '0.75rem',
                                             background: '#09090b',
                                             border: '1px solid rgba(255, 255, 255, 0.08)'
                                         }}>
                                             <img
-                                                src={selectedPost.mediaUrls[0]}
+                                                src={selectedPost.mediaUrls[editSlideIndex] || selectedPost.mediaUrls[0]}
                                                 alt="Imagem completa do conteúdo"
                                                 style={{
                                                     display: 'block',
@@ -3762,10 +3829,50 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                     height: 'auto',
                                                     maxWidth: '100%',
                                                     maxHeight: '65vh',
-                                                    objectFit: 'contain'
+                                                    objectFit: 'contain',
+                                                    transform: editZoom ? 'scale(1.6)' : 'none',
+                                                    transformOrigin: 'center center',
+                                                    cursor: editZoom ? 'zoom-out' : 'zoom-in'
                                                 }}
                                             />
                                         </div>
+                                        <button onClick={() => setEditZoom(value => !value)} className="btn btn-secondary" style={{ marginBottom: '0.75rem' }}>
+                                            {editZoom ? 'Reduzir imagem' : 'Ampliar imagem'}
+                                        </button>
+
+                                        {selectedPost.mediaUrls.length > 1 && (
+                                            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', margin: '0.75rem 0' }}>
+                                                {selectedPost.mediaUrls.map((url, index) => (
+                                                    <button key={`${index}-${url}`} onClick={() => { setEditSlideIndex(index); setRefinedImageUrl(null); }} aria-label={`Editar slide ${index + 1}`} style={{ flex: '0 0 64px', padding: 2, border: index === editSlideIndex ? '2px solid #a78bfa' : '2px solid #3f3f46', borderRadius: 8, background: '#18181b', color: '#fff' }}>
+                                                        <img src={url} alt={`Slide ${index + 1}`} style={{ width: '100%', height: 65, objectFit: 'cover', borderRadius: 4 }} />
+                                                        {index + 1}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {selectedPost.mediaHistory?.length > 0 && (
+                                            <details style={{ marginBottom: '0.75rem', color: '#a1a1aa', fontSize: '0.8rem' }}>
+                                                <summary style={{ cursor: 'pointer' }}>Versões anteriores ({selectedPost.mediaHistory.length})</summary>
+                                                <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', marginTop: '0.5rem' }}>
+                                                    {[...selectedPost.mediaHistory].reverse().map((version, index) => (
+                                                        <button key={`${index}-${version.savedAt?.seconds || ''}`} onClick={() => {
+                                                            setEditImageHistory(history => [...history, [...selectedPost.mediaUrls]]);
+                                                            setSelectedPost(post => ({ ...post, mediaUrls: [...version.mediaUrls] }));
+                                                            setEditSlideIndex(0);
+                                                        }} style={{ flex: '0 0 72px', background: '#27272a', color: '#fff', border: '1px solid #3f3f46', borderRadius: 8, padding: 4, cursor: 'pointer' }} title="Restaurar esta versão no rascunho">
+                                                            <img src={version.mediaUrls?.[0]} alt={`Versão ${index + 1}`} style={{ width: '100%', height: 65, objectFit: 'cover' }} />
+                                                            Versão {index + 1}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </details>
+                                        )}
+                                        {editImageHistory.length > 0 && (
+                                            <button onClick={undoEditImage} className="btn btn-secondary" style={{ marginBottom: '0.75rem' }}>↶ Desfazer última imagem</button>
+                                        )}
+                                        <button onClick={handleFormatSelectedSlide} disabled={isRefining} className="btn btn-secondary" style={{ marginBottom: '0.75rem', marginLeft: '0.5rem' }}>
+                                            {isRefining ? 'Ajustando...' : `Ajustar proporção do slide ${editSlideIndex + 1}`}
+                                        </button>
 
                                         {isPremiumEditorAvailable(selectedPost) && (
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -4016,9 +4123,10 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                     </button>
                                                     <button
                                                         onClick={() => {
+                                                            setEditImageHistory(prev => [...prev, [...selectedPost.mediaUrls]]);
                                                             setSelectedPost({
                                                                 ...selectedPost,
-                                                                mediaUrls: [refinedImageUrl]
+                                                                mediaUrls: selectedPost.mediaUrls.map((url, index) => index === editSlideIndex ? refinedImageUrl : url)
                                                             });
                                                             setRefinedImageUrl(null);
                                                             setRefinePrompt('');
@@ -4056,6 +4164,8 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                     )}
                                 </div>
 
+                                </div>
+                                <div style={{ minWidth: 0 }}>
                                 {/* Caption */}
                                 {editType !== 'story' && editType !== 'stories' && (
                                     <div style={{ marginBottom: '1.5rem' }}>
@@ -4191,10 +4301,12 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                     </div>
                                 </div>
 
+                                </div>
                                 {/* Actions */}
-                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                <div style={{ display: 'flex', gap: '1rem', gridColumn: '1 / -1', position: 'sticky', bottom: 0, background: '#18181b', padding: '1rem 0', borderTop: '1px solid #3f3f46', zIndex: 2 }}>
                                     <button
                                         onClick={handleSaveEdit}
+                                        disabled={isSavingEdit}
                                         style={{
                                             flex: 1,
                                             padding: '0.875rem',
@@ -4207,10 +4319,10 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        💾 Salvar
+                                        {isSavingEdit ? 'Salvando...' : linkedScheduledPosts.length ? '💾 Salvar e atualizar agendamento' : editIsDirty ? '💾 Salvar alterações •' : '💾 Salvar alterações'}
                                     </button>
                                     <button
-                                        onClick={() => setShowEditModal(false)}
+                                        onClick={closeEditModal}
                                         style={{
                                             padding: '0.875rem 1.5rem',
                                             background: '#27272a',

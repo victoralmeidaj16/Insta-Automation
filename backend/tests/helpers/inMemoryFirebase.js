@@ -47,16 +47,19 @@ export function createInMemoryFirebase() {
         return collections.get(name);
     }
 
-    function buildQuery(name, filters = [], orderRule = null, limitSize = null) {
+    function buildQuery(name, filters = [], orderRule = null, limitSize = null, cursorId = null) {
         return {
             where(field, operator, value) {
-                return buildQuery(name, [...filters, { field, operator, value }], orderRule, limitSize);
+                return buildQuery(name, [...filters, { field, operator, value }], orderRule, limitSize, cursorId);
             },
             orderBy(field, direction = 'asc') {
-                return buildQuery(name, filters, { field, direction }, limitSize);
+                return buildQuery(name, filters, { field, direction }, limitSize, cursorId);
             },
             limit(value) {
-                return buildQuery(name, filters, orderRule, value);
+                return buildQuery(name, filters, orderRule, value, cursorId);
+            },
+            startAfter(snapshot) {
+                return buildQuery(name, filters, orderRule, limitSize, snapshot.id);
             },
             async get() {
                 let entries = Array.from(ensureCollection(name).entries());
@@ -81,6 +84,11 @@ export function createInMemoryFirebase() {
                         const result = compareValues(left, right);
                         return orderRule.direction === 'desc' ? -result : result;
                     });
+                }
+
+                if (cursorId) {
+                    const index = entries.findIndex(([id]) => id === cursorId);
+                    if (index >= 0) entries = entries.slice(index + 1);
                 }
 
                 if (typeof limitSize === 'number') {

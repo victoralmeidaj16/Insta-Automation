@@ -145,6 +145,30 @@ router.put('/:id', async (req, res) => {
 
         const updates = buildBusinessProfileUpdates(profile, req.body);
 
+        if (Number(updates.contentSchedule?.storiesPerWeek) === 0) {
+            const snapshot = await db.collection('posts').where('businessProfileId', '==', id).get();
+            const queuedStories = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .filter(post => post.userId === req.userId
+                    && ['scheduled', 'processing'].includes(post.status)
+                    && ['story', 'stories'].includes(String(post.format || post.type || '').toLowerCase())
+                    && post.externalJobId);
+            const { cancelPostScheduleForUpdate } = await import('../services/postService.js');
+            for (const post of queuedStories) {
+                try {
+                    await cancelPostScheduleForUpdate(post.id);
+                    await db.collection('posts').doc(post.id).update({
+                        status: 'paused', pauseReason: 'Stories pausados para revisão no perfil.', updatedAt: new Date()
+                    });
+                } catch (error) {
+                    return res.status(502).json({
+                        success: false,
+                        error: `Não foi possível confirmar o cancelamento do story ${post.id} no provedor: ${error.message}`
+                    });
+                }
+            }
+        }
+
         await updateBusinessProfile(id, updates);
 
         res.json({

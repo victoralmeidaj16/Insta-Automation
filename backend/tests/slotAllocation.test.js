@@ -218,6 +218,29 @@ describe('alocação de horários com dados do Firestore', () => {
             .toBe('2026-09-08T12:00:00.000Z');
     });
 
+    it('não aprova story quando a frequência do perfil está pausada', async () => {
+        await firebase.db.collection('businessProfiles').doc('profile-1').set({
+            userId: 'user-1',
+            name: 'Marca Teste',
+            contentSchedule: { ...SCHEDULE, storiesPerWeek: 0 }
+        });
+        const draftRef = await firebase.db.collection('posts').add({
+            userId: 'user-1',
+            businessProfileId: 'profile-1',
+            isDraft: true,
+            status: 'draft',
+            type: 'story',
+            format: 'story',
+            mediaUrls: ['https://storage.test/story.jpg'],
+            scheduledFor: null
+        });
+
+        const { approveDraftPost } = await import('../src/services/contentGeneratorService.js');
+        await expect(approveDraftPost(draftRef.id, 'account-1', { destination: 'schedule' }))
+            .rejects.toThrow('Stories pausados');
+        expect(firebase.getCollection('posts').get(draftRef.id).isDraft).toBe(true);
+    });
+
     it('dá horários diferentes a rascunhos aprovados em sequência', async () => {
         await firebase.db.collection('businessProfiles').doc('profile-1').set({
             userId: 'user-1',

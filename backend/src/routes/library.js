@@ -2,12 +2,13 @@ import express from 'express';
 import multer from 'multer';
 import crypto from 'crypto';
 import { storage, db } from '../config/firebase.js';
-import { createPost } from '../services/postService.js';
+import { createPost, deletePost, cancelPostScheduleForUpdate, scheduleApprovedPost } from '../services/postService.js';
 import { uploadImage } from '../services/historyService.js';
 import { generateImages } from '../services/aiService.js';
 import { createLibraryItemRecord } from '../domain/contentModels.js';
 import {
     inferLibraryType,
+    getBaseTypeForFormat,
     isHtmlFormat,
     isStoryFormat,
     isVideoLibraryItem,
@@ -70,6 +71,116 @@ function isCarouselLibraryItem(item) {
         || item.baseType === 'carousel'
         || item.contentFamily === 'html-carousel';
 }
+
+async function getActiveLinkedPosts(item) {
+    const snapshot = await db.collection('posts').where('libraryItemId', '==', item.id).get();
+    const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    if (item.scheduledPostId && !posts.some(post => post.id === item.scheduledPostId)) {
+        const fallback = await db.collection('posts').doc(item.scheduledPostId).get();
+        if (fallback.exists) posts.push({ id: fallback.id, ...fallback.data() });
+    }
+    return posts.filter(post => ['scheduled', 'pending', 'processing', 'schedule_error'].includes(post.status)
+        && (post.userId === item.userId || (!post.userId && post.businessProfileId === item.businessProfileId)));
+}
+
+router.get('/:id/scheduled-posts', async (req, res) => {
+    try {
+        const { item } = await requireOwnedLibraryItem(req.params.id, req.userId);
+        const posts = await getActiveLinkedPosts(item);
+        res.json({ posts: posts.map(post => ({ id: post.id, status: post.status, scheduledFor: post.scheduledFor, externalJobId: post.externalJobId })) });
+    } catch (error) { sendLibraryError(error, res); }
+});
+
+router.post('/:id/cancel-schedule', async (req, res) => {
+    try {
+        const { item } = await requireOwnedLibraryItem(req.params.id, req.userId);
+        const posts = await getActiveLinkedPosts(item);
+        if (!posts.length) return res.json({ cancelled: 0 });
+        const errors = [];
+        let cancelled = 0;
+        for (const post of posts) {
+            try { await deletePost(post.id); cancelled++; }
+            catch (error) { errors.push({ postId: post.id, error: error.message }); }
+        }
+        if (errors.length) {
+            const remaining = await getActiveLinkedPosts(item);
+            if (remaining.length) {
+                await db.collection('library_items').doc(item.id).update({
+                    isScheduled: true, scheduledPostId: remaining[0].id,
+                    scheduledFor: remaining[0].scheduledFor || null,
+                    status: remaining[0].status, updatedAt: new Date()
+                });
+            }
+            return res.status(502).json({ error: 'Nem todos os agendamentos foram cancelados.', cancelled, errors });
+        }
+        res.json({ cancelled });
+    } catch (error) { sendLibraryError(error, res); }
+});
+
+router.put('/:id/update-schedule', async (req, res) => {
+    try {
+        const { item } = await requireOwnedLibraryItem(req.params.id, req.userId);
+        const posts = await getActiveLinkedPosts(item);
+        if (!posts.length) return res.status(409).json({ error: 'Nenhum agendamento ativo encontrado. Salve o item normalmente.' });
+        if (posts.some(post => post.status === 'processing' || !post.scheduledFor || new Date(post.scheduledFor?.toDate?.() || post.scheduledFor) <= new Date())) {
+            return res.status(409).json({ error: 'Um dos posts já está em processamento ou sua data passou. Cancele ou revise o agendamento antes de editar.' });
+        }
+        const allowed = ['mediaUrls', 'caption', 'type', 'format', 'scheduledFor', 'tag'];
+        const updates = Object.fromEntries(Object.entries(req.body || {}).filter(([key]) => allowed.includes(key)));
+        const nextFormat = normalizeFormat(updates.format || updates.type || item.format || item.type, 'static');
+        if (isStoryFormat(nextFormat)) {
+            const profile = await getOwnedBusinessProfile(item.businessProfileId, req.userId);
+            if (Number(profile?.contentSchedule?.storiesPerWeek) === 0) {
+                return res.status(409).json({ error: 'Stories pausados para revisão neste perfil. Retome antes de atualizar o agendamento.' });
+            }
+        }
+        const mediaUrls = updates.mediaUrls ?? item.mediaUrls ?? [];
+        if (!Array.isArray(mediaUrls) || !mediaUrls.length || (nextFormat === 'carousel' && mediaUrls.length < 2) || (nextFormat === 'static' && mediaUrls.length !== 1)) {
+            return res.status(400).json({ error: 'Quantidade de imagens incompatível com o formato escolhido.' });
+        }
+        if (updates.scheduledFor === null) return res.status(400).json({ error: 'Informe uma data futura para o agendamento ativo.' });
+        const scheduledFor = updates.scheduledFor ? new Date(updates.scheduledFor) : null;
+        if (scheduledFor && (Number.isNaN(scheduledFor.getTime()) || scheduledFor <= new Date())) return res.status(400).json({ error: 'Data de agendamento inválida ou no passado.' });
+        const persistedMediaUrls = await Promise.all(mediaUrls.map(url => uploadImage(url)));
+        if (persistedMediaUrls.some(url => typeof url !== 'string' || url.startsWith('data:'))) throw new Error('Falha ao armazenar imagem. Agendamento preservado.');
+
+        const cancelled = [];
+        for (const post of posts) {
+            try { await cancelPostScheduleForUpdate(post.id); cancelled.push(post.id); }
+            catch (error) { return res.status(502).json({ error: `Falha ao cancelar o job ${post.id} no provedor: ${error.message}`, cancelled }); }
+        }
+
+        const nextCaption = isStoryFormat(nextFormat) ? '' : (updates.caption ?? item.caption ?? '');
+        const postUpdates = { mediaUrls: persistedMediaUrls, caption: nextCaption, format: nextFormat, type: getBaseTypeForFormat(nextFormat), updatedAt: new Date() };
+        await db.collection('library_items').doc(item.id).update({
+            ...updates, mediaUrls: persistedMediaUrls, caption: nextCaption,
+            format: nextFormat, type: getBaseTypeForFormat(nextFormat), updatedAt: new Date(),
+            ...((JSON.stringify(persistedMediaUrls) !== JSON.stringify(item.mediaUrls || []))
+                ? { mediaHistory: [...(item.mediaHistory || []), { mediaUrls: item.mediaUrls || [], savedAt: new Date() }].slice(-10) }
+                : {})
+        });
+        for (const post of posts) {
+            await db.collection('posts').doc(post.id).update({
+                ...postUpdates,
+                ...(scheduledFor ? { scheduledFor } : {})
+            });
+        }
+
+        const results = [];
+        for (const post of posts) {
+            try {
+                const result = await scheduleApprovedPost(post.id, post.accountId);
+                results.push({ postId: post.id, status: result.status, externalJobId: result.externalJobId || null });
+            } catch (error) {
+                results.push({ postId: post.id, status: 'schedule_error', error: error.message });
+            }
+        }
+        if (results.some(result => result.status !== 'scheduled')) {
+            return res.status(502).json({ error: 'A nova versão foi salva, mas alguns jobs não foram confirmados pelo provedor. Tente reagendar.', results });
+        }
+        res.json({ success: true, results });
+    } catch (error) { sendLibraryError(error, res); }
+});
 
 /**
  * POST /api/library/upload - Upload files directly to library
@@ -400,10 +511,19 @@ router.get('/', async (req, res) => {
             }
         }
 
-        const snapshot = await query.get();
-        const docs = snapshot.docs;
-        const hasMore = docs.length > PAGE_SIZE;
-        const items = docs.map(doc => {
+        let docs = [];
+        let items = [];
+        let hasMore = false;
+        let nextCursor = lastId || null;
+        // Advance over batches that contain no matching type. The cursor always
+        // names the last examined document, including filtered-out documents.
+        do {
+            const snapshot = await query.get();
+            docs = snapshot.docs;
+            const examined = docs.slice(0, PAGE_SIZE);
+            hasMore = docs.length > PAGE_SIZE;
+            nextCursor = examined.at(-1)?.id || nextCursor;
+            items = examined.map(doc => {
             const data = doc.data();
             const isStory = isStoryFormat(data.format || data.type);
             const mediaUrls = Array.isArray(data.mediaUrls)
@@ -417,7 +537,7 @@ router.get('/', async (req, res) => {
                 tag: normalizeLibraryTag(data.tag),
                 caption: isStory ? '' : (data.caption || '')
             };
-        })
+            })
             .filter(item => !isVideoLibraryItem(item))
             .filter(item => {
                 if (!hasTypeFilter) return true;
@@ -430,10 +550,14 @@ router.get('/', async (req, res) => {
                 return item.type === normalizedTypeFilter || item.format === normalizedTypeFilter;
             })
             .slice(0, PAGE_SIZE);
+            if (hasMore && items.length === 0 && examined.length) {
+                query = query.startAfter(examined[examined.length - 1]);
+            }
+        } while (hasMore && items.length === 0);
 
         console.log(`📚 Found ${items.length} library items (hasMore: ${hasMore}) for businessProfile ${businessProfileId}`);
 
-        res.status(200).json({ items, hasMore });
+        res.status(200).json({ items, hasMore, nextCursor });
 
     } catch (error) {
         console.error('❌ Erro ao buscar library items:', error);
@@ -501,14 +625,21 @@ router.post('/:id/format', async (req, res) => {
 
         // Load the library item
         const { item } = await requireOwnedLibraryItem(id, req.userId);
-        const imageUrl = item.mediaUrls?.[0];
+        if (req.body?.preview !== true && (await getActiveLinkedPosts(item)).length) {
+            return res.status(409).json({ error: 'Cancele os agendamentos vinculados antes de ajustar a imagem.' });
+        }
+        const slideIndex = Number(req.body?.slideIndex ?? 0);
+        if (!Number.isInteger(slideIndex) || slideIndex < 0 || slideIndex >= (item.mediaUrls?.length || 0)) {
+            return res.status(400).json({ error: 'Slide inválido.' });
+        }
+        const imageUrl = item.mediaUrls[slideIndex];
 
         if (!imageUrl) {
             return res.status(400).json({ error: 'Item sem imagem para formatar' });
         }
 
         // Determine target aspect ratio based on content type
-        const isStory = isStoryFormat(item.format || item.type);
+        const isStory = isStoryFormat(req.body?.targetFormat || item.format || item.type);
         const targetRatio = isStory ? '9:16' : '4:5';
         const targetDimensions = isStory ? '1080 x 1920 pixels (9:16)' : '1080 x 1350 pixels (4:5)';
 
@@ -552,11 +683,14 @@ Simply adapt the image to fill ${targetRatio} while keeping 100% of the original
 
         console.log('💾 Updating Firestore document with new URL...');
         // Update the library item with the new image URL
-        const updatedMediaUrls = [newImageUrl, ...item.mediaUrls.slice(1)];
-        await db.collection('library_items').doc(id).update({
-            mediaUrls: updatedMediaUrls,
-            updatedAt: new Date(),
-        });
+        const updatedMediaUrls = item.mediaUrls.map((url, index) => index === slideIndex ? newImageUrl : url);
+        if (req.body?.preview !== true) {
+            await db.collection('library_items').doc(id).update({
+                mediaUrls: updatedMediaUrls,
+                mediaHistory: [...(item.mediaHistory || []), { mediaUrls: item.mediaUrls || [], savedAt: new Date() }].slice(-10),
+                updatedAt: new Date(),
+            });
+        }
 
         console.log(`\u2705 Item ${id} reformatted successfully to ${targetRatio}: ${newImageUrl}`);
 
@@ -603,6 +737,10 @@ router.put('/:id', async (req, res) => {
         const { id } = req.params;
         const updates = req.body;
         const { item: existingItem } = await requireOwnedLibraryItem(id, req.userId);
+        const linkedPosts = await getActiveLinkedPosts(existingItem);
+        if (linkedPosts.length && ['mediaUrls', 'caption', 'scheduledFor', 'type', 'format'].some(field => Object.hasOwn(updates, field))) {
+            return res.status(409).json({ error: `${linkedPosts.length} agendamento(s) ainda usam a versão anterior. Cancele o agendamento antes de editar mídia, legenda, tipo ou data.`, posts: linkedPosts.map(post => post.id) });
+        }
         const nextFormat = normalizeFormat(updates.format || updates.type || existingItem.format || existingItem.type, existingItem.format || existingItem.type || 'static');
         const shouldBlankCaption = isStoryFormat(nextFormat);
 
@@ -650,6 +788,18 @@ router.put('/:id', async (req, res) => {
             updates.caption = '';
         }
 
+        if (updates.mediaUrls && JSON.stringify(updates.mediaUrls) !== JSON.stringify(existingItem.mediaUrls || [])) {
+            updates.mediaHistory = [...(existingItem.mediaHistory || []), { mediaUrls: existingItem.mediaUrls || [], savedAt: new Date() }].slice(-10);
+        }
+
+        if (Object.hasOwn(updates, 'type') || Object.hasOwn(updates, 'format')) {
+            const mediaCount = (updates.mediaUrls ?? existingItem.mediaUrls ?? []).length;
+            if (nextFormat === 'carousel' && mediaCount < 2) return res.status(400).json({ error: 'Carrossel precisa de pelo menos 2 imagens.' });
+            if (nextFormat === 'static' && mediaCount !== 1) return res.status(400).json({ error: 'Post estático precisa de exatamente 1 imagem.' });
+            updates.type = getBaseTypeForFormat(nextFormat);
+            updates.format = nextFormat;
+        }
+
         await db.collection('library_items').doc(id).update({
             ...updates,
             updatedAt: new Date(),
@@ -674,7 +824,11 @@ router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
-        await requireOwnedLibraryItem(id, req.userId);
+        const { item } = await requireOwnedLibraryItem(id, req.userId);
+        const linkedPosts = await getActiveLinkedPosts(item);
+        if (linkedPosts.length) {
+            return res.status(409).json({ error: `${linkedPosts.length} agendamento(s) continuam ativos. Cancele-os antes de excluir o item.`, posts: linkedPosts.map(post => post.id) });
+        }
 
         await db.collection('library_items').doc(id).delete();
 

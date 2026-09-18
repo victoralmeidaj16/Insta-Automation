@@ -23,6 +23,12 @@ export async function createPost(userId, accountId, postData) {
             scheduledFor, // timestamp ou null para imediato
         } = postData;
         const format = normalizeFormat(rawFormat || type, type || 'static');
+        if (isStoryFormat(format) && postData.businessProfileId) {
+            const profile = await getBusinessProfile(postData.businessProfileId);
+            if (Number(profile?.contentSchedule?.storiesPerWeek) === 0) {
+                throw new Error('Stories pausados para revisão neste perfil. Retome a frequência antes de publicar.');
+            }
+        }
 
         const hasHtmlContent = Boolean(postData.htmlContent || postData.htmlCode);
         if ((!mediaUrls || mediaUrls.length === 0) && !hasHtmlContent) {
@@ -74,6 +80,13 @@ export async function createPost(userId, accountId, postData) {
                 } catch (bpError) {
                     throw error; // Re-throw the original account not found error
                 }
+            }
+        }
+
+        if (isStoryFormat(format) && !postData.businessProfileId && account.businessProfileId) {
+            const profile = await getBusinessProfile(account.businessProfileId);
+            if (Number(profile?.contentSchedule?.storiesPerWeek) === 0) {
+                throw new Error('Stories pausados para revisão neste perfil. Retome a frequência antes de publicar.');
             }
         }
 
@@ -440,11 +453,14 @@ export async function deletePost(postId) {
                     console.warn('⚠️ Falha ao buscar apiKey do perfil de negócios ao deletar post', e.message);
                 }
             }
-            await cancelScheduledPost(post.externalJobId, apiKey);
+            const cancellation = await cancelScheduledPost(post.externalJobId, apiKey);
+            if (cancellation?.success === false) {
+                throw new Error(`Provedor não confirmou o cancelamento do job ${post.externalJobId}: ${cancellation.error || 'falha desconhecida'}`);
+            }
         }
 
         // Stories vinculados à biblioteca preservam a mídia para republicação.
-        if (!shouldPreserveReusableMedia(post) && post.mediaUrls && post.mediaUrls.length > 0) {
+        if (!post.libraryItemId && post.mediaUrls && post.mediaUrls.length > 0) {
             for (const url of post.mediaUrls) {
                 try {
                     // Extrair caminho do arquivo da URL
@@ -482,6 +498,27 @@ export async function deletePost(postId) {
     }
 }
 
+/** Cancel the provider job while keeping the post record available for retry. */
+export async function cancelPostScheduleForUpdate(postId) {
+    const post = await getPost(postId);
+    if (!post) throw new Error('Post agendado não encontrado.');
+    if (post.externalScheduler === 'upload-post' && post.externalJobId) {
+        const profile = post.businessProfileId ? await getBusinessProfile(post.businessProfileId) : null;
+        const cancellation = await cancelScheduledPost(post.externalJobId, profile?.instagram?.uploadPostApiKey || null);
+        if (cancellation?.success === false) {
+            throw new Error(`Provedor não confirmou o cancelamento do job ${post.externalJobId}: ${cancellation.error || 'falha desconhecida'}`);
+        }
+    }
+    await db.collection('posts').doc(postId).update({
+        status: 'schedule_error',
+        externalScheduler: null,
+        externalJobId: null,
+        externalPayload: null,
+        schedulingError: 'Agendamento cancelado para atualização. Reagendar para concluir.',
+        updatedAt: new Date()
+    });
+}
+
 /**
  * Executa um post (faz o upload via Upload-Post API)
  */
@@ -489,6 +526,13 @@ export async function executePost(postId) {
     console.log(`🚀 Executando post ${postId}...`);
 
     try {
+        const candidate = await getPost(postId);
+        if (isStoryFormat(candidate.format || candidate.type) && candidate.businessProfileId) {
+            const profile = await getBusinessProfile(candidate.businessProfileId);
+            if (Number(profile?.contentSchedule?.storiesPerWeek) === 0) {
+                throw new Error('Stories pausados para revisão neste perfil.');
+            }
+        }
         const claim = await claimPostExecution(postId);
         if (!claim.claimed) {
             console.log(`⏭️ Post ${postId} não executado: ${claim.reason}.`);
@@ -584,7 +628,7 @@ export async function executePost(postId) {
                 await updatePostStatus(postId, 'success', null, new Date());
             }
 
-            if (!shouldPreserveReusableMedia(post)) {
+            if (!post.libraryItemId) {
                 for (const url of post.mediaUrls) {
                     try {
                         if (url.includes('/o/')) {
@@ -637,6 +681,12 @@ export async function executePost(postId) {
 
 export async function scheduleApprovedPost(postId, accountId = null) {
     const post = await getPost(postId);
+    if (isStoryFormat(post.format || post.type) && post.businessProfileId) {
+        const profile = await getBusinessProfile(post.businessProfileId);
+        if (Number(profile?.contentSchedule?.storiesPerWeek) === 0) {
+            throw new Error('Stories pausados para revisão neste perfil.');
+        }
+    }
     const resolvedAccountId = accountId || post.accountId || post.businessProfileId || null;
 
     if (!resolvedAccountId) {
@@ -918,12 +968,23 @@ export async function syncScheduledPosts() {
         for (const post of postsToCheck) {
             if (post.externalJobId) {
                 let apiKey = null;
+                let businessProfile = null;
                 if (post.businessProfileId) {
                     try {
-                        const businessProfile = await getBusinessProfile(post.businessProfileId);
+                        businessProfile = await getBusinessProfile(post.businessProfileId);
                         apiKey = businessProfile?.instagram?.uploadPostApiKey;
                     } catch (e) {
                         console.warn('⚠️ Falha ao buscar apiKey do perfil de negócios', e);
+                    }
+                }
+
+                if (isStoryFormat(post.format || post.type) && Number(businessProfile?.contentSchedule?.storiesPerWeek) === 0) {
+                    try {
+                        await cancelPostScheduleForUpdate(post.id);
+                        await db.collection('posts').doc(post.id).update({ status: 'paused', pauseReason: 'Stories pausados para revisão no perfil.', updatedAt: new Date() });
+                        continue;
+                    } catch (error) {
+                        console.error(`❌ Falha ao cancelar story pausado ${post.id}:`, error.message);
                     }
                 }
 
@@ -936,7 +997,7 @@ export async function syncScheduledPosts() {
                     await updatePostStatus(post.id, 'success', null, jobStatus.last_update ? new Date(jobStatus.last_update.$date || jobStatus.last_update) : new Date());
 
                     // Stories da biblioteca permanecem no Storage para reutilização.
-                    if (!shouldPreserveReusableMedia(post) && post.mediaUrls && post.mediaUrls.length > 0) {
+                    if (!post.libraryItemId && post.mediaUrls && post.mediaUrls.length > 0) {
                         for (const url of post.mediaUrls) {
                             try {
                                 if (url.includes('/o/')) {

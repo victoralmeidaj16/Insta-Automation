@@ -95,6 +95,55 @@ beforeEach(() => {
 });
 
 describe('critical post flow', () => {
+    it('keeps a scheduled post when the provider rejects cancellation', async () => {
+        const scheduledFor = new Date(Date.now() + 3600_000);
+        await firebase.db.collection('posts').doc('post-cancel').set({
+            userId: 'urL2RUboHscN40FGOwXtt0vYfdt1',
+            businessProfileId: 'profile-1',
+            accountId: 'account-1',
+            type: 'static',
+            format: 'static',
+            status: 'scheduled',
+            scheduledFor,
+            mediaUrls: ['https://storage.googleapis.com/test/image.jpg'],
+            externalScheduler: 'upload-post',
+            externalJobId: 'job-123'
+        });
+        cancelScheduledPostMock.mockResolvedValue({ success: false, error: 'provider unavailable' });
+
+        const { deletePost } = await import('../src/services/postService.js');
+        await expect(deletePost('post-cancel')).rejects.toThrow('não confirmou o cancelamento');
+        expect(firebase.getCollection('posts').has('post-cancel')).toBe(true);
+    });
+
+    it('cancels a queued story when its profile is paused', async () => {
+        getBusinessProfileMock.mockResolvedValue({
+            id: 'profile-1',
+            contentSchedule: { storiesPerWeek: 0 },
+            instagram: { uploadPostApiKey: 'test-key' }
+        });
+        cancelScheduledPostMock.mockResolvedValue({ success: true });
+        await firebase.db.collection('posts').doc('paused-story').set({
+            userId: 'urL2RUboHscN40FGOwXtt0vYfdt1',
+            businessProfileId: 'profile-1',
+            accountId: 'account-1',
+            type: 'story',
+            format: 'story',
+            status: 'scheduled',
+            scheduledFor: new Date(Date.now() + 3600_000),
+            mediaUrls: ['https://storage.googleapis.com/test/story.jpg'],
+            externalScheduler: 'upload-post',
+            externalJobId: 'story-job'
+        });
+
+        const { syncScheduledPosts } = await import('../src/services/postService.js');
+        await syncScheduledPosts();
+
+        expect(cancelScheduledPostMock).toHaveBeenCalledWith('story-job', 'test-key');
+        expect(checkJobStatusMock).not.toHaveBeenCalled();
+        expect(firebase.getCollection('posts').get('paused-story').status).toBe('paused');
+    });
+
     it('creates a scheduled post through the API and stores the external job id', async () => {
         const app = await createTestApp();
         const mediaUrl = 'https://firebasestorage.googleapis.com/v0/b/test/o/media%2Fscheduled-post.jpg?alt=media';

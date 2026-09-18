@@ -2103,6 +2103,13 @@ export async function approveDraftPost(postId, accountId = null, options = {}) {
     const data = doc.data();
     const destination = options.destination === 'library' ? 'library' : 'schedule';
 
+    if (destination === 'schedule' && isStoryFormat(normalizeFormat(data.format || data.type, 'static'))) {
+        const profile = await getBusinessProfile(data.businessProfileId);
+        if (Number(profile?.contentSchedule?.storiesPerWeek) === 0) {
+            throw new Error('Stories pausados para revisão neste perfil. Retome a frequência antes de agendar.');
+        }
+    }
+
     if (destination === 'library') {
         assertLibraryItemAccepted({
             ...data,

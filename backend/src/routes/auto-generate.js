@@ -501,13 +501,13 @@ router.patch('/drafts/:postId/schedule', async (req, res) => {
     try {
         const userId = req.user?.uid;
         const { scheduledFor } = req.body;
-        if (!scheduledFor) return res.status(400).json({ error: 'scheduledFor é obrigatório.' });
+        if (scheduledFor === undefined) return res.status(400).json({ error: 'scheduledFor é obrigatório.' });
         if (!userId) return res.status(401).json({ error: 'Não autenticado.' });
 
         await requireOwnedDraft(req.params.postId, userId);
 
-        const newDate = new Date(scheduledFor);
-        if (isNaN(newDate.getTime())) return res.status(400).json({ error: 'Data inválida.' });
+        const newDate = scheduledFor === null ? null : new Date(scheduledFor);
+        if (newDate && isNaN(newDate.getTime())) return res.status(400).json({ error: 'Data inválida.' });
 
         await db.collection('posts').doc(req.params.postId).update({
             scheduledFor: newDate,
@@ -517,7 +517,7 @@ router.patch('/drafts/:postId/schedule', async (req, res) => {
             console.warn(`⚠️ Falha ao sincronizar data com Library (postId: ${req.params.postId}):`, err.message);
         });
 
-        res.json({ success: true, scheduledFor: newDate.toISOString() });
+        res.json({ success: true, scheduledFor: newDate?.toISOString() || null });
     } catch (error) {
         sendAutoGenerateError('auto-generate/schedule', error, res);
     }

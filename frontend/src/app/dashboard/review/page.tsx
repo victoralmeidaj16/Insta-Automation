@@ -788,13 +788,12 @@ export default function ReviewPage() {
 
     const handleSaveSchedule = async (postId: string) => {
         const newDate = editingSchedule[postId];
-        if (!newDate) return;
         setSavingSchedule(prev => ({ ...prev, [postId]: true }));
         try {
             await api.patch(`/api/auto-generate/drafts/${postId}/schedule`, {
-                scheduledFor: new Date(newDate).toISOString()
+                scheduledFor: newDate ? new Date(newDate).toISOString() : null
             });
-            setDrafts(prev => prev.map(d => d.id === postId ? { ...d, scheduledFor: newDate } : d));
+            setDrafts(prev => prev.map(d => d.id === postId ? { ...d, scheduledFor: newDate || null } : d));
             setEditingSchedule(prev => { const n = { ...prev }; delete n[postId]; return n; });
             toast.success('Data atualizada!');
         } catch (error) {
@@ -1316,6 +1315,7 @@ export default function ReviewPage() {
     };
 
     const openBulkApprovalModal = (draftList: DraftPost[] = drafts, destinationLabel = 'seção') => {
+        draftList = draftList.filter(draft => !isPausedStory(draft));
         if (draftList.length === 0) return;
         setApprovalSelection({
             ids: draftList.map(d => d.id),
@@ -1323,16 +1323,8 @@ export default function ReviewPage() {
         });
     };
 
-    const handleApproveSelected = () => {
-        const selectedVisibleIds = drafts
-            .filter(draft => selectedDraftIds.includes(draft.id))
-            .map(draft => draft.id);
-        if (selectedVisibleIds.length === 0) return;
-        setApprovalSelection({
-            ids: selectedVisibleIds,
-            destinationLabel: 'seleção'
-        });
-    };
+    const isPausedStory = (draft: DraftPost) => getDraftReviewTab(draft) === 'stories'
+        && Number(profiles.find(profile => profile.id === draft.businessProfileId)?.contentSchedule?.storiesPerWeek) === 0;
 
     const toggleDraftSelection = (postId: string) => {
         setSelectedDraftIds(prev => (
@@ -1904,7 +1896,8 @@ export default function ReviewPage() {
         }, {} as Record<ReviewTab, number>);
 
         const visibleDrafts = filteredDrafts.filter(draft => getDraftReviewTab(draft) === reviewTab);
-        const selectedVisibleDrafts = visibleDrafts.filter(draft => selectedDraftIds.includes(draft.id)).slice(0, 3);
+        const approvableVisibleDrafts = visibleDrafts.filter(draft => !isPausedStory(draft));
+        const selectedVisibleDrafts = visibleDrafts.filter(draft => selectedDraftIds.includes(draft.id) && !isPausedStory(draft)).slice(0, 3);
         const reviewProfileId = !draftProfileFilter || draftProfileFilter === 'all' ? selectedProfileId : draftProfileFilter;
         const reviewProfile = profiles.find(profile => profile.id === reviewProfileId);
         const reviewSchedule = reviewProfile?.contentSchedule;
@@ -1990,9 +1983,9 @@ export default function ReviewPage() {
                         <button onClick={() => setStep('plan')} className="btn btn-secondary" style={{ fontSize: '0.875rem' }}>
                             ← Novo plano
                         </button>
-                        {drafts.length > 0 && (
+                        {approvableVisibleDrafts.length > 0 && (
                             <button
-                                onClick={() => openBulkApprovalModal(drafts, 'todos os rascunhos da semana')}
+                                onClick={() => openBulkApprovalModal(approvableVisibleDrafts, 'seção filtrada')}
                                 className="btn btn-primary"
                                 style={{
                                     fontSize: '0.875rem',
@@ -2000,16 +1993,13 @@ export default function ReviewPage() {
                                     fontWeight: '700'
                                 }}
                             >
-                                ⚡ Aprovar Fila da Semana ({drafts.length})
+                                ⚡ Aprovar seção ({approvableVisibleDrafts.length})
                             </button>
                         )}
                         {visibleDrafts.length > 1 && visibleDrafts.length !== drafts.length && (
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button onClick={() => handleRejectAll(visibleDrafts)} className="btn btn-secondary" style={{ fontSize: '0.875rem', border: '1px solid #ef4444', color: '#ef4444' }}>
                                     🗑️ Rejeitar seção ({visibleDrafts.length})
-                                </button>
-                                <button onClick={() => openBulkApprovalModal(visibleDrafts, 'seção')} className="btn btn-primary" style={{ fontSize: '0.875rem' }}>
-                                    ✅ Aprovar seção ({visibleDrafts.length})
                                 </button>
                             </div>
                         )}
@@ -2080,7 +2070,7 @@ export default function ReviewPage() {
                             <button onClick={() => setSelectedDraftIds([])} className="btn btn-secondary" style={{ fontSize: '0.8rem' }}>
                                 Limpar seleção
                             </button>
-                            <button onClick={handleApproveSelected} className="btn btn-primary" style={{ fontSize: '0.8rem' }}>
+                            <button onClick={() => openBulkApprovalModal(selectedVisibleDrafts, 'seleção visível')} className="btn btn-primary" style={{ fontSize: '0.8rem' }}>
                                 ✅ Aprovar seleção ({selectedVisibleDrafts.length})
                             </button>
                         </div>
@@ -2409,9 +2399,9 @@ export default function ReviewPage() {
                                                         {FORMAT_ICONS[draftFormat]} {FORMAT_LABELS[draftFormat] || draftFormat}
                                                     </span>
                                                     <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(124,58,237,0.12)', color: '#c4b5fd' }}>
-                                                        {getReviewStateLabel(draft.reviewState)}
+                                                        {isPausedStory(draft) ? 'Pausado para revisão' : getReviewStateLabel(draft.reviewState)}
                                                     </span>
-                                                    {draft.scheduledFor ? (
+                                                    {!isPausedStory(draft) && (draft.scheduledFor ? (
                                                         <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(255,255,255,0.06)', color: '#71717a' }}>
                                                             📅 {formatDate(draft.scheduledFor)}
                                                         </span>
@@ -2422,7 +2412,7 @@ export default function ReviewPage() {
                                                         >
                                                             🕒 {slotProjection[draft.id] ? `Ao aprovar: ${formatDate(slotProjection[draft.id])}` : 'Sem data até a aprovação'}
                                                         </span>
-                                                    )}
+                                                    ))}
                                                     <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(96,165,250,0.12)', color: '#93c5fd' }}>
                                                         🎯 {getCampaignLabel(draft.scheduledFor, draft.createdAt)}
                                                     </span>
@@ -2444,7 +2434,7 @@ export default function ReviewPage() {
                                                     {tab === 'stories' && <span>{(draft.interactiveElements || []).length} interação(ões)</span>}
                                                 </div>
 
-                                                <div>
+                                                {!isPausedStory(draft) && <div>
                                                     <label style={{ fontSize: '0.7rem', color: '#52525b', display: 'block', marginBottom: '0.3rem' }}>
                                                         📅 Agendamento {!draft.scheduledFor && <span style={{ color: '#3f3f46' }}>(opcional)</span>}
                                                     </label>
@@ -2458,7 +2448,7 @@ export default function ReviewPage() {
                                                     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                                                         <input
                                                             type="datetime-local"
-                                                            defaultValue={formatDateTimeLocal(draft.scheduledFor)}
+                                                            value={editingSchedule[draft.id] ?? formatDateTimeLocal(draft.scheduledFor)}
                                                             onChange={e => setEditingSchedule(prev => ({ ...prev, [draft.id]: e.target.value }))}
                                                             style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid #27272a', borderRadius: '0.375rem', color: '#e4e4e7', padding: '0.4rem 0.5rem', fontSize: '0.8rem', fontFamily: 'inherit' }}
                                                         />
@@ -2472,7 +2462,12 @@ export default function ReviewPage() {
                                                             </button>
                                                         )}
                                                     </div>
-                                                </div>
+                                                    {draft.scheduledFor && (
+                                                        <button onClick={() => { setEditingSchedule(prev => ({ ...prev, [draft.id]: '' })); }} disabled={savingSchedule[draft.id]} style={{ marginTop: '0.35rem', background: 'transparent', border: 0, color: '#a78bfa', cursor: 'pointer', fontSize: '0.75rem' }}>
+                                                            Usar próximo horário livre (depois clique em ✓)
+                                                        </button>
+                                                    )}
+                                                </div>}
 
                                                 <div>
                                                     <label style={{ fontSize: '0.7rem', color: '#52525b', display: 'block', marginBottom: '0.3rem' }}>{getCaptionLabel(draft)}</label>
@@ -2490,11 +2485,11 @@ export default function ReviewPage() {
                                                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
                                                     <button
                                                         onClick={() => setConfirmingDraft(draft)}
-                                                        disabled={actioning[draft.id]}
+                                                        disabled={actioning[draft.id] || isPausedStory(draft)}
                                                         className="btn btn-primary"
                                                         style={{ flex: 1, padding: '0.4rem', fontSize: '0.8rem', opacity: actioning[draft.id] ? 0.4 : 1 }}
                                                     >
-                                                        {actioning[draft.id] ? '...' : '✅ Aprovar'}
+                                                        {actioning[draft.id] ? '...' : isPausedStory(draft) ? 'Stories pausados' : '✅ Aprovar'}
                                                     </button>
                                                     {draftFormat === 'carousel-premium' && (
                                                         <button
@@ -2735,11 +2730,11 @@ export default function ReviewPage() {
                                 )}
                                 <button
                                     onClick={() => handleApprove(confirmingDraft.id, 'schedule')}
-                                    disabled={isLoading}
+                                    disabled={isLoading || isPausedStory(confirmingDraft)}
                                     className="btn btn-primary"
                                     style={{ padding: '0.85rem', fontWeight: 600, fontSize: '0.95rem' }}
                                 >
-                                    {isLoading ? '⏳ Processando...' : '🚀 Agendar agora'}
+                                    {isLoading ? '⏳ Processando...' : isPausedStory(confirmingDraft) ? 'Stories pausados para revisão' : '🚀 Agendar agora'}
                                 </button>
                                 <button
                                     onClick={() => handleApprove(confirmingDraft.id, 'library')}
@@ -2777,6 +2772,13 @@ export default function ReviewPage() {
                         <p style={{ margin: 0, color: '#a1a1aa', fontSize: '0.9rem', lineHeight: 1.5 }}>
                             {approvalSelection.ids.length} conteúdo(s) selecionado(s). Escolha o destino após a aprovação.
                         </p>
+                        <div style={{ marginTop: '0.65rem', color: '#a1a1aa', fontSize: '0.8rem', lineHeight: 1.5 }}>
+                            {Array.from(new Set(drafts.filter(draft => approvalSelection.ids.includes(draft.id)).map(draft => profiles.find(profile => profile.id === draft.businessProfileId)?.name || draft.businessProfileId))).join(', ')}
+                            {' · '}
+                            {Array.from(new Set(drafts.filter(draft => approvalSelection.ids.includes(draft.id)).map(draft => getDraftFormat(draft)))).join(', ')}
+                            {' · '}
+                            {Array.from(new Set(drafts.filter(draft => approvalSelection.ids.includes(draft.id)).map(draft => getCampaignLabel(draft.scheduledFor, draft.createdAt)))).join(', ')}
+                        </div>
                     </div>
                     <div style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', color: '#bfdbfe', fontSize: '0.85rem', lineHeight: 1.5 }}>
                         `Agendar agora` mantém o fluxo operacional do post. `Enviar só para Library` aprova e arquiva o conteúdo apenas na biblioteca.
@@ -2824,9 +2826,9 @@ export default function ReviewPage() {
                     <div style={{ display: 'flex', gap: '0', background: '#18181b', border: '1px solid #27272a', borderRadius: '0.5rem', overflow: 'hidden', width: 'fit-content' }}>
                         {([
                             { key: 'plan', label: '1. Planejar', icon: '🗓️' },
-                            { key: 'approve', label: '2. Aprovar', icon: '🔍' },
+                            { key: 'approve', label: '2. Aprovar plano', icon: '🔍' },
                             { key: 'generating', label: '3. Gerar', icon: '🤖' },
-                            { key: 'review', label: '4. Revisar', icon: '✅' },
+                            { key: 'review', label: '4. Revisar e agendar', icon: '✅' },
                         ] as { key: Step; label: string; icon: string }[]).map((s) => {
                             const stepOrder: Step[] = ['plan', 'approve', 'generating', 'review'];
                             const currentIdx = stepOrder.indexOf(step);
