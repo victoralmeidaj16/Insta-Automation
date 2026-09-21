@@ -637,10 +637,35 @@ O campo 'description' deve conter TODO o conteúdo do post formatado em Markdown
     }
 }
 
+const SINGLE_FRAME_GUARD = 'IMPORTANT: this is ONE single full-frame photograph showing ONE scene. Do NOT create a grid, collage, contact sheet, storyboard, comic panels, split screen or multiple frames/slides.';
+
 /**
- * Gera um prompt de imagem detalhado a partir de um conceito de post
+ * Remove do conceito a estrutura de carrossel ("Estrutura dos posts", "Slide 1 — ...")
+ * que vem das descrições dos pilares. Sem isso o modelo de imagem desenha todos os
+ * slides numa grade dentro de uma única imagem.
  */
-export async function generateImagePrompt(concept, context = {}) {
+export function stripCarouselStructure(concept = '') {
+    return String(concept)
+        .split('\n')
+        .filter(line => !/^\s*(estrutura\s+dos?\s+posts?|post\s+structure)\b/i.test(line))
+        .filter(line => !/^\s*(slide|card)\s*\d+\s*[—–\-:]/i.test(line))
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
+export function enforceSingleFrame(prompt = '') {
+    const text = String(prompt || '').trim();
+    if (!text || text.includes(SINGLE_FRAME_GUARD)) return text;
+    return `${text}\n\n${SINGLE_FRAME_GUARD}`;
+}
+
+/**
+ * Gera um prompt de imagem detalhado a partir de um conceito de post.
+ * Sempre descreve UMA imagem (static, story ou um card de carrossel premium).
+ */
+export async function generateImagePrompt(rawConcept, context = {}) {
+    const concept = context.isPremiumCarousel ? rawConcept : stripCarouselStructure(rawConcept);
     try {
         console.log(`🎨 Gerando prompt de imagem para conceito: "${concept.substring(0, 50)}..."`);
 
@@ -962,6 +987,10 @@ REGRA DE IDIOMA DO TEXTO OVERLAY:
 Qualquer texto visível NA IMAGEM (headline, subheadline, overlay) DEVE obrigatoriamente estar em Português do Brasil.
 O prompt de imagem pode ser escrito em inglês, mas os textos que aparecerão na imagem gerada devem ser em PT-BR.
 
+REGRA DE FORMATO (CRÍTICA):
+Este post é UMA ÚNICA IMAGEM. Descreva UMA cena, UM momento, com UMA headline e no máximo UMA subheadline.
+NUNCA descreva slides, cards, painéis, sequências, grade, colagem ou "Slide 1 / Slide 2". Se o conceito mencionar uma estrutura de carrossel, escolha apenas a ideia mais forte e ignore o resto.
+
 Retorne APENAS o texto do prompt final, em INGLÊS. SEJA CRIATIVO e EVITE repetições robóticas de templates.`;
         }
 
@@ -1013,6 +1042,13 @@ ${backgroundStyle ? `\nSTYLE REFERENCE (mood/color only, do NOT copy this scene 
         let generatedPrompt = completion.choices[0].message.content?.trim() || '';
         console.log(`✅ Prompt gerado (primeiros 120 chars): "${generatedPrompt.substring(0, 120)}..."`);
 
+        if (isPromptRefusal(generatedPrompt)) {
+            console.warn('⚠️ Modelo recusou o conceito. Usando fallback determinístico para gerar prompt visual.');
+            return enforceSingleFrame(buildFallbackImagePrompt(concept, context));
+        }
+
+        generatedPrompt = enforceSingleFrame(generatedPrompt);
+
         // For premium carousels: prepend structured overlay tags extracted from the concept brief,
         // so buildPremiumLayoutFromPrompt gets [TITLE:] and [HIGHLIGHTS:] instead of falling back
         // to raw brief text as the headline.
@@ -1043,17 +1079,12 @@ ${backgroundStyle ? `\nSTYLE REFERENCE (mood/color only, do NOT copy this scene 
             }
         }
 
-        if (isPromptRefusal(generatedPrompt)) {
-            console.warn('⚠️ Modelo recusou o conceito. Usando fallback determinístico para gerar prompt visual.');
-            return buildFallbackImagePrompt(concept, context);
-        }
-
         return generatedPrompt;
 
     } catch (error) {
         console.error('❌ Erro ao gerar prompt de imagem:', error);
         console.warn('⚠️ Aplicando fallback determinístico após erro no modelo de prompt.');
-        return buildFallbackImagePrompt(concept, context);
+        return enforceSingleFrame(buildFallbackImagePrompt(concept, context));
     }
 }
 
