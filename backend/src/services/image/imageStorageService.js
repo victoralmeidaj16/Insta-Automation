@@ -63,13 +63,9 @@ export async function compositeLogoOverlay(sourceImageBase64Url, logoPath) {
             imageBuffer = Buffer.from(base64Data, 'base64');
         }
 
-        // 🔄 Usuário solicitou que toda imagem transformada na biblioteca seja 4:5 (1080x1350)
-        console.log('📐 Redimensionando imagem de base para 1080x1350 (4:5) antes de aplicar a logo...');
-        const resizedImageBuffer = await sharp(imageBuffer)
-            .resize(1080, 1350, { fit: 'cover', position: 'center' })
-            .toBuffer();
-
-        const sourceImage = sharp(resizedImageBuffer);
+        // A imagem já chega enquadrada na proporção do formato (fitToAspectRatio);
+        // forçar 1080x1350 aqui cortaria stories para 4:5.
+        const sourceImage = sharp(imageBuffer);
         const metadata = await sourceImage.metadata();
         const width = metadata.width;
         const height = metadata.height;
