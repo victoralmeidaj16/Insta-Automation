@@ -56,32 +56,24 @@ export async function generateImageWithGemini(prompt, aspectRatio, referenceImag
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY não configurada');
 
-    // Map Aspect Ratio for Gemini
-    // Supported: "1:1", "3:4", "4:3", "16:9", "9:16"
-    const ratioMap = {
-        '1:1': '1:1',
-        '4:5': '3:4', // Best approximation
-        '16:9': '16:9',
-        '9:16': '9:16'
+    // A proporção vai em generationConfig.imageConfig (o modelo aceita 4:5 nativo).
+    // Mapear 4:5 para 3:4 fazia o post sair mais alto que o limite do feed, e o
+    // Instagram completava com faixas brancas nas laterais.
+    const ratioLabels = {
+        '1:1': 'formato quadrado perfeito',
+        '4:5': 'formato retrato vertical',
+        '9:16': 'formato vertical de tela cheia',
+        '16:9': 'formato paisagem horizontal'
     };
-    const geminiRatio = ratioMap[aspectRatio] || '1:1';
+    const geminiRatio = ratioLabels[aspectRatio] ? aspectRatio : '1:1';
+    const ratioMsg = `${ratioLabels[geminiRatio]} (aspect ratio ${geminiRatio})`;
 
-    console.log(`🤖 Gerando imagem com Gemini (Imagen 3)... Ratio: ${geminiRatio}`);
+    console.log(`🤖 Gerando imagem com Gemini... Ratio: ${geminiRatio}`);
 
-    // Gemini API translates prompts into internal tool arguments. If the user explicitly asks for "1080 x 1350" or "4:5",
-    // Gemini may try to inject aspect_ratio="1080:1350" or "4:5", which crashes the API with MALFORMED_FUNCTION_CALL
-    // because those aren't valid enum values for the tool (it only accepts 1:1, 3:4, 4:3, 9:16, 16:9).
-    const portraitMsg = 'formato retrato vertical (aspect ratio 3:4)';
-    const landscapeMsg = 'formato paisagem horizontal (aspect ratio 16:9)';
-    const squareMsg = 'formato quadrado perfeito (aspect ratio 1:1)';
-
+    // Pixels ("1080x1350") ou proporções escritas no prompt podem conflitar com a
+    // proporção pedida; todas viram a descrição da proporção de destino.
     let safePrompt = prompt
-        .replace(/\b1080\s*x\s*1350\b|\b1080x1350\b|\b4:5\b/gi, 'TARGET_RATIO_TOKEN')
-        .replace(/\b1920\s*x\s*1080\b|\b1920x1080\b/gi, 'TARGET_RATIO_TOKEN_LANDSCAPE')
-        .replace(/\b1080\s*x\s*1080\b|\b1080x1080\b/gi, 'TARGET_RATIO_TOKEN_SQUARE')
-        .replace(/TARGET_RATIO_TOKEN/g, portraitMsg)
-        .replace(/TARGET_RATIO_TOKEN_LANDSCAPE/g, landscapeMsg)
-        .replace(/TARGET_RATIO_TOKEN_SQUARE/g, squareMsg);
+        .replace(/\b\d{3,4}\s*[x×]\s*\d{3,4}\b|\b(?:1:1|4:5|3:4|9:16|16:9)\b/gi, ratioMsg);
 
     // Enforcement: Explicitly prepend the target ratio to help the model internalize the dimension
     safePrompt = `[TARGET ASPECT RATIO: ${geminiRatio}]\n\n${safePrompt}`;
@@ -151,7 +143,10 @@ export async function generateImageWithGemini(prompt, aspectRatio, referenceImag
                 parts: parts
             }],
             generationConfig: {
-                temperature: 0.4
+                temperature: 0.4,
+                imageConfig: {
+                    aspectRatio: geminiRatio
+                }
             }
         };
 

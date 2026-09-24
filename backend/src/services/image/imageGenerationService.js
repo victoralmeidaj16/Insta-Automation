@@ -9,6 +9,7 @@ import { createScientificComposition } from '../scientificCompositionService.js'
 import { getBrandReferenceImages, isFitswapBrand, mergeBrandProfileDefaults, normalizeBrandKey } from '../../utils/brandProfiles.js';
 import { uploadBase64ToFirebase, compositeLogoOverlay } from './imageStorageService.js';
 import { generateImageWithGemini, generateImageWithSeedream } from './imageGenerationAdapters.js';
+import { fitToAspectRatio } from './imageFraming.js';
 import {
     buildFallbackImagePrompt,
     buildFitswapBrandContext,
@@ -277,6 +278,9 @@ export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingS
     }
 
     console.log(`📡 finalImageUrl após toda geração: type=${typeof finalImageUrl}, value=${typeof finalImageUrl === 'string' ? finalImageUrl.substring(0, 50) : 'NOT_A_STRING'}`);
+
+    // Garante a proporção do formato antes de logo/composição/publicação.
+    finalImageUrl = await fitToAspectRatio(finalImageUrl, aspectRatio);
 
     // POST-PROCESSING: Composite Logo if requested
     if (finalImageUrl && context.attachLogo) {

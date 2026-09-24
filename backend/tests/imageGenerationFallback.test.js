@@ -30,6 +30,9 @@ beforeEach(async () => {
         uploadBase64ToFirebase: vi.fn(async url => url),
         compositeLogoOverlay: vi.fn(async url => url)
     }));
+    vi.doMock('../src/services/image/imageFraming.js', () => ({
+        fitToAspectRatio: vi.fn(async url => url)
+    }));
     vi.doMock('../src/utils/brandProfiles.js', async (importOriginal) => ({
         ...await importOriginal(),
         normalizeBrandKey
