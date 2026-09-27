@@ -19,7 +19,7 @@ import {
     isStoryFormat,
     normalizeFormat
 } from '../domain/formatRules.js';
-import { mergeBrandProfileDefaults, isFitswapBrand } from '../utils/brandProfiles.js';
+import { mergeBrandProfileDefaults, isFitswapBrand, isTudyBrand, TUDY_DEFAULT_HTML_TEMPLATE } from '../utils/brandProfiles.js';
 import { createPremiumComposition, PREMIUM_GRADIENT_OPACITY_DEFAULT } from './premiumCompositionService.js';
 import { recordGenerationRun } from './generationRunsService.js';
 import { uploadImage } from './historyService.js';
@@ -40,6 +40,7 @@ const FORMAT_SLIDE_LIMITS = {
 const REVIEW_MODE_PREMIUM_CAROUSEL_SLIDE_COUNT = 5;
 
 const HTML_TEMPLATE_SLIDE_LIMITS = {
+    [TUDY_DEFAULT_HTML_TEMPLATE]: { min: 7, max: 7, fallback: 7 },
     bold: { min: 7, max: 7, fallback: 7 },
     editorial: { min: 7, max: 7, fallback: 7 },
     'fitswap-clareza': { min: 7, max: 7, fallback: 7 },
@@ -116,10 +117,11 @@ const AUTO_ROTATION_TEMPLATES = new Set(['bold', 'editorial', 'instagram', 'phot
 
 /**
  * Selects the least-recently-used ElevePic template for a business profile,
- * respecting pillar.preferredHtmlTemplate if set. Fitswap has a fixed brand
- * template instead of the rotation.
+ * using the approved Tudy default before legacy pillar preferences.
+ * Other brands keep their pillar preferences and rotation rules.
  */
-function selectHtmlTemplate(pillar = {}, recentActivity = {}, profile = {}) {
+export function selectHtmlTemplate(pillar = {}, recentActivity = {}, profile = {}) {
+    if (isTudyBrand(profile)) return TUDY_DEFAULT_HTML_TEMPLATE;
     if (pillar.preferredHtmlTemplate) return pillar.preferredHtmlTemplate;
     if (isFitswapBrand(profile)) return FITSWAP_DEFAULT_HTML_TEMPLATE;
     const byTemplate = recentActivity.byTemplate || {};
@@ -209,7 +211,7 @@ function getReviewModeSlideCount(format, requestedCount = 0) {
     return requestedCount || 0;
 }
 
-function resolveHtmlTemplateSlideCount(templateId, requestedCount = null) {
+export function resolveHtmlTemplateSlideCount(templateId, requestedCount = null) {
     const limits = HTML_TEMPLATE_SLIDE_LIMITS[templateId] || FORMAT_SLIDE_LIMITS['carousel-html'];
     return clampSlideCount(requestedCount, limits);
 }
@@ -2401,10 +2403,11 @@ export async function regenerateDraftPost(postId, newPrompt) {
         const autoTemplate = selectHtmlTemplate(pillar || {}, {}, merged);
         // Fitswap: um template antigo vindo da rotação dá lugar ao padrão da marca;
         // um escolhido à mão (ex.: Food Swap) é mantido.
-        const existingTemplate = isFitswapBrand(merged) && AUTO_ROTATION_TEMPLATES.has(draft.extra?.carouselTemplateId)
+        const storedTemplate = draft.carouselTemplateId || draft.extra?.carouselTemplateId;
+        const existingTemplate = isFitswapBrand(merged) && AUTO_ROTATION_TEMPLATES.has(storedTemplate)
             ? null
-            : draft.extra?.carouselTemplateId;
-        const regenTemplate = options.templateId || existingTemplate || autoTemplate;
+            : storedTemplate;
+        const regenTemplate = isTudyBrand(merged) ? TUDY_DEFAULT_HTML_TEMPLATE : existingTemplate || autoTemplate;
         const templateSlideCount = resolveHtmlTemplateSlideCount(regenTemplate, requestedSlideCount || draft.slideCount || 0);
 
         // ElevePic moodboard: regenerar também com imagens IA
@@ -2423,6 +2426,8 @@ export async function regenerateDraftPost(postId, newPrompt) {
         
         await db.collection('posts').doc(postId).update({
             htmlContent: html,
+            carouselTemplateId: regenTemplate,
+            ...(draft.extra ? { extra: { ...draft.extra, carouselTemplateId: regenTemplate } } : {}),
             generationPrompt: newPrompt,
             slideCount: htmlSlideCount,
             exportStatus: 'not_exported',
@@ -2434,6 +2439,8 @@ export async function regenerateDraftPost(postId, newPrompt) {
         return normalizeStoredPostRecord({
             ...draft,
             htmlContent: html,
+            carouselTemplateId: regenTemplate,
+            ...(draft.extra ? { extra: { ...draft.extra, carouselTemplateId: regenTemplate } } : {}),
             generationPrompt: newPrompt,
             slideCount: htmlSlideCount,
             exportStatus: 'not_exported',

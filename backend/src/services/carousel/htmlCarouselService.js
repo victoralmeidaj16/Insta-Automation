@@ -2,7 +2,7 @@ import axios from 'axios';
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { isFitswapBrand } from '../../utils/brandProfiles.js';
+import { isFitswapBrand, isTudyBrand, TUDY_DEFAULT_HTML_TEMPLATE } from '../../utils/brandProfiles.js';
 import { buildBrandPromptSections } from './brandContextService.js';
 import { generateImages } from '../image/imageGenerationService.js';
 import { renderElevepicTemplate, ELEVEPIC_CONTENT_SCHEMAS, isElevepicTemplate } from '../carouselTemplateService.js';
@@ -277,7 +277,9 @@ async function generateElevepicMoodboardCarousel(topic, context = {}, libraryIma
  * @param {string} [customTemplateHtml] HTML de um template customizado salvo pelo usuário
  * @param {'auto'|'heavy'|'light'} [libraryImageTreatment='auto'] Tratamento das imagens reais da biblioteca
  */
-export async function generateHtmlCarousel(topic, context = {}, htmlTemplate = 'template1', requestedSlideCount, customTemplateHtml, libraryImageTreatment = 'auto') {
+export async function generateHtmlCarousel(topic, context = {}, htmlTemplate, requestedSlideCount, customTemplateHtml, libraryImageTreatment = 'auto') {
+    htmlTemplate = htmlTemplate || (isTudyBrand(context) ? TUDY_DEFAULT_HTML_TEMPLATE : 'template1');
+    if (htmlTemplate === TUDY_DEFAULT_HTML_TEMPLATE && !customTemplateHtml) requestedSlideCount = 7;
     try {
         console.log(`📠 Gerando Carrossel HTML para: "${topic.substring(0, 50)}..."`);
 

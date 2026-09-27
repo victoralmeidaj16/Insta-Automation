@@ -91,6 +91,10 @@ const HTML_TEMPLATE_SLIDE_RULES: Record<string, { min: number; max: number; defa
     photo: { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
     moodboard: { min: 6, max: 6, defaultCount: 6, label: '6 slides fixos' },
     tudy:      { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
+    'tudy-foco': { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
+    'tudy-impacto': { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
+    'tudy-caderno': { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
+    'tudy-trilha': { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
     instagram:   { min: 5, max: 5, defaultCount: 5, label: '5 slides fixos' },
     comparison:  { min: 6, max: 6, defaultCount: 6, label: '6 slides fixos' },
     template1: { min: 4, max: 8, defaultCount: 5, label: '4–8 slides' },
@@ -354,6 +358,13 @@ export default function GeneratePage() {
                 .catch(err => console.error('❌ Error loading brand logo:', err));
         }
     }, [selectedProfile]);
+
+    // Reset only when switching profiles, so a manual template choice stays selected.
+    useEffect(() => {
+        const brand = String(selectedProfile?.brandKey || selectedProfile?.name || '').toLowerCase();
+        setHtmlTemplate(brand.includes('tudy') ? 'tudy-impacto' : 'bold');
+        setSelectedCustomTemplateId(null);
+    }, [selectedProfile?.id]);
 
     useEffect(() => {
         if (!selectedProfile?.id) { setSavedHtmlTemplates([]); return; }

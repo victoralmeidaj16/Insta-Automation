@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tudy Foco — Da dúvida ao próximo passo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#2257F5;--violet:#7C3AED;--mint:#10B981;--ink:#0F1113;--surface:#191C20;--white:#F4F7FA;--muted:#A9B2C0;--line:#30353E}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:#090B0D;color:var(--white);font-family:'IBM Plex Sans',sans-serif}
+.carousel-wrapper{width:min(420px,100vw);height:525px;overflow:hidden}
+.carousel{display:flex;width:100%;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.carousel::-webkit-scrollbar{display:none}
+.slide{position:relative;isolation:isolate;flex:0 0 100%;width:420px;height:525px;overflow:hidden;scroll-snap-align:start;background:var(--ink);padding:28px 30px 24px;display:flex;flex-direction:column}
+.slide::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(#ffffff03 1px,transparent 1px),linear-gradient(90deg,#ffffff03 1px,transparent 1px);background-size:30px 30px}
+.brand-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:33px}
+.wordmark{font-family:'Space Grotesk',sans-serif;font-size:25px;line-height:1;font-weight:700;letter-spacing:-1.3px}
+.wordmark b{color:var(--primary);font-weight:500;margin-left:3px}
+.series{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.eyebrow{font-size:10px;line-height:1.4;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#8FAAFF;margin-bottom:13px}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:-1.6px}
+h1{font-size:53px;line-height:1.02}h2{font-size:35px;line-height:1.08}h3{font-size:18px;line-height:1.2;letter-spacing:-.5px}
+p{font-size:15px;line-height:1.45;color:var(--muted)}
+.intro{margin-top:15px;max-width:325px}
+.blue{color:#7898FF}.mint{color:var(--mint)}
+.footer{margin-top:auto;padding-top:13px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);letter-spacing:.2px}
+.page-number{color:var(--white);font-family:'Space Grotesk',sans-serif;font-size:12px}
+.cover h1 em{font-style:normal;color:#7898FF}
+.cover .brand-row{margin-bottom:36px}
+.route{display:flex;align-items:center;gap:9px;margin-top:26px}
+.route-node{display:grid;place-items:center;width:58px;height:58px;border:1px solid #4C5564;border-radius:50%;font-family:'Space Grotesk',sans-serif;font-size:27px;background:var(--surface)}
+.route-line{flex:1;height:1px;background:#4C5564;position:relative}
+.route-line::after{content:'›';position:absolute;right:-1px;top:-11px;color:#8FAAFF;font-size:20px}
+.route-node.solved{background:var(--primary);border-color:var(--primary)}
+.route-label{margin-top:10px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.note{margin-top:24px;padding:21px;background:var(--surface);border-left:3px solid var(--primary)}
+.note .label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#8FAAFF;margin-bottom:12px}
+.note strong{display:block;font-family:'Space Grotesk',sans-serif;font-size:24px;line-height:1.25;letter-spacing:-.7px}
+.note p{margin-top:12px;font-size:13px}
+.steps{list-style:none;display:grid;gap:17px;margin-top:25px}
+.steps li{display:flex;gap:15px;align-items:flex-start}
+.step-index{flex-shrink:0;color:#8FAAFF;border:1px solid #3A4B7C;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:12px}
+.steps p{font-size:13px;margin-top:4px}
+.practice{background:linear-gradient(145deg,#141B31,var(--ink) 65%)}
+.equation{margin-top:24px;border:1px solid #35436B;background:#161E33;border-radius:12px;padding:20px}
+.equation-label{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:#AFC1FF}
+.math{font-family:'Space Grotesk',sans-serif;font-size:33px;letter-spacing:-1px;margin:12px 0 15px}
+.math-row{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #35436B;padding-top:12px;gap:15px}
+.math-row p{font-size:12px;max-width:180px}.math-row strong{font-size:21px;white-space:nowrap;color:var(--mint)}
+.challenge{font-size:13px;margin-top:16px;color:var(--white)}
+.checks{margin-top:24px;list-style:none}
+.checks li{display:flex;align-items:center;gap:13px;padding:15px 0;border-bottom:1px solid var(--line);font-size:15px}
+.check{color:var(--mint);border:1px solid #21614E;border-radius:5px;width:23px;height:23px;display:grid;place-items:center;flex-shrink:0;font-size:13px}
+.reminder{font-size:12px;margin-top:18px;color:#BAC5D8}
+.solution .brand-row{margin-bottom:25px}
+.solution h2{font-size:33px}
+.solution .intro{font-size:14px;margin-top:12px}
+.product{display:flex;align-items:center;gap:19px;margin-top:20px}
+.phone{width:126px;height:190px;flex-shrink:0;border:2px solid #586173;border-radius:22px;padding:19px 10px 10px;background:#191C20;position:relative;box-shadow:7px 7px 0 #2257F514}
+.phone::before{content:'';position:absolute;top:7px;left:45px;width:32px;height:4px;background:#08090B;border-radius:5px}
+.phone-label{font-size:10px;font-weight:600;margin-bottom:12px}
+.phone-question{border:1px dashed #65799E;padding:13px 5px;border-radius:7px;text-align:center;font-size:15px;color:#CBD9FF}
+.phone-answer{margin-top:8px;background:#2257F51A;border-radius:6px;padding:8px;font-size:9px;line-height:1.5;color:#BACCFF}
+.phone-status{font-size:9px;color:var(--mint);margin-top:9px}
+.features{list-style:none;display:grid;gap:15px;font-size:13px}.features li span{display:block;font-size:10px;color:#9AA8C1;margin-bottom:3px}
+.illustration-label{font-size:8px;margin-top:6px;color:var(--muted)}
+.closing{background:var(--ink)}
+.closing::after{content:'';position:absolute;width:240px;height:240px;border:40px solid #2257F521;border-radius:50%;right:-140px;bottom:78px;z-index:-1}
+.closing .brand-row{margin-bottom:38px}
+.closing h2{font-size:47px;line-height:1.03}
+.closing .intro{max-width:285px}
+.cta{background:var(--primary);color:white;padding:17px 20px;display:flex;align-items:center;justify-content:space-between;font-size:17px;font-weight:600;margin-top:28px;border-radius:8px}
+.cta span{font-size:23px;line-height:1}
+.save{margin-top:14px;font-size:12px}
+.nav-dots{display:flex;align-items:center;gap:22px;padding-bottom:16px}
+button{font:inherit;border:1px solid #394352;border-radius:50%;background:var(--surface);color:var(--white);width:40px;height:40px;cursor:pointer}
+button:hover{background:var(--primary)}button:disabled{opacity:.3;cursor:default}button:focus-visible{outline:2px solid #8FAAFF;outline-offset:4px}
+#position{font-size:12px;color:var(--muted);min-width:35px;text-align:center}
+@media(max-width:380px){.slide{padding-left:23px;padding-right:23px}h1{font-size:47px}h2{font-size:31px}.closing h2{font-size:41px}.series{font-size:8px}.product{gap:13px}}
+@media print{body{display:block;background:white}.carousel-wrapper,.carousel{display:block;overflow:visible;height:auto}.slide{break-after:page}.nav-dots{display:none}}
+</style>
+</head>
+<body>
+<main class="carousel-wrapper" aria-label="Tudy: como destravar uma questão">
+<div class="carousel" tabindex="0" aria-label="Carrossel com sete slides. Use as setas para navegar.">
+  <section class="slide cover" aria-label="Slide 1 de 7">
+    <header class="brand-row"><div class="wordmark">tudy<b>✳</b></div><span class="series">Estudo em movimento</span></header>
+    <div class="eyebrow">Dúvida na questão?</div>
+    <h1>Travou na<br>matéria?<br><em>Tem caminho.</em></h1>
+    <p class="intro">Saia do “não entendi” para o próximo passo. Uma questão por vez.</p>
+    <div class="route" aria-hidden="true"><div class="route-node">?</div><div class="route-line"></div><div class="route-node solved">→</div><div class="route-line"></div><div class="route-node solved">✓</div></div>
+    <div class="route-label">Dúvida &nbsp; → &nbsp; Prática &nbsp; → &nbsp; Clareza</div>
+    <footer class="footer"><span>Deslize para destravar →</span><span class="page-number">01 / 07</span></footer>
+  </section>
+  <section class="slide" aria-label="Slide 2 de 7">
+    <header class="brand-row"><div class="wordmark">tudy<b>✳</b></div><span class="series">Encontre o bloqueio</span></header>
+    <div class="eyebrow">Antes de tentar de novo</div>
+    <h2>Dê um nome<br>à sua <span class="blue">dúvida.</span></h2>
+    <p class="intro">Em qual parte você parou: no enunciado, na fórmula ou na conta?</p>
+    <div class="note"><div class="label">Troque “não sei nada” por</div><strong>“Não sei como<br>isolar o x.”</strong><p>Uma dúvida específica dá uma direção para o próximo passo.</p></div>
+    <footer class="footer"><span>Localize antes de resolver</span><span class="page-number">02 / 07</span></footer>
+  </section>
+  <section class="slide" aria-label="Slide 3 de 7">
+    <header class="brand-row"><div class="wordmark">tudy<b>✳</b></div><span class="series">Seu plano de ação</span></header>
+    <div class="eyebrow">Do bloqueio à tentativa</div>
+    <h2>Divida a questão.<br><span class="blue">Encontre a saída.</span></h2>
+    <ol class="steps">
+      <li><span class="step-index">01</span><div><h3>Separe os dados</h3><p>Anote o que o enunciado dá e o que ele pede.</p></div></li>
+      <li><span class="step-index">02</span><div><h3>Escolha o primeiro passo</h3><p>Qual conceito conecta os dados à resposta?</p></div></li>
+      <li><span class="step-index">03</span><div><h3>Explique sua escolha</h3><p>Escreva por que esse passo faz sentido.</p></div></li>
+    </ol>
+    <footer class="footer"><span>Um passo claro de cada vez</span><span class="page-number">03 / 07</span></footer>
+  </section>
+  <section class="slide practice" aria-label="Slide 4 de 7">
+    <header class="brand-row"><div class="wordmark">tudy<b>✳</b></div><span class="series">Coloque em prática</span></header>
+    <div class="eyebrow">Um exemplo simples</div>
+    <h2>Entenda o passo.<br><span class="blue">Depois, tente.</span></h2>
+    <div class="equation"><div class="equation-label">Objetivo: deixar o x sozinho</div><div class="math">2x + 6 = 14</div><div class="math-row"><p>Subtraia 6 dos dois lados.<br>Depois, divida ambos por 2.</p><strong>x = 4</strong></div></div>
+    <p class="challenge">Sua vez: resolva <strong>3x + 6 = 21</strong><br>sem olhar o exemplo.</p>
+    <footer class="footer"><span>Confira: 3 × 5 + 6 = 21 ✓</span><span class="page-number">04 / 07</span></footer>
+  </section>
+  <section class="slide" aria-label="Slide 5 de 7">
+    <header class="brand-row"><div class="wordmark">tudy<b>✳</b></div><span class="series">Perceba seu progresso</span></header>
+    <div class="eyebrow">Antes de seguir</div>
+    <h2>Conseguiu fazer<br><span class="mint">sem consultar?</span></h2>
+    <p class="intro">Use estas perguntas para decidir o que já pode avançar e o que revisar.</p>
+    <ul class="checks"><li><span class="check">✓</span>Sei explicar o primeiro passo?</li><li><span class="check">✓</span>Resolvo uma questão parecida?</li><li><span class="check">✓</span>Consigo conferir a resposta?</li></ul>
+    <p class="reminder">Ainda não? Volte ao ponto da dúvida<br>e faça mais uma tentativa.</p>
+    <footer class="footer"><span>Progresso é saber o que revisar</span><span class="page-number">05 / 07</span></footer>
+  </section>
+  <section class="slide solution" aria-label="Slide 6 de 7">
+    <header class="brand-row"><div class="wordmark">tudy<b>✳</b></div><span class="series">Seu estudo, com direção</span></header>
+    <div class="eyebrow">Da foto à prática</div>
+    <h2>Sua dúvida vira<br><span class="blue">estudo no Tudy.</span></h2>
+    <p class="intro">Fotografe a questão. Entenda o raciocínio e pratique com exercícios parecidos.</p>
+    <div class="product"><div><div class="phone" aria-label="Ilustração de estudo pelo celular"><div class="phone-label">Sua questão</div><div class="phone-question">2x + 6 = 14</div><div class="phone-answer">01 / Entenda o passo<br>Subtraia 6 dos dois lados.</div><div class="phone-status">✓ Hora de praticar</div></div><p class="illustration-label">Representação ilustrativa</p></div><ul class="features"><li><span>ENTENDA</span>Explicação passo a passo</li><li><span>PRATIQUE</span>Questões semelhantes</li><li><span style="color:#B99AFF">REVISE</span>Flashcards do conteúdo</li></ul></div>
+    <footer class="footer"><span>Aprendizado ativo, no celular</span><span class="page-number">06 / 07</span></footer>
+  </section>
+  <section class="slide closing" aria-label="Slide 7 de 7">
+    <header class="brand-row"><div class="wordmark">tudy<b>✳</b></div><span class="series">Transforme conteúdo</span></header>
+    <div class="eyebrow">Em aprendizado.</div>
+    <h2>A próxima<br>questão pode<br>ser <span class="blue">o começo.</span></h2>
+    <p class="intro">Leve sua dúvida para o Tudy.<br>Entenda. Pratique. Avance.</p>
+    <div class="cta">Conheça o Tudy <span aria-hidden="true">↗</span></div>
+    <p class="save">Link na bio · Salve para a próxima dúvida.</p>
+    <footer class="footer"><span>@tudy.app</span><span class="page-number">07 / 07</span></footer>
+  </section>
+</div>
+</main>
+<nav class="nav-dots" aria-label="Navegação do carrossel"><button id="previous" type="button" aria-label="Slide anterior" disabled>←</button><span id="position" aria-live="polite">1 / 7</span><button id="next" type="button" aria-label="Próximo slide">→</button></nav>
+<script>
+(() => {
+  const carousel = document.querySelector('.carousel');
+  const slides = Array.from(carousel.querySelectorAll('.slide'));
+  const previous = document.getElementById('previous');
+  const next = document.getElementById('next');
+  let index = 0;
+  function goTo(target) {
+    const destination = Math.max(0, Math.min(slides.length - 1, target));
+    carousel.scrollTo({left: destination * carousel.clientWidth, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+  }
+  previous.addEventListener('click', () => goTo(index - 1));
+  next.addEventListener('click', () => goTo(index + 1));
+  carousel.addEventListener('scroll', () => {
+    index = Math.round(carousel.scrollLeft / carousel.clientWidth);
+    previous.disabled = index === 0;
+    next.disabled = index === slides.length - 1;
+    document.getElementById('position').textContent = `${index + 1} / ${slides.length}`;
+  }, {passive:true});
+  document.addEventListener('keydown', event => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      goTo(index + (event.key === 'ArrowRight' ? 1 : -1));
+    }
+  });
+  window.addEventListener('resize', () => carousel.scrollTo({left:index * carousel.clientWidth}));
+})();
+</script>
+</body>
+</html>
