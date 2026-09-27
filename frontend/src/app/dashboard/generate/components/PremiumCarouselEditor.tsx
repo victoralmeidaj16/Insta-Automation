@@ -47,6 +47,30 @@ export const PREMIUM_HERO_LIFT_RATIO = 0.10;
 // Intensidade padrão do gradiente de transição foto → painel.
 export const PREMIUM_GRADIENT_OPACITY_DEFAULT = 0.8;
 
+// Transição foto → painel: faixa curta (46%→63% da altura) com subida forte.
+// O fim passa um pouco do painel (60%) para a névoa cobrir menos da foto; como
+// a curva fica sólida aos 80% da faixa (~59,6%), a emenda com o painel segue lisa.
+// Espelhado no backend (premiumCompositionService: PREMIUM_GRADIENT_STOPS).
+export const PREMIUM_GRADIENT_START_RATIO = 0.46;
+export const PREMIUM_GRADIENT_END_RATIO = 0.63;
+export const PREMIUM_GRADIENT_STOPS: Array<[number, number]> = [
+    [0, 0],
+    [0.25, 0.42],
+    [0.50, 0.80],
+    [0.70, 0.98],
+    [0.80, 1],
+    [1, 1]
+];
+
+/** Opacidade de cada parada para a intensidade escolhida; a última é sempre 1 para emendar no painel. */
+function premiumGradientStops(gradientOpacity: number): Array<[number, number]> {
+    const factor = gradientOpacity / PREMIUM_GRADIENT_OPACITY_DEFAULT;
+    return PREMIUM_GRADIENT_STOPS.map(([offset, opacity]) => [
+        offset,
+        offset === 1 ? 1 : Math.min(1, opacity * factor)
+    ]);
+}
+
 function clampPremiumImageScale(value: number) {
     return Math.min(2.0, Math.max(1, Number.isFinite(value) ? value : 1));
 }
@@ -647,18 +671,15 @@ export async function renderPremiumPostToDataUrl({
         context.filter = 'none';
     }
 
-    // 3. Gradient overlay — compressed zone (28%→60%), stronger curve
+    // 3. Gradient overlay — short zone (46%→63%), strong curve
     const gradOpacity = Math.min(1, Math.max(0, Number(layout.gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT)));
-    const gradStart = Math.round(canvas.height * 0.28);
-    const gradEnd   = IMAGE_H; // 60% — exactly where panel begins
+    const gradStart = Math.round(canvas.height * PREMIUM_GRADIENT_START_RATIO);
+    const gradEnd   = Math.round(canvas.height * PREMIUM_GRADIENT_END_RATIO); // solid before the panel at 60%
     const gradient = context.createLinearGradient(0, gradStart, 0, gradEnd);
     const gradColor = theme.gradientEnd.replace(/[\d.]+\)$/, `{opacity})`);
-    gradient.addColorStop(0,    gradColor.replace('{opacity}', `0`));
-    gradient.addColorStop(0.20, gradColor.replace('{opacity}', `${(gradOpacity * 0.15).toFixed(3)}`));
-    gradient.addColorStop(0.45, gradColor.replace('{opacity}', `${(gradOpacity * 0.55).toFixed(3)}`));
-    gradient.addColorStop(0.70, gradColor.replace('{opacity}', `${(gradOpacity * 0.88).toFixed(3)}`));
-    gradient.addColorStop(0.88, gradColor.replace('{opacity}', `${(gradOpacity * 0.97).toFixed(3)}`));
-    gradient.addColorStop(1,    gradColor.replace('{opacity}', `1`));
+    premiumGradientStops(gradOpacity).forEach(([offset, opacity]) => {
+        gradient.addColorStop(offset, gradColor.replace('{opacity}', opacity.toFixed(3)));
+    });
     context.fillStyle = gradient;
     context.fillRect(0, gradStart, canvas.width, gradEnd - gradStart);
 
@@ -858,15 +879,17 @@ export function PremiumPostPreview({ layout, backgroundImage, compact = false }:
                 />
             )}
 
-            {/* Gradient overlay — compressed zone (28%→60%), stronger curve */}
+            {/* Gradient overlay — short zone (46%→63%), strong curve */}
             {!layout.hideOverlay && (
                 <div
                     style={{
                         position: 'absolute',
                         left: 0, right: 0,
-                        top: '28%',
-                        height: '32%',
-                        background: `linear-gradient(to bottom, rgba(0,0,0,0) 0%, ${theme.gradientEnd.replace(/[\d.]+\)$/, `${(gradientOpacity * 0.15).toFixed(3)})`)} 20%, ${theme.gradientEnd.replace(/[\d.]+\)$/, `${(gradientOpacity * 0.55).toFixed(3)})`)} 45%, ${theme.gradientEnd.replace(/[\d.]+\)$/, `${(gradientOpacity * 0.88).toFixed(3)})`)} 70%, ${theme.gradientEnd.replace(/[\d.]+\)$/, `${(gradientOpacity * 0.97).toFixed(3)})`)} 88%, ${theme.gradientEnd.replace(/[\d.]+\)$/, `1)`)} 100%)`,
+                        top: `${PREMIUM_GRADIENT_START_RATIO * 100}%`,
+                        height: `${(PREMIUM_GRADIENT_END_RATIO - PREMIUM_GRADIENT_START_RATIO) * 100}%`,
+                        background: `linear-gradient(to bottom, ${premiumGradientStops(gradientOpacity)
+                            .map(([offset, opacity]) => `${theme.gradientEnd.replace(/[\d.]+\)$/, `${opacity.toFixed(3)})`)} ${Math.round(offset * 100)}%`)
+                            .join(', ')})`,
                         pointerEvents: 'none',
                     }}
                 />

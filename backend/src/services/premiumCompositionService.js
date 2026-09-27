@@ -41,6 +41,32 @@ export const PREMIUM_HERO_LIFT_RATIO = 0.10;
 // Intensidade padrão do gradiente de transição foto → painel.
 export const PREMIUM_GRADIENT_OPACITY_DEFAULT = 0.8;
 
+// Transição foto → painel: faixa curta (46%→63% da altura) com subida forte.
+// O fim passa um pouco do painel (60%) para a névoa cobrir menos da foto; como
+// a curva fica sólida aos 80% da faixa (~59,6%), a emenda com o painel segue lisa.
+// Na intensidade padrão as opacidades são exatamente estas; o controle do
+// editor escala a partir delas.
+// Espelhado no editor (PremiumCarouselEditor: PREMIUM_GRADIENT_STOPS).
+export const PREMIUM_GRADIENT_START_RATIO = 0.46;
+export const PREMIUM_GRADIENT_END_RATIO = 0.63;
+export const PREMIUM_GRADIENT_STOPS = [
+    [0, 0],
+    [0.25, 0.42],
+    [0.50, 0.80],
+    [0.70, 0.98],
+    [0.80, 1],
+    [1, 1]
+];
+
+/** Opacidade de cada parada para a intensidade escolhida; a última é sempre 1 para emendar no painel. */
+export function premiumGradientStops(gradientOpacity = PREMIUM_GRADIENT_OPACITY_DEFAULT) {
+    const factor = gradientOpacity / PREMIUM_GRADIENT_OPACITY_DEFAULT;
+    return PREMIUM_GRADIENT_STOPS.map(([offset, opacity]) => [
+        offset,
+        offset === 1 ? 1 : Math.min(1, opacity * factor)
+    ]);
+}
+
 /**
  * Escolhe o tamanho do título pela escada padronizada: usa o primeiro degrau em
  * que o texto cabe na largura E na altura disponíveis. Títulos extremos caem
@@ -439,18 +465,16 @@ export async function createPremiumComposition(backgroundUrl, layout = {}) {
         // ─── 4. Layout SVG ────────────────────────────────────────────────────
         const svgParts = [];
 
-        // Gradient from image to card — softer at the top, fully opaque at the bottom
-        const gradientFadeStart = Math.round(height * 0.28);
-        const gradientFadeEnd = IMAGE_H;
+        // Gradient from image to card — short and strong, fully opaque at the panel
+        const gradientFadeStart = Math.round(height * PREMIUM_GRADIENT_START_RATIO);
+        const gradientFadeEnd = Math.round(height * PREMIUM_GRADIENT_END_RATIO);
+        const gradientStopsSvg = premiumGradientStops(gradientOpacity)
+            .map(([offset, opacity]) => `<stop offset="${Math.round(offset * 100)}%" stop-color="${theme.gradientEnd}" stop-opacity="${opacity.toFixed(3)}" />`)
+            .join('\n                ');
         svgParts.push(`
         <defs>
             <linearGradient id="darkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%"   stop-color="${theme.gradientEnd}" stop-opacity="0" />
-                <stop offset="20%"  stop-color="${theme.gradientEnd}" stop-opacity="${(gradientOpacity * 0.15).toFixed(3)}" />
-                <stop offset="45%"  stop-color="${theme.gradientEnd}" stop-opacity="${(gradientOpacity * 0.55).toFixed(3)}" />
-                <stop offset="70%"  stop-color="${theme.gradientEnd}" stop-opacity="${(gradientOpacity * 0.88).toFixed(3)}" />
-                <stop offset="88%"  stop-color="${theme.gradientEnd}" stop-opacity="${(gradientOpacity * 0.97).toFixed(3)}" />
-                <stop offset="100%" stop-color="${theme.gradientEnd}" stop-opacity="1" />
+                ${gradientStopsSvg}
             </linearGradient>
         </defs>
         <rect x="0" y="${gradientFadeStart}" width="${width}" height="${gradientFadeEnd - gradientFadeStart}" fill="url(#darkGrad)" />
