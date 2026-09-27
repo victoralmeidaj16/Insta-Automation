@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fitswap — Clareza</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/*
+ * Padrão de carrossel da Fitswap ("Clareza").
+ * Cada .slide tem 420×525 — o quadro que a exportação e o preview usam — e o
+ * conteúdo é desenhado em 1080×1350 dentro de .cv, reduzido com zoom. Assim as
+ * medidas abaixo são as mesmas do post publicado (1080×1350).
+ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --lime: #A6F000; --lime-ink: #4F7A00; --ink: #111827; --muted: #5B6270; --line: #E6E8E1; }
+
+body { font-family: 'Inter', system-ui, sans-serif; color: var(--ink); background: #e9ebe4; -webkit-font-smoothing: antialiased; margin: 0; }
+.carousel-wrap { width: 420px; height: 525px; position: relative; overflow: hidden; margin: 0 auto; background: #fff; }
+.slide { position: absolute; inset: 0; width: 420px; height: 525px; overflow: hidden; background: #fff; opacity: 0; transition: opacity .35s ease; }
+.slide.active { opacity: 1; }
+.cv { width: 1080px; height: 1350px; zoom: 0.3888889; position: relative; overflow: hidden; background: #fff; padding: 96px 96px 88px; display: flex; flex-direction: column; }
+.num { font-variant-numeric: tabular-nums; }
+
+.top { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+.brand { display: flex; align-items: center; gap: 18px; font-size: 32px; font-weight: 800; letter-spacing: -.02em; }
+.brand img { width: 60px; height: 60px; border-radius: 50%; }
+.count { font-size: 26px; font-weight: 600; color: #9CA3AF; }
+
+.body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; position: relative; z-index: 1; }
+.tag { align-self: flex-start; font-size: 24px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--lime-ink); background: rgba(166,240,0,.2); padding: 14px 24px; border-radius: 999px; margin-bottom: 44px; }
+.t1 { font-size: 136px; font-weight: 900; line-height: .96; letter-spacing: -.045em; }
+.t2 { font-size: 100px; font-weight: 900; line-height: 1; letter-spacing: -.04em; }
+.t1 em, .t2 em { font-style: normal; background: linear-gradient(transparent 60%, var(--lime) 60%, var(--lime) 90%, transparent 90%); padding: 0 6px; margin: 0 -6px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.sub { font-size: 40px; line-height: 1.4; color: var(--muted); font-weight: 500; margin-top: 44px; max-width: 840px; }
+
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 40px; position: relative; z-index: 1; }
+.bar { display: flex; gap: 10px; flex: 1; max-width: 520px; }
+.bar i { height: 8px; flex: 1; border-radius: 4px; background: #ECEEE8; }
+.bar i.on { background: var(--ink); }
+.bar.done i { background: var(--ink); }
+.bar.done i:last-child { background: var(--lime); }
+.swipe { display: flex; align-items: center; gap: 18px; font-size: 28px; font-weight: 700; }
+.swipe b { width: 72px; height: 72px; border-radius: 50%; background: var(--lime); display: grid; place-items: center; font-size: 36px; }
+
+.deco { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.ring { position: absolute; right: -220px; top: -220px; width: 720px; height: 720px; border-radius: 50%; border: 3px solid var(--lime); opacity: .9; }
+.ring2 { position: absolute; right: -120px; top: -120px; width: 520px; height: 520px; border-radius: 50%; background: rgba(166,240,0,.12); }
+
+.qs { margin-top: 64px; display: flex; flex-direction: column; gap: 18px; }
+.q { font-size: 36px; font-weight: 600; background: #F5F7F0; border-radius: 24px; padding: 28px 36px; align-self: flex-start; }
+.q:nth-child(2) { opacity: .6; margin-left: 60px; }
+.q:nth-child(3) { opacity: .3; margin-left: 120px; }
+
+.rows { margin-top: 56px; }
+.row { display: flex; align-items: center; gap: 48px; padding: 30px 0; border-top: 2px solid var(--line); }
+.row:last-child { border-bottom: 2px solid var(--line); }
+.row .n { font-size: 150px; font-weight: 900; letter-spacing: -.05em; line-height: .9; min-width: 170px; position: relative; padding-right: 34px; white-space: nowrap; }
+.row .n::after { content: ''; position: absolute; right: 6px; top: 14px; width: 22px; height: 22px; border-radius: 50%; background: var(--lime); }
+.row .l { font-size: 40px; font-weight: 600; line-height: 1.25; }
+
+.list { margin-top: 60px; display: flex; flex-direction: column; gap: 22px; }
+.it { display: flex; align-items: center; gap: 30px; font-size: 42px; font-weight: 700; line-height: 1.2; background: #F6F7F4; border-radius: 28px; padding: 34px 38px; }
+.it .ic { flex: none; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-size: 32px; font-weight: 900; }
+.neg .ic { background: #E9EAEC; color: #6B7280; }
+.neg .it { color: #4B5160; }
+.pos .ic { background: var(--lime); color: var(--ink); }
+.pos .it { background: #fff; border: 2px solid var(--line); }
+
+.steps { margin-top: 60px; display: flex; flex-direction: column; gap: 22px; }
+.st { display: flex; gap: 36px; align-items: flex-start; background: #F6F7F4; border-radius: 32px; padding: 40px; }
+.st .k { font-size: 64px; font-weight: 900; color: var(--lime-ink); letter-spacing: -.04em; line-height: 1; width: 96px; flex: none; }
+.st h3 { font-size: 44px; font-weight: 800; letter-spacing: -.02em; }
+.st p { font-size: 32px; color: var(--muted); margin-top: 10px; font-weight: 500; }
+
+.btn { margin-top: 64px; align-self: flex-start; display: flex; align-items: center; gap: 26px; background: var(--ink); color: #fff; font-size: 40px; font-weight: 800; padding: 22px 22px 22px 48px; border-radius: 999px; }
+.btn b { width: 84px; height: 84px; border-radius: 50%; background: var(--lime); color: var(--ink); display: grid; place-items: center; font-size: 40px; }
+.note { margin-top: 26px; font-size: 30px; color: var(--muted); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="carousel-wrap" id="carousel">
+
+  <!-- 1 · Capa -->
+  <div class="slide active" data-index="0"><div class="cv">
+    <div class="deco"><div class="ring2"></div><div class="ring"></div></div>
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">01 / 07</div></div>
+    <div class="body">
+      <div class="tag"><!--EP:s0_tag-->Alimentação descomplicada<!--/EP:s0_tag--></div>
+      <h1 class="t1 fit"><!--EP:s0_title-->Comer bem sem <em>sofrimento</em><!--/EP:s0_title--></h1>
+      <p class="sub"><!--EP:s0_subtitle-->Como a Fitswap transforma seus desejos em refeições inteligentes e consistentes.<!--/EP:s0_subtitle--></p>
+    </div>
+    <div class="foot"><div class="bar"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="swipe">Deslize <b>→</b></div></div>
+  </div></div>
+
+  <!-- 2 · Problema -->
+  <div class="slide" data-index="1"><div class="cv">
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">02 / 07</div></div>
+    <div class="body">
+      <div class="tag"><!--EP:s1_tag-->O problema<!--/EP:s1_tag--></div>
+      <h2 class="t2 fit"><!--EP:s1_title-->Não é falta de <em>força de vontade.</em><!--/EP:s1_title--></h2>
+      <p class="sub"><!--EP:s1_subtitle-->É cansaço de decidir o que comer — todo dia, várias vezes por dia.<!--/EP:s1_subtitle--></p>
+      <div class="qs"><!--EP:s1_questions--><div class="q">O que eu janto hoje?</div><div class="q">Posso comer isso?</div><div class="q">Frango de novo?</div><!--/EP:s1_questions--></div>
+    </div>
+    <div class="foot"><div class="bar"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div></div>
+  </div></div>
+
+  <!-- 3 · Números -->
+  <div class="slide" data-index="2"><div class="cv">
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">03 / 07</div></div>
+    <div class="body">
+      <div class="tag"><!--EP:s2_tag-->Na prática<!--/EP:s2_tag--></div>
+      <h2 class="t2 fit"><!--EP:s2_title-->Menos esforço, <em>mais constância.</em><!--/EP:s2_title--></h2>
+      <div class="rows"><!--EP:s2_stats--><div class="row"><div class="n num">1</div><div class="l">foto da geladeira para começar</div></div><div class="row"><div class="n num">0</div><div class="l">receitas para decorar</div></div><div class="row"><div class="n num">3</div><div class="l">passos até a refeição pronta</div></div><!--/EP:s2_stats--></div>
+    </div>
+    <div class="foot"><div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></div></div>
+  </div></div>
+
+  <!-- 4 · O que não funciona -->
+  <div class="slide" data-index="3"><div class="cv">
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">04 / 07</div></div>
+    <div class="body">
+      <div class="tag"><!--EP:s3_tag-->O que não funciona<!--/EP:s3_tag--></div>
+      <h2 class="t2 fit"><!--EP:s3_title-->Dieta que depende de sofrer.<!--/EP:s3_title--></h2>
+      <div class="list neg"><!--EP:s3_list--><div class="it"><span class="ic">✕</span>Cortar tudo o que você gosta</div><div class="it"><span class="ic">✕</span>Cardápio rígido que não cabe na rotina</div><div class="it"><span class="ic">✕</span>Contar a caloria de cada garfada</div><!--/EP:s3_list--></div>
+    </div>
+    <div class="foot"><div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div></div>
+  </div></div>
+
+  <!-- 5 · O que funciona -->
+  <div class="slide" data-index="4"><div class="cv">
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">05 / 07</div></div>
+    <div class="body">
+      <div class="tag"><!--EP:s4_tag-->O que funciona<!--/EP:s4_tag--></div>
+      <h2 class="t2 fit"><!--EP:s4_title-->Decidir fica <em>fácil.</em><!--/EP:s4_title--></h2>
+      <div class="list pos"><!--EP:s4_list--><div class="it"><span class="ic">✓</span>Usar o que já tem na geladeira</div><div class="it"><span class="ic">✓</span>Versões leves do que você deseja</div><div class="it"><span class="ic">✓</span>Refeições que cabem no seu objetivo</div><!--/EP:s4_list--></div>
+    </div>
+    <div class="foot"><div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+  </div></div>
+
+  <!-- 6 · Como funciona -->
+  <div class="slide" data-index="5"><div class="cv">
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">06 / 07</div></div>
+    <div class="body">
+      <div class="tag"><!--EP:s5_tag-->Como funciona<!--/EP:s5_tag--></div>
+      <h2 class="t2 fit"><!--EP:s5_title-->Em três passos.<!--/EP:s5_title--></h2>
+      <div class="steps"><!--EP:s5_steps--><div class="st"><div class="k num">01</div><div><h3>Fotografe a geladeira</h3><p>A IA reconhece seus ingredientes.</p></div></div><div class="st"><div class="k num">02</div><div><h3>Diga sua vontade</h3><p>Pizza, doce, hambúrguer — vale tudo.</p></div></div><div class="st"><div class="k num">03</div><div><h3>Receba a refeição</h3><p>Pronta, gostosa e com macros ajustados.</p></div></div><!--/EP:s5_steps--></div>
+    </div>
+    <div class="foot"><div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div></div>
+  </div></div>
+
+  <!-- 7 · CTA -->
+  <div class="slide" data-index="6"><div class="cv">
+    <div class="deco"><div class="ring2"></div><div class="ring"></div></div>
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">07 / 07</div></div>
+    <div class="body">
+      <div class="tag"><!--EP:s6_tag-->Prazer sem culpa<!--/EP:s6_tag--></div>
+      <h1 class="t1 fit" style="font-size:124px"><!--EP:s6_title-->Comer bem pode ser <em>leve.</em><!--/EP:s6_title--></h1>
+      <p class="sub"><!--EP:s6_subtitle-->Seu próximo prato decidido em segundos.<!--/EP:s6_subtitle--></p>
+      <div class="btn"><!--EP:s6_cta_text-->Baixe a Fitswap<!--/EP:s6_cta_text--><b>→</b></div>
+      <div class="note"><!--EP:s6_cta_sub-->Link na bio<!--/EP:s6_cta_sub--></div>
+    </div>
+    <div class="foot"><div class="bar done"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+  </div></div>
+
+</div>
+
+<script>
+(function () {
+  // Textos longos gerados pela IA não podem vazar do slide: encolhe título,
+  // subtítulo e itens até o miolo caber, sem passar de 60% do tamanho original.
+  function fitSlide(slide) {
+    var body = slide.querySelector('.body');
+    if (!body || !body.clientHeight) return;
+    var targets = slide.querySelectorAll('.fit, .sub, .q, .row .l, .it, .st h3, .st p');
+    var base = [];
+    for (var i = 0; i < targets.length; i++) base.push(parseFloat(getComputedStyle(targets[i]).fontSize));
+    for (var step = 1; step <= 12 && body.scrollHeight > body.clientHeight + 1; step++) {
+      var ratio = 1 - step * 0.035;
+      for (var j = 0; j < targets.length; j++) targets[j].style.fontSize = (base[j] * ratio) + 'px';
+    }
+  }
+  function fitAll() {
+    var slides = document.querySelectorAll('.slide');
+    for (var i = 0; i < slides.length; i++) fitSlide(slides[i]);
+  }
+
+  var slides = document.querySelectorAll('.slide');
+  var current = 0;
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    current = (n + slides.length) % slides.length;
+    slides[current].classList.add('active');
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') goTo(current + 1);
+    if (e.key === 'ArrowLeft') goTo(current - 1);
+  });
+  var startX = 0;
+  var wrap = document.getElementById('carousel');
+  wrap.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; }, { passive: true });
+  wrap.addEventListener('touchend', function (e) {
+    var dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 50) goTo(current + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  fitAll();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
+})();
+</script>
+</body>
+</html>

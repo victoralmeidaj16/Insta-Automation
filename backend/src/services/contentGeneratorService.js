@@ -19,7 +19,7 @@ import {
     isStoryFormat,
     normalizeFormat
 } from '../domain/formatRules.js';
-import { mergeBrandProfileDefaults } from '../utils/brandProfiles.js';
+import { mergeBrandProfileDefaults, isFitswapBrand } from '../utils/brandProfiles.js';
 import { createPremiumComposition, PREMIUM_GRADIENT_OPACITY_DEFAULT } from './premiumCompositionService.js';
 import { recordGenerationRun } from './generationRunsService.js';
 import { uploadImage } from './historyService.js';
@@ -42,6 +42,7 @@ const REVIEW_MODE_PREMIUM_CAROUSEL_SLIDE_COUNT = 5;
 const HTML_TEMPLATE_SLIDE_LIMITS = {
     bold: { min: 7, max: 7, fallback: 7 },
     editorial: { min: 7, max: 7, fallback: 7 },
+    'fitswap-clareza': { min: 7, max: 7, fallback: 7 },
 
     'editorial-sci': { min: 3, max: 7, fallback: 5 },
     photo: { min: 7, max: 7, fallback: 7 },
@@ -109,12 +110,18 @@ const ELEVEPIC_TEMPLATE_ROTATION = ['bold', 'editorial', 'instagram', 'photo', '
     .filter(id => !ROTATION_EXCLUDED.has(id))
     .filter(id => ELEVEPIC_TEMPLATE_METADATA.find(template => template.id === id)?.badge !== LIBRARY_IMAGE_BADGE);
 
+// Templates que a Fitswap trocou pelo padrão da marca quando escolhidos pela rotação.
+const FITSWAP_DEFAULT_HTML_TEMPLATE = 'fitswap-clareza';
+const AUTO_ROTATION_TEMPLATES = new Set(['bold', 'editorial', 'instagram', 'photo', 'moodboard', 'editorial-sci']);
+
 /**
  * Selects the least-recently-used ElevePic template for a business profile,
- * respecting pillar.preferredHtmlTemplate if set.
+ * respecting pillar.preferredHtmlTemplate if set. Fitswap has a fixed brand
+ * template instead of the rotation.
  */
-function selectHtmlTemplate(pillar = {}, recentActivity = {}) {
+function selectHtmlTemplate(pillar = {}, recentActivity = {}, profile = {}) {
     if (pillar.preferredHtmlTemplate) return pillar.preferredHtmlTemplate;
+    if (isFitswapBrand(profile)) return FITSWAP_DEFAULT_HTML_TEMPLATE;
     const byTemplate = recentActivity.byTemplate || {};
     // Pick the template that has been used the least
     let minCount = Infinity;
@@ -872,7 +879,7 @@ async function generateDraftPostInternal(businessProfileId, pillarId, format, sc
             contentStrategy: context.contentStrategy
         };
         const recentActivityForTemplate = await analyzeRecentPosts(businessProfileId, 14).catch(() => ({}));
-        const chosenTemplate = selectHtmlTemplate(pillar, recentActivityForTemplate);
+        const chosenTemplate = selectHtmlTemplate(pillar, recentActivityForTemplate, resolvedProfile);
         const templateSlideCount = resolveHtmlTemplateSlideCount(chosenTemplate, requestedSlideCount);
 
         // ElevePic moodboard: usar template real com imagens geradas por IA
@@ -2391,8 +2398,13 @@ export async function regenerateDraftPost(postId, newPrompt) {
             contentStrategy: context.contentStrategy
         };
         // Keep same template as original draft; fall back to selectHtmlTemplate
-        const existingTemplate = draft.extra?.carouselTemplateId;
-        const regenTemplate = options.templateId || existingTemplate || selectHtmlTemplate(pillar || {}, {});
+        const autoTemplate = selectHtmlTemplate(pillar || {}, {}, merged);
+        // Fitswap: um template antigo vindo da rotação dá lugar ao padrão da marca;
+        // um escolhido à mão (ex.: Food Swap) é mantido.
+        const existingTemplate = isFitswapBrand(merged) && AUTO_ROTATION_TEMPLATES.has(draft.extra?.carouselTemplateId)
+            ? null
+            : draft.extra?.carouselTemplateId;
+        const regenTemplate = options.templateId || existingTemplate || autoTemplate;
         const templateSlideCount = resolveHtmlTemplateSlideCount(regenTemplate, requestedSlideCount || draft.slideCount || 0);
 
         // ElevePic moodboard: regenerar também com imagens IA

@@ -24,6 +24,7 @@ export const ELEVEPIC_TEMPLATE_METADATA = [
   { id: 'moodboard',    name: 'Moodboard',         description: 'Frames polaroid + film strip, estética vintage',     slides: 6,     badge: 'Usa biblioteca',  color: '#c4a882' },
   { id: 'instagram',    name: 'Instagram Native',  description: 'Chrome realista do Instagram (4:5)',                 slides: 5,     badge: 'CSS puro',        color: '#C9A84C' },
   { id: 'comparison',    name: 'Before & After',    description: 'Dois mockups lado a lado no slide 1 — Sem vs. Com o produto, imagens via Gemini', slides: 6, badge: 'IA imagens', color: '#6366f1' },
+  { id: 'fitswap-clareza', name: 'Fitswap Clareza', description: 'Padrão Fitswap: branco, títulos fortes com marca-texto lima, cartões e barra de progresso', slides: 7, badge: 'Sem imagens', color: '#A6F000' },
   { id: 'fitswap-swap', name: 'Food Swap',         description: 'Hook com duas fotos de refeição + mito + trocas X→Y + impacto numérico + aperitivo do app', slides: 6, badge: 'IA imagens', color: '#A6F000' },
 ];
 
@@ -38,6 +39,17 @@ export function isElevepicTemplate(templateId) {
 function loadTemplate(templateId) {
   const filePath = join(TEMPLATES_DIR, `${templateId}.html`);
   return readFileSync(filePath, 'utf-8');
+}
+
+// Logo embutido no HTML (versão 160px, ~14KB): a exportação roda num Chrome
+// headless que nem sempre alcança o FRONTEND_URL, e o HTML fica salvo no draft.
+let fitswapLogoDataUri = null;
+function getFitswapLogoDataUri() {
+  if (!fitswapLogoDataUri) {
+    const logo = readFileSync(join(__dirname, '../assets/fitswap-logo-160.png'));
+    fitswapLogoDataUri = `data:image/png;base64,${logo.toString('base64')}`;
+  }
+  return fitswapLogoDataUri;
 }
 
 // ─── Color utilities ──────────────────────────────────────────────────────────
@@ -758,6 +770,67 @@ function buildComparisonSlots(contentJson, brandContext = {}) {
 
 // ─── Fitswap Swap slots ───────────────────────────────────────────────────────
 
+// ─── Fitswap Clareza ─────────────────────────────────────────────────────────
+
+/** Texto do título: escapa tudo e só devolve o <em> (marca-texto lima) e <br>. */
+function clarezaTitle(value) {
+  return escapeHtml(value)
+    .replace(/&lt;(\/?)em&gt;/gi, '<$1em>')
+    .replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+}
+
+function clarezaItems(value, max) {
+  return (Array.isArray(value) ? value : [])
+    .map(item => (typeof item === 'string' ? stripHtml(item) : ''))
+    .filter(Boolean)
+    .slice(0, max);
+}
+
+function buildFitswapClarezaSlots(contentJson = {}) {
+  const slides = Array.isArray(contentJson.slides) ? contentJson.slides : [];
+  const slots = {};
+  const at = i => slides[i] || {};
+
+  slides.slice(0, 7).forEach((s, i) => {
+    setSlotIfPresent(slots, `s${i}_tag`, stripHtml(firstNonEmpty(s.tag, s.eyebrow)));
+    const title = firstNonEmpty(s.title, s.headline);
+    if (title) setSlotIfPresent(slots, `s${i}_title`, clarezaTitle(title));
+    if ([0, 1, 6].includes(i)) setSlotIfPresent(slots, `s${i}_subtitle`, escapeHtml(stripHtml(firstNonEmpty(s.subtitle, s.subtext))));
+  });
+
+  const questions = clarezaItems(at(1).questions, 3);
+  if (questions.length) slots.s1_questions = questions.map(q => `<div class="q">${escapeHtml(q)}</div>`).join('');
+
+  // Números: só entram se vierem do conteúdo. Sem eles o template mantém os
+  // fatos do produto (1 foto, 0 receitas, 3 passos), que são verdadeiros.
+  const stats = (Array.isArray(at(2).stats) ? at(2).stats : [])
+    .map(st => ({ value: stripHtml(String(st?.value ?? '')), label: stripHtml(String(st?.label ?? '')) }))
+    .filter(st => st.value && st.label)
+    .slice(0, 3);
+  if (stats.length) {
+    slots.s2_stats = stats.map(st => `<div class="row"><div class="n num">${escapeHtml(st.value)}</div><div class="l">${escapeHtml(st.label)}</div></div>`).join('');
+  }
+
+  const negatives = clarezaItems(at(3).listItems || at(3).items, 3);
+  if (negatives.length) slots.s3_list = negatives.map(t => `<div class="it"><span class="ic">✕</span>${escapeHtml(t)}</div>`).join('');
+
+  const positives = clarezaItems(at(4).checkItems || at(4).items, 3);
+  if (positives.length) slots.s4_list = positives.map(t => `<div class="it"><span class="ic">✓</span>${escapeHtml(t)}</div>`).join('');
+
+  const steps = (Array.isArray(at(5).steps) ? at(5).steps : [])
+    .map(st => ({ title: stripHtml(String(st?.title ?? '')), text: stripHtml(String(st?.text ?? st?.body ?? '')) }))
+    .filter(st => st.title)
+    .slice(0, 3);
+  if (steps.length) {
+    slots.s5_steps = steps.map((st, k) => `<div class="st"><div class="k num">0${k + 1}</div><div><h3>${escapeHtml(st.title)}</h3>${st.text ? `<p>${escapeHtml(st.text)}</p>` : ''}</div></div>`).join('');
+  }
+
+  setSlotIfPresent(slots, 's6_cta_text', escapeHtml(stripHtml(firstNonEmpty(at(6).ctaText, at(6).cta))));
+  setSlotIfPresent(slots, 's6_cta_sub', escapeHtml(stripHtml(firstNonEmpty(at(6).ctaSub, at(6).ctaSubtitle))));
+
+  return slots;
+}
+
 function buildFitswapSplitPrompt(dishName) {
   const dish = dishName || 'macarrão ao molho vermelho';
   return `Create a hyper-realistic, premium editorial food image in a vertical split composition (4:5). The image shows the SAME dish transformed into a healthier version. DISH: ${dish}. LEFT SIDE — ORIGINAL (CALORIC): A real, everyday version of ${dish} on a plate. Looks indulgent and heavier: richer sauce, more oil, butter, or cheese, less structure, more processed or dense ingredients. Warm indoor lighting, slightly dim. Natural imperfections, home-cooked feel. RIGHT SIDE — SMART HEALTHY VERSION: The SAME ${dish}, clearly recognizable, but intelligently adapted for health: cleaner structure, lighter sauce, fresher ingredients, better balance, reduced heaviness, still appetizing. Bright natural daylight, clean tones. IMPORTANT: It must feel like the SAME ${dish} upgraded, not a different recipe. Still delicious. Never "diet food". SUBTLE TRANSFORMATION CUE: A minimal, elegant visual continuity between both sides (same plate, same angle, same framing), suggesting evolution rather than replacement. No arrows, no gimmicks. OPTIONAL TECH HINT: A minimal smartphone nearby or faint neon-lime accent (#A6F000) suggesting AI-driven adjustment, no readable UI text. CAMERA & STYLE: Editorial food photography. Same camera angle on both sides. Shallow depth of field. Soft shadows, slight grain for realism. BACKGROUND: Neutral kitchen or clean surface. Minimal distractions. TEXT OVERLAY: Small clean sans-serif — Left: "Original", Right: "Smart Version". RULES: No cartoon or CGI food, no calorie numbers, no fitness clichés, no influencer hands or poses, no exaggerated effects. OVERALL MESSAGE: Same ${dish}. Smarter version. Health without giving up flavor.`;
@@ -1028,6 +1101,10 @@ export function renderElevepicTemplate(templateId, rawContentJson, brandContext,
     case 'instagram':    slots = buildInstagramSlots(contentJson);                         break;
     case 'comparison':   slots = buildComparisonSlots(contentJson, brandContext);          break;
     case 'fitswap-swap': slots = buildFitswapSwapSlots(contentJson, brandContext);         break;
+    case 'fitswap-clareza':
+      slots = buildFitswapClarezaSlots(contentJson);
+      html = html.replaceAll('__FITSWAP_LOGO__', getFitswapLogoDataUri());
+      break;
     case 'photo':
     case 'moodboard':
       // Text content from contentJson.slides (basic brand name + per-slide text)
@@ -1213,6 +1290,22 @@ export const ELEVEPIC_CONTENT_SCHEMAS = {
   [2] steps: { heading, stepCards: [{title, body}] }
   [3] stats: { heading, statsRow: [{value, label}], subtext }
   [4] cta: { heading, subtext, ctaText }`
+    }
+  },
+
+  'fitswap-clareza': {
+    description: 'Fitswap brand carousel, 7 text-only slides on a clean white layout with very bold headlines. One key word per headline gets a neon-lime highlighter, so choose it well.',
+    fields: {
+      brandName: 'string — "Fitswap"',
+      slides: `array of exactly 7 objects:
+  [0] cover: { tag (≤28 chars, category label), title (≤38 chars; wrap the single most important word or short phrase in <em>…</em>), subtitle (≤110 chars) }
+  [1] problem: { tag, title (≤44 chars, one <em>…</em>), subtitle (≤100 chars), questions: string[3] — short inner thoughts of the audience about food, ≤26 chars each, e.g. "O que eu janto hoje?" }
+  [2] numbers: { tag, title (≤40 chars, one <em>…</em>), stats: [{ value, label }] ×3 — value ≤4 chars, label ≤34 chars. Use ONLY facts about how the product works (counts of steps, photos, taps) or figures stated in the brand context. If there is no such fact, return an empty array. }
+  [3] what does not work: { tag, title (≤36 chars), listItems: string[3] — common mistakes, ≤40 chars each }
+  [4] what works: { tag, title (≤36 chars, one <em>…</em>), checkItems: string[3] — ≤40 chars each }
+  [5] how it works: { tag, title (≤30 chars), steps: [{ title (≤26 chars), text (≤48 chars) }] ×3 }
+  [6] cta: { tag, title (≤32 chars, one <em>…</em>), subtitle (≤70 chars), ctaText (≤22 chars), ctaSub (≤24 chars, e.g. "Link na bio") }
+  Use <em> only in titles, at most once per title. No other HTML.`
     }
   },
 
