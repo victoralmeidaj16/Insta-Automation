@@ -380,6 +380,23 @@ export async function generateSingleImage(prompt, aspectRatio = '1:1', brandingS
 }
 
 /**
+ * Gera uma foto a partir do prompt exato, sem a camada de marca (logo como
+ * referência, diretrizes de cor, reescrita editorial). Usada quando o template
+ * já descreve a cena inteira e as referências são fotos do próprio carrossel,
+ * como a versão B de um prato que precisa repetir o enquadramento da A.
+ *
+ * @param {string[]} referenceImages - URLs ou data URLs anexadas ao pedido
+ * @returns {Promise<string>} URL pública da imagem
+ */
+export async function generatePhotoImage(prompt, aspectRatio = '4:5', referenceImages = []) {
+    let imageUrl = await generateWithProviders('gemini', prompt, aspectRatio, referenceImages.filter(Boolean));
+    if (typeof imageUrl === 'string' && imageUrl.startsWith('data:image/')) {
+        imageUrl = await uploadBase64ToFirebase(imageUrl);
+    }
+    return imageUrl;
+}
+
+/**
  * Gera N imagens usando o mesmo prompt (modo simples)
  */
 export async function generateImages(prompt, aspectRatio = '1:1', count = 1, brandingStyle = '', isEditorial = false, context = {}, referenceImage = null, model = 'gemini') {

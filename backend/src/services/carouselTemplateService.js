@@ -25,6 +25,7 @@ export const ELEVEPIC_TEMPLATE_METADATA = [
   { id: 'instagram',    name: 'Instagram Native',  description: 'Chrome realista do Instagram (4:5)',                 slides: 5,     badge: 'CSS puro',        color: '#C9A84C' },
   { id: 'comparison',    name: 'Before & After',    description: 'Dois mockups lado a lado no slide 1 — Sem vs. Com o produto, imagens via Gemini', slides: 6, badge: 'IA imagens', color: '#6366f1' },
   { id: 'fitswap-clareza', name: 'Fitswap Clareza', description: 'Padrão Fitswap: branco, títulos fortes com marca-texto lima, cartões e barra de progresso', slides: 7, badge: 'Sem imagens', color: '#A6F000' },
+  { id: 'fitswap-ab', name: 'Fitswap A ou B', description: 'Mesmo prato em duas versões: hook "qual tem menos kcal?" em tela cheia, revelação, tabelas de kcal, trocas, macros e CTA', slides: 7, badge: 'IA imagens', color: '#A6F000' },
   { id: 'fitswap-swap', name: 'Food Swap',         description: 'Hook com duas fotos de refeição + mito + trocas X→Y + impacto numérico + aperitivo do app', slides: 6, badge: 'IA imagens', color: '#A6F000' },
 ];
 
@@ -831,6 +832,156 @@ function buildFitswapClarezaSlots(contentJson = {}) {
   return slots;
 }
 
+// ─── Fitswap A ou B ──────────────────────────────────────────────────────────
+//
+// A IA só descreve os ingredientes (pareados A↔B, com kcal) e os macros; todos
+// os números que aparecem na arte (totais, diferença, %, trocas) são calculados
+// aqui, para que o hook, a revelação, as tabelas e as trocas sempre fechem.
+
+const FITSWAP_AB_PHOTO_STYLE = 'Hyper-realistic editorial food photography, 45-degree overhead angle, single round matte off-white ceramic plate on a light natural oak table, bright soft natural daylight from the left, clean white background, shallow depth of field, subtle film grain. Real home-cooked Brazilian food, appetizing, achievable, not gourmet, not staged. Plate centered with generous margin around it. No text, no labels, no logos, no hands, no people, no cutlery clutter.';
+const FITSWAP_AB_SAME_SHOT = 'Use the attached reference image as the style guide: SAME plate, SAME table, SAME camera angle, SAME lighting and framing, SAME portion size and shape. It must look like the SAME dish, almost identical at first glance.';
+const FITSWAP_AB_PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+const FITSWAP_AB_MAX_ROWS = 6;
+
+function formatKcal(value) {
+  return Math.round(value).toLocaleString('pt-BR');
+}
+
+function abSide(side) {
+  const name = stripHtml(String(side?.name ?? ''));
+  const qty = stripHtml(String(side?.qty ?? side?.quantity ?? ''));
+  const kcal = Number(side?.kcal);
+  if (!name || !Number.isFinite(kcal) || kcal < 0) return null;
+  return { name, qty, kcal: Math.round(kcal) };
+}
+
+function abSameName(a, b) {
+  return normalizeForMatch(a) === normalizeForMatch(b);
+}
+
+export function computeFitswapAbNumbers(contentJson = {}) {
+  const rows = (Array.isArray(contentJson.rows) ? contentJson.rows : [])
+    .map(row => ({ a: abSide(row?.a), b: abSide(row?.b) }))
+    .filter(row => row.a && row.b)
+    .slice(0, FITSWAP_AB_MAX_ROWS);
+  if (rows.length < 3) throw new Error('fitswap-ab: são necessárias ao menos 3 linhas de ingredientes com kcal');
+
+  const totalA = rows.reduce((sum, row) => sum + row.a.kcal, 0);
+  const totalB = rows.reduce((sum, row) => sum + row.b.kcal, 0);
+  const delta = totalA - totalB;
+  if (delta <= 0) throw new Error('fitswap-ab: a versão B precisa ter menos kcal que a A');
+
+  const swaps = rows
+    .filter(row => !abSameName(row.a.name, row.b.name) || row.a.kcal !== row.b.kcal)
+    .map(row => {
+      const portionOnly = abSameName(row.a.name, row.b.name);
+      const label = side => (portionOnly && side.qty ? `${side.name} · ${side.qty}` : side.name);
+      return { from: label(row.a), to: label(row.b), cut: row.a.kcal - row.b.kcal };
+    })
+    .sort((x, y) => y.cut - x.cut);
+
+  const macro = key => {
+    const a = Number(contentJson.macros?.[key]?.a);
+    const b = Number(contentJson.macros?.[key]?.b);
+    return Number.isFinite(a) && Number.isFinite(b) && a >= 0 && b >= 0 ? { a: Math.round(a), b: Math.round(b) } : null;
+  };
+
+  return {
+    rows, totalA, totalB, delta,
+    pct: Math.round((delta / totalA) * 100),
+    swaps,
+    protein: macro('protein'),
+    fat: macro('fat')
+  };
+}
+
+function abRevealNote(pct) {
+  if (pct > 52) return 'Menos da metade das calorias, no <b>mesmo prato.</b>';
+  if (pct >= 48) return 'Metade das calorias, no <b>mesmo prato.</b>';
+  if (pct >= 40) return 'Quase metade das calorias, no <b>mesmo prato.</b>';
+  return `${pct}% menos calorias, no <b>mesmo prato.</b>`;
+}
+
+// O título dos macros só promete o que os números mostram.
+function abMacrosTitle(protein, fat) {
+  const fatDown = fat && fat.b < fat.a;
+  const proteinDelta = protein ? protein.b - protein.a : null;
+  if (fatDown && proteinDelta !== null && proteinDelta >= 2) return 'Menos gordura. <em>Mais proteína.</em>';
+  if (fatDown && proteinDelta !== null && Math.abs(proteinDelta) < 2) return 'Menos gordura. <em>Mesma proteína.</em>';
+  if (fatDown) return '<em>Bem menos</em> gordura.';
+  return 'Não é só <em>caloria.</em>';
+}
+
+function abSigned(value, unit = '') {
+  if (value === 0) return `0${unit}`;
+  return `${value > 0 ? '+' : '−'}${formatKcal(Math.abs(value))}${unit}`;
+}
+
+function abMacroCard(label, a, b, unit, goodWhenUp) {
+  const max = Math.max(a, b, 1) * 1.2;
+  const diff = b - a;
+  const good = goodWhenUp ? diff > 0 : diff < 0;
+  const bar = (letter, value, cls) => `<div class="bw${cls}"><i>${letter}</i><div class="track"><div class="fill" style="width:${Math.round((value / max) * 100)}%"></div><em class="num">${formatKcal(value)}${unit}</em></div></div>`;
+  return `<div class="mc"><div class="mc-h"><span>${label}</span><b class="num${good ? '' : ' flat'}">${abSigned(diff, unit.trim() === 'g' ? ' g' : '')}</b></div><div class="bars">${bar('A', a, '')}${bar('B', b, ' b')}</div></div>`;
+}
+
+function abImageTag(key, prompt, ref) {
+  return `<img src="${FITSWAP_AB_PLACEHOLDER}" data-ai-key="${key}"${ref ? ` data-ai-ref="${ref}"` : ''} data-ai-prompt="${escapeHtml(prompt)}" alt="">`;
+}
+
+function buildFitswapAbSlots(contentJson = {}) {
+  const n = computeFitswapAbNumbers(contentJson);
+  const feminine = String(contentJson.dishGender || '').toLowerCase().startsWith('f');
+  const dish = stripHtml(firstNonEmpty(contentJson.dishShort, contentJson.dishName, feminine ? 'receita' : 'prato')).toLowerCase();
+  const dishFull = stripHtml(firstNonEmpty(contentJson.dishName, dish));
+  const slots = {};
+
+  slots.s0_title = `${feminine ? 'Uma dessas' : 'Um desses'} tem <em class="hl">${formatKcal(n.delta)} kcal</em> a menos.`;
+  slots.s0_subtitle = `${feminine ? 'Mesma' : 'Mesmo'} ${escapeHtml(dish)}. Mesmo sabor. <b>Qual é?</b>`;
+
+  slots.s1_title = `Era ${feminine ? 'a' : 'o'} <em class="hl">B.</em>`;
+  slots.s1_kcal_a = formatKcal(n.totalA);
+  slots.s1_kcal_b = formatKcal(n.totalB);
+  slots.s1_pct = `−${n.pct}%`;
+  slots.s1_note = abRevealNote(n.pct);
+
+  const promptA = `${FITSWAP_AB_PHOTO_STYLE}\nDISH: ${stripHtml(firstNonEmpty(contentJson.imagePromptA, `Classic Brazilian ${dishFull} served the traditional, indulgent way, generous portion.`))}`;
+  const promptB = `${FITSWAP_AB_PHOTO_STYLE}\n${FITSWAP_AB_SAME_SHOT}\nDISH: ${stripHtml(firstNonEmpty(contentJson.imagePromptB, `A lighter version of the same ${dishFull}, still indulgent-looking and delicious — never "diet food".`))}`;
+  const imgA = abImageTag('a', promptA);
+  const imgB = abImageTag('b', promptB, 'a');
+  slots.s0_img_a = imgA; slots.s1_img_a = imgA; slots.s2_img_a = imgA;
+  slots.s0_img_b = imgB; slots.s1_img_b = imgB; slots.s3_img_b = imgB;
+
+  const tableRow = side => `<div class="tr"><span><em>${escapeHtml(side.name)}</em>${side.qty ? ` · ${escapeHtml(side.qty)}` : ''}</span><b class="num">${formatKcal(side.kcal)}</b></div>`;
+  slots.s2_rows = n.rows.map(row => tableRow(row.a)).join('') + `<div class="tr total"><span>Total</span><b class="num">${formatKcal(n.totalA)} kcal</b></div>`;
+  slots.s3_rows = n.rows.map(row => tableRow(row.b)).join('') + `<div class="tr total win"><span>Total</span><b class="num">${formatKcal(n.totalB)} kcal</b></div>`;
+
+  const count = n.swaps.length;
+  slots.s4_title = `${count} ${count === 1 ? 'troca' : 'trocas'}. <em>Zero sacrifício.</em>`;
+  slots.s4_swaps = n.swaps.map(sw => `<div class="sw"><div><div class="from">${escapeHtml(sw.from)}</div><div class="to">${escapeHtml(sw.to)}</div></div><div class="cut num">${abSigned(-sw.cut)}</div></div>`).join('');
+  const tip = stripHtml(firstNonEmpty(contentJson.tip)).replace(/^dica\s*:\s*/i, '');
+  slots.s4_tip = tip ? `<b>Dica:</b> ${escapeHtml(tip)}` : '';
+
+  slots.s5_title = abMacrosTitle(n.protein, n.fat);
+  slots.s5_macros = [
+    n.protein && abMacroCard('Proteína', n.protein.a, n.protein.b, ' g', true),
+    n.fat && abMacroCard('Gordura', n.fat.a, n.fat.b, ' g', false),
+    abMacroCard('Calorias', n.totalA, n.totalB, ' kcal', false)
+  ].filter(Boolean).join('');
+
+  const cta = isPlainObject(contentJson.cta) ? contentJson.cta : {};
+  setSlotIfPresent(slots, 's6_tag', escapeHtml(stripHtml(firstNonEmpty(cta.tag))));
+  const ctaTitle = firstNonEmpty(cta.title);
+  if (ctaTitle) setSlotIfPresent(slots, 's6_title', clarezaTitle(ctaTitle));
+  setSlotIfPresent(slots, 's6_subtitle', escapeHtml(stripHtml(firstNonEmpty(cta.subtitle))));
+  setSlotIfPresent(slots, 's6_cta_text', escapeHtml(stripHtml(firstNonEmpty(cta.ctaText))));
+  setSlotIfPresent(slots, 's6_cta_sub', escapeHtml(stripHtml(firstNonEmpty(cta.ctaSub))));
+  const chips = clarezaItems(contentJson.nextDishes, 4).map(d => d.slice(0, 18));
+  if (chips.length) slots.s6_chips = chips.map(d => `<span>${escapeHtml(d)}</span>`).join('');
+
+  return slots;
+}
+
 function buildFitswapSplitPrompt(dishName) {
   const dish = dishName || 'macarrão ao molho vermelho';
   return `Create a hyper-realistic, premium editorial food image in a vertical split composition (4:5). The image shows the SAME dish transformed into a healthier version. DISH: ${dish}. LEFT SIDE — ORIGINAL (CALORIC): A real, everyday version of ${dish} on a plate. Looks indulgent and heavier: richer sauce, more oil, butter, or cheese, less structure, more processed or dense ingredients. Warm indoor lighting, slightly dim. Natural imperfections, home-cooked feel. RIGHT SIDE — SMART HEALTHY VERSION: The SAME ${dish}, clearly recognizable, but intelligently adapted for health: cleaner structure, lighter sauce, fresher ingredients, better balance, reduced heaviness, still appetizing. Bright natural daylight, clean tones. IMPORTANT: It must feel like the SAME ${dish} upgraded, not a different recipe. Still delicious. Never "diet food". SUBTLE TRANSFORMATION CUE: A minimal, elegant visual continuity between both sides (same plate, same angle, same framing), suggesting evolution rather than replacement. No arrows, no gimmicks. OPTIONAL TECH HINT: A minimal smartphone nearby or faint neon-lime accent (#A6F000) suggesting AI-driven adjustment, no readable UI text. CAMERA & STYLE: Editorial food photography. Same camera angle on both sides. Shallow depth of field. Soft shadows, slight grain for realism. BACKGROUND: Neutral kitchen or clean surface. Minimal distractions. TEXT OVERLAY: Small clean sans-serif — Left: "Original", Right: "Smart Version". RULES: No cartoon or CGI food, no calorie numbers, no fitness clichés, no influencer hands or poses, no exaggerated effects. OVERALL MESSAGE: Same ${dish}. Smarter version. Health without giving up flavor.`;
@@ -1105,6 +1256,10 @@ export function renderElevepicTemplate(templateId, rawContentJson, brandContext,
       slots = buildFitswapClarezaSlots(contentJson);
       html = html.replaceAll('__FITSWAP_LOGO__', getFitswapLogoDataUri());
       break;
+    case 'fitswap-ab':
+      slots = buildFitswapAbSlots(contentJson);
+      html = html.replaceAll('__FITSWAP_LOGO__', getFitswapLogoDataUri());
+      break;
     case 'photo':
     case 'moodboard':
       // Text content from contentJson.slides (basic brand name + per-slide text)
@@ -1306,6 +1461,27 @@ export const ELEVEPIC_CONTENT_SCHEMAS = {
   [5] how it works: { tag, title (≤30 chars), steps: [{ title (≤26 chars), text (≤48 chars) }] ×3 }
   [6] cta: { tag, title (≤32 chars, one <em>…</em>), subtitle (≤70 chars), ctaText (≤22 chars), ctaSub (≤24 chars, e.g. "Link na bio") }
   Use <em> only in titles, at most once per title. No other HTML.`
+    }
+  },
+
+  'fitswap-ab': {
+    description: 'Fitswap "A ou B" carousel. The SAME everyday Brazilian dish in two versions: A (traditional, how people usually make it) and B (the Fitswap version with smart ingredient swaps, same dish, still delicious). The layout, the hook, the totals, the calorie difference, the percentage and the swap list are all computed by the system from the ingredient rows you return, so the rows must be accurate. Calorie and macro values here are nutrition estimates per portion based on the Brazilian TACO table and average labels — they are required for this template and are NOT product claims.',
+    fields: {
+      dishName: 'string — the dish, e.g. "lasanha à bolonhesa", "strogonoff de frango", "brigadeiro". Use the dish from the theme; if the theme names none, pick a beloved everyday Brazilian dish.',
+      dishShort: 'string — short lowercase name used in copy, e.g. "lasanha", "strogonoff", "brigadeiro"',
+      dishGender: 'string — "f" or "m", the Portuguese grammatical gender of dishShort ("f" for lasanha, "m" for strogonoff)',
+      rows: `array of 4 to 6 objects, one per ingredient, PAIRED by position: { a: { name, qty, kcal }, b: { name, qty, kcal } }
+  - a = the ingredient in the traditional version; b = what replaces it in the Fitswap version (or the same ingredient when it stays).
+  - name ≤ 30 chars (e.g. "Creme de leite", "Iogurte grego zero"); qty ≤ 18 chars in household or gram units (e.g. "100 g", "1 col. sopa", "½ caixinha").
+  - kcal = realistic integer estimate for that quantity (TACO / average labels). Same ingredient and quantity on both sides → same kcal.
+  - One portion for one person. List only the ingredients that matter for calories (skip salt, spices, water).
+  - Swaps must be real and practical: same flavor profile, easy to buy in Brazil, never "diet food". Prefer 4–5 swaps that change the result a lot.`,
+      macros: '{ protein: { a, b }, fat: { a, b } } — integer grams per portion for each version, consistent with the rows above. Be honest: if B has less protein, say so.',
+      tip: 'string ≤ 110 chars — one practical cooking tip that makes the B version work (texture, timing, crispiness). Do not start with "Dica:".',
+      imagePromptA: 'string — English description of version A on the plate for a photo prompt: the traditional, indulgent look (sauce, cheese, oil sheen, garnish, side dishes). 1–3 sentences, visual only, no numbers.',
+      imagePromptB: 'string — English description of version B on the plate: the SAME dish with the swaps visible (e.g. zucchini layers, brown rice, air-fried potato sticks), equally appetizing, still recognizable as the same dish. 1–3 sentences, visual only.',
+      nextDishes: 'string[4] — other everyday dishes the audience would like to see in this format, ≤16 chars each, e.g. "Feijoada"',
+      cta: '{ tag (≤28 chars, e.g. "Prazer sem culpa"), title (≤32 chars, one <em>…</em>, invite comments, e.g. "Qual prato vira o <em>próximo?</em>"), subtitle (≤70 chars), ctaText (≤22 chars), ctaSub (≤24 chars, e.g. "Link na bio") }'
     }
   },
 

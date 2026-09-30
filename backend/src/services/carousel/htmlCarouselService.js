@@ -4,7 +4,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { isFitswapBrand, isTudyBrand, TUDY_DEFAULT_HTML_TEMPLATE } from '../../utils/brandProfiles.js';
 import { buildBrandPromptSections } from './brandContextService.js';
-import { generateImages } from '../image/imageGenerationService.js';
+import { generateImages, generatePhotoImage } from '../image/imageGenerationService.js';
 import { renderElevepicTemplate, ELEVEPIC_CONTENT_SCHEMAS, isElevepicTemplate } from '../carouselTemplateService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -691,11 +691,75 @@ MANDATORY RETRY CONSTRAINT: The previous output has ${actualSlideCount} slides, 
     }
 }
 
+const KEYED_IMAGE_TAG = /<img\b[^>]*\bdata-ai-key=["']([\w-]+)["'][^>]*>/gi;
+
+function readTagAttribute(tag, name) {
+    const match = tag.match(new RegExp(`\\b${name}=["']([^"']*)["']`, 'i'));
+    return match ? match[1] : '';
+}
+
+function decodeHtmlAttribute(value) {
+    return value
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&');
+}
+
+/**
+ * Fotos com `data-ai-key` são a mesma imagem repetida em vários slides: cada
+ * chave é gerada uma vez só, com o prompt exato do template. Uma tag com
+ * `data-ai-ref="a"` espera a foto "a" e a envia como referência, para que as
+ * duas versões de um prato saiam com o mesmo prato, ângulo e luz.
+ */
+export async function postProcessKeyedImages(html) {
+    const groups = new Map();
+    for (const [tag, key] of html.matchAll(KEYED_IMAGE_TAG)) {
+        if (!groups.has(key)) {
+            groups.set(key, {
+                prompt: decodeHtmlAttribute(readTagAttribute(tag, 'data-ai-prompt')),
+                ref: readTagAttribute(tag, 'data-ai-ref'),
+                tags: new Set()
+            });
+        }
+        groups.get(key).tags.add(tag);
+    }
+    if (groups.size === 0) return html;
+
+    const urls = new Map();
+    const generate = async ([key, group]) => {
+        const reference = group.ref ? urls.get(group.ref) : null;
+        try {
+            urls.set(key, await generatePhotoImage(group.prompt, '4:5', reference ? [reference] : []));
+        } catch (err) {
+            console.error(`   ❌ Falha ao gerar a foto "${key}":`, err.message);
+        }
+    };
+
+    const entries = [...groups];
+    await Promise.all(entries.filter(([, g]) => !g.ref || !groups.has(g.ref)).map(generate));
+    await Promise.all(entries.filter(([, g]) => g.ref && groups.has(g.ref)).map(generate));
+
+    let processed = html;
+    for (const [key, group] of groups) {
+        const url = urls.get(key);
+        for (const tag of group.tags) {
+            const clean = tag.replace(/\s*data-ai-(?:key|ref|prompt)=["'][^"']*["']/gi, '');
+            const next = url ? clean.replace(/\bsrc=["'][^"']*["']/i, `src="${url}"`) : clean;
+            processed = processed.split(tag).join(next);
+        }
+    }
+    return processed;
+}
+
 /**
  * Pós-processa o HTML para encontrar tags com data-ai-prompt, gera as imagens via IA
  * e insere as URLs reais no atributo src.
  */
 async function postProcessHtmlImages(html, context) {
+    html = await postProcessKeyedImages(html);
+
     // Procura por todas as instâncias de data-ai-prompt="..."
     // e extrai o prompt
     const regex = /<img[^>]*data-ai-prompt=["']([^"']+)["'][^>]*>/gi;

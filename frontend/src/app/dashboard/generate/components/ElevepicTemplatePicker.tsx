@@ -339,6 +339,29 @@ function PreviewTudyFoco() {
   );
 }
 
+function PreviewFitswapAb() {
+  return (
+    <svg width="54" height="68" viewBox="0 0 54 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* foto A em cima, foto B embaixo */}
+      <rect width="54" height="34" fill="#E3D3B8"/>
+      <rect y="34" width="54" height="34" fill="#E6DCC6"/>
+      <ellipse cx="30" cy="17" rx="15" ry="9" fill="#F7F5F0"/>
+      <rect x="23" y="12" width="14" height="8" rx="1.5" fill="#D9A55B"/>
+      <ellipse cx="30" cy="52" rx="15" ry="9" fill="#F7F5F0"/>
+      <rect x="23" y="47" width="14" height="8" rx="1.5" fill="#C9B26B"/>
+      <rect x="25" y="49" width="10" height="1.5" rx=".75" fill="#6BA34A"/>
+      {/* letras A e B */}
+      <circle cx="7" cy="10" r="3.5" fill="#fff"/>
+      <circle cx="7" cy="61" r="3.5" fill="#A6F000"/>
+      {/* card do hook sobre a costura */}
+      <rect x="4" y="26" width="46" height="16" rx="4" fill="#fff"/>
+      <rect x="8" y="30" width="30" height="3" rx="1.5" fill="#111827"/>
+      <rect x="8" y="35" width="14" height="3" rx="1.5" fill="#A6F000"/>
+      <rect x="23" y="35" width="12" height="3" rx="1.5" fill="#111827"/>
+    </svg>
+  );
+}
+
 function PreviewTudy() {
   return (
     <svg width="54" height="68" viewBox="0 0 54 68" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -391,6 +414,7 @@ const TEMPLATE_PREVIEWS: Record<string, React.FC> = {
   instagram:       PreviewInstagram,
   comparison:      PreviewComparison,
   'fitswap-swap':  PreviewFitswapSwap,
+  'fitswap-ab':    PreviewFitswapAb,
   template1:       PreviewTemplate1,
   free:            PreviewFree,
   tudy:            PreviewTudy,
@@ -421,6 +445,7 @@ const TEMPLATES: TemplateOption[] = [
   { id: 'moodboard',     name: 'Moodboard',         description: 'Frames polaroid + film strip vintage',     slides: 6,     badge: 'Biblioteca',  color: '#c4a882', previewTemplateId: 'moodboard' },
   { id: 'instagram',     name: 'Instagram Native',  description: 'Chrome realista do Instagram',             slides: 5,     badge: 'CSS puro',    color: '#C9A84C', previewTemplateId: 'instagram' },
   { id: 'comparison',    name: 'Before & After',    description: 'Dois mockups no 1º slide: Sem vs. Com o produto — imagens geradas por IA', slides: 6, badge: 'IA imagens', color: '#6366f1', previewTemplateId: 'comparison' },
+  { id: 'fitswap-ab',    name: 'Fitswap A ou B',    description: 'Mesmo prato em 2 versões: "qual tem menos kcal?" em tela cheia, revelação, tabelas, trocas e macros', slides: 7, badge: 'IA imagens', color: '#A6F000', previewTemplateId: 'fitswap-ab' },
   { id: 'fitswap-swap',  name: 'Food Swap',         description: 'Hook com 2 fotos de refeição + mito + trocas X→Y + impacto numérico + aperitivo do app', slides: 6, badge: 'IA imagens', color: '#A6F000', previewTemplateId: 'fitswap-swap' },
   { id: 'tudy',          name: 'Tudy Style',        description: 'Dark tech: badge, card, flow, chart e CTA',   slides: 7,     badge: 'Biblioteca',  color: '#2257F5', previewTemplateId: 'tudy' },
   { id: 'tudy-foco',     name: 'Tudy Foco',         description: 'Editorial escuro, azul elétrico e prática guiada em 7 slides', slides: 7, badge: 'Sem imagens', color: '#2257F5', previewTemplateId: 'tudy-foco' },

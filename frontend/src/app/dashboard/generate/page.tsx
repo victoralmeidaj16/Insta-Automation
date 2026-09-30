@@ -97,6 +97,7 @@ const HTML_TEMPLATE_SLIDE_RULES: Record<string, { min: number; max: number; defa
     'tudy-trilha': { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
     instagram:   { min: 5, max: 5, defaultCount: 5, label: '5 slides fixos' },
     comparison:  { min: 6, max: 6, defaultCount: 6, label: '6 slides fixos' },
+    'fitswap-ab': { min: 7, max: 7, defaultCount: 7, label: '7 slides fixos' },
     template1: { min: 4, max: 8, defaultCount: 5, label: '4–8 slides' },
     free: { min: 4, max: 8, defaultCount: 5, label: '4–8 slides' },
 };

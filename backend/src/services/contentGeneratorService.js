@@ -30,6 +30,7 @@ import {
     normalizeScheduleConfig
 } from '../utils/scheduleConfig.js';
 import { allocateNextScheduleSlot } from './slotAllocationService.js';
+import { appendFitswapAbDisclaimer, buildFitswapAbTopic, FITSWAP_AB_TEMPLATE_ID, isFitswapAbPillar, pickFitswapAbDish } from './content/fitswapAbDishes.js';
 
 const FORMAT_SLIDE_LIMITS = {
     carousel: { min: 4, max: 10, fallback: 5 },
@@ -44,6 +45,7 @@ const HTML_TEMPLATE_SLIDE_LIMITS = {
     bold: { min: 7, max: 7, fallback: 7 },
     editorial: { min: 7, max: 7, fallback: 7 },
     'fitswap-clareza': { min: 7, max: 7, fallback: 7 },
+    'fitswap-ab': { min: 7, max: 7, fallback: 7 },
 
     'editorial-sci': { min: 3, max: 7, fallback: 5 },
     photo: { min: 7, max: 7, fallback: 7 },
@@ -328,6 +330,17 @@ function extractVisualStructureSignal(post = {}) {
     if (prompt.includes('gradient')) return 'gradient-overlay';
 
     return post.format || post.type || null;
+}
+
+// Posts do pilar (qualquer data), para o rodízio de pratos do "A ou B".
+async function listPillarPosts(businessProfileId, pillarId) {
+    const snapshot = await db.collection('posts')
+        .where('businessProfileId', '==', businessProfileId)
+        .get();
+    return snapshot.docs
+        .map(doc => doc.data())
+        .filter(post => post.pillarId === pillarId)
+        .map(post => ({ generationPrompt: post.generationPrompt, createdAt: post.createdAt }));
 }
 
 async function analyzeRecentEditorialMemory(businessProfileId, days = 30) {
@@ -841,6 +854,11 @@ async function generateDraftPostInternal(businessProfileId, pillarId, format, sc
     const pillar = resolvedProfile.editorialPillars?.find(p => p.id === pillarId);
     if (!pillar) throw new Error(`Pilar "${pillarId}" não encontrado no perfil.`);
 
+    if (isFitswapAbPillar(pillar) && !String(options.customTopic || '').trim()) {
+        const dish = pickFitswapAbDish(await listPillarPosts(businessProfileId, pillar.id));
+        options = { ...options, customTopic: buildFitswapAbTopic(pillar, dish) };
+    }
+
     const editorialMemory = await analyzeRecentEditorialMemory(businessProfileId, 30);
     const generationSeed = buildSlotGenerationSeed(pillar, options);
     const context = enrichContextForSlot(
@@ -923,6 +941,7 @@ async function generateDraftPostInternal(businessProfileId, pillarId, format, sc
                 temperature: 0.8,
             });
             caption = completion.choices[0].message.content.trim();
+            if (chosenTemplate === FITSWAP_AB_TEMPLATE_ID) caption = appendFitswapAbDisclaimer(caption);
             console.log('✅ Caption auto-gerada para carrossel HTML');
         } catch (err) {
             console.warn('⚠️ Falha ao gerar caption para carrossel HTML:', err.message);
