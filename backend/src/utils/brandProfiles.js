@@ -94,6 +94,20 @@ export function normalizeBrandKey(input = {}) {
 
 export const TUDY_DEFAULT_HTML_TEMPLATE = 'tudy-impacto';
 
+// Pilar do carrossel "A ou B": o mesmo prato em versão tradicional e versão
+// Fitswap. Sempre em HTML com o template fitswap-ab; o prato de cada post vem
+// do rodízio em content/fitswapAbDishes.js.
+export const FITSWAP_AB_PILLAR = {
+    id: 'a-ou-b',
+    name: 'A ou B — Mesmo prato, menos kcal',
+    description: 'O mesmo prato brasileiro em duas versões: a tradicional (A) e a versão Fitswap (B), com trocas inteligentes de ingredientes, diferença de kcal, macros e uma dica prática',
+    weight: 43,
+    formats: ['carousel-html'],
+    preferredHtmlTemplate: 'fitswap-ab',
+    captionStyle: 'Abrir com "A ou B?" pedindo o palpite nos comentários, resumir as trocas e a diferença de kcal, sem terrorismo nutricional. CTA: salvar e comentar o próximo prato.',
+    enabled: true
+};
+
 export function isTudyBrand(input = {}) {
     return normalizeBrandKey(input) === 'tudy';
 }
@@ -639,7 +653,7 @@ NUNCA: skyline, fundo preto dramático tipo capa de revista, terno completo, ilu
                 id: 'prazer-sem-culpa',
                 name: 'Prazer Sem Culpa',
                 description: 'Anti-restrição e psicologia alimentar — por que dietas rígidas falham e como comer bem sem sofrimento',
-                weight: 35,
+                weight: 20,
                 formats: ['carousel-html', 'carousel-premium'],
                 captionStyle: 'Identificação emocional, tom empático e acolhedor. CTA: salvar.',
                 enabled: true
@@ -648,7 +662,7 @@ NUNCA: skyline, fundo preto dramático tipo capa de revista, terno completo, ilu
                 id: 'ia-resolve',
                 name: 'IA Que Resolve Sua Vida',
                 description: 'Demonstrações do produto — scanner de despensa, desejo → versão fit, plano semanal em segundos',
-                weight: 30,
+                weight: 17,
                 formats: ['carousel-premium', 'story'],
                 captionStyle: 'Demonstrativo, resultado concreto, antes/depois. CTA: baixar app.',
                 enabled: true
@@ -657,7 +671,7 @@ NUNCA: skyline, fundo preto dramático tipo capa de revista, terno completo, ilu
                 id: 'nutricao-pratica',
                 name: 'Nutrição Prática Para Gente Real',
                 description: 'Refeições rápidas, ingredientes de casa, praticidade para vida corrida',
-                weight: 20,
+                weight: 11,
                 formats: ['static', 'carousel-html'],
                 captionStyle: 'Prático, direto, dica aplicável. CTA: salvar.',
                 enabled: true
@@ -666,11 +680,12 @@ NUNCA: skyline, fundo preto dramático tipo capa de revista, terno completo, ilu
                 id: 'evolucao-nao-punicao',
                 name: 'Evolução, Não Punição',
                 description: 'Identidade de marca — comer melhor é evolução, não dieta. Conteúdo emocional de pertencimento',
-                weight: 15,
+                weight: 9,
                 formats: ['static', 'story'],
                 captionStyle: 'Motivacional, identidade, tom parceiro. CTA: seguir.',
                 enabled: true
-            }
+            },
+            FITSWAP_AB_PILLAR
         ],
         contentSchedule: {
             postsPerWeek: 5,
