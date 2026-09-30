@@ -19,7 +19,7 @@ import {
     isStoryFormat,
     normalizeFormat
 } from '../domain/formatRules.js';
-import { mergeBrandProfileDefaults } from '../utils/brandProfiles.js';
+import { mergeBrandProfileDefaults, isFitswapBrand, isTudyBrand, TUDY_DEFAULT_HTML_TEMPLATE } from '../utils/brandProfiles.js';
 import { createPremiumComposition, PREMIUM_GRADIENT_OPACITY_DEFAULT } from './premiumCompositionService.js';
 import { recordGenerationRun } from './generationRunsService.js';
 import { uploadImage } from './historyService.js';
@@ -40,8 +40,10 @@ const FORMAT_SLIDE_LIMITS = {
 const REVIEW_MODE_PREMIUM_CAROUSEL_SLIDE_COUNT = 5;
 
 const HTML_TEMPLATE_SLIDE_LIMITS = {
+    [TUDY_DEFAULT_HTML_TEMPLATE]: { min: 7, max: 7, fallback: 7 },
     bold: { min: 7, max: 7, fallback: 7 },
     editorial: { min: 7, max: 7, fallback: 7 },
+    'fitswap-clareza': { min: 7, max: 7, fallback: 7 },
 
     'editorial-sci': { min: 3, max: 7, fallback: 5 },
     photo: { min: 7, max: 7, fallback: 7 },
@@ -109,12 +111,19 @@ const ELEVEPIC_TEMPLATE_ROTATION = ['bold', 'editorial', 'instagram', 'photo', '
     .filter(id => !ROTATION_EXCLUDED.has(id))
     .filter(id => ELEVEPIC_TEMPLATE_METADATA.find(template => template.id === id)?.badge !== LIBRARY_IMAGE_BADGE);
 
+// Templates que a Fitswap trocou pelo padrão da marca quando escolhidos pela rotação.
+const FITSWAP_DEFAULT_HTML_TEMPLATE = 'fitswap-clareza';
+const AUTO_ROTATION_TEMPLATES = new Set(['bold', 'editorial', 'instagram', 'photo', 'moodboard', 'editorial-sci']);
+
 /**
  * Selects the least-recently-used ElevePic template for a business profile,
- * respecting pillar.preferredHtmlTemplate if set.
+ * using the approved Tudy default before legacy pillar preferences.
+ * Other brands keep their pillar preferences and rotation rules.
  */
-function selectHtmlTemplate(pillar = {}, recentActivity = {}) {
+export function selectHtmlTemplate(pillar = {}, recentActivity = {}, profile = {}) {
+    if (isTudyBrand(profile)) return TUDY_DEFAULT_HTML_TEMPLATE;
     if (pillar.preferredHtmlTemplate) return pillar.preferredHtmlTemplate;
+    if (isFitswapBrand(profile)) return FITSWAP_DEFAULT_HTML_TEMPLATE;
     const byTemplate = recentActivity.byTemplate || {};
     // Pick the template that has been used the least
     let minCount = Infinity;
@@ -202,7 +211,7 @@ function getReviewModeSlideCount(format, requestedCount = 0) {
     return requestedCount || 0;
 }
 
-function resolveHtmlTemplateSlideCount(templateId, requestedCount = null) {
+export function resolveHtmlTemplateSlideCount(templateId, requestedCount = null) {
     const limits = HTML_TEMPLATE_SLIDE_LIMITS[templateId] || FORMAT_SLIDE_LIMITS['carousel-html'];
     return clampSlideCount(requestedCount, limits);
 }
@@ -872,7 +881,7 @@ async function generateDraftPostInternal(businessProfileId, pillarId, format, sc
             contentStrategy: context.contentStrategy
         };
         const recentActivityForTemplate = await analyzeRecentPosts(businessProfileId, 14).catch(() => ({}));
-        const chosenTemplate = selectHtmlTemplate(pillar, recentActivityForTemplate);
+        const chosenTemplate = selectHtmlTemplate(pillar, recentActivityForTemplate, resolvedProfile);
         const templateSlideCount = resolveHtmlTemplateSlideCount(chosenTemplate, requestedSlideCount);
 
         // ElevePic moodboard: usar template real com imagens geradas por IA
@@ -2391,8 +2400,14 @@ export async function regenerateDraftPost(postId, newPrompt) {
             contentStrategy: context.contentStrategy
         };
         // Keep same template as original draft; fall back to selectHtmlTemplate
-        const existingTemplate = draft.extra?.carouselTemplateId;
-        const regenTemplate = options.templateId || existingTemplate || selectHtmlTemplate(pillar || {}, {});
+        const autoTemplate = selectHtmlTemplate(pillar || {}, {}, merged);
+        // Fitswap: um template antigo vindo da rotação dá lugar ao padrão da marca;
+        // um escolhido à mão (ex.: Food Swap) é mantido.
+        const storedTemplate = draft.carouselTemplateId || draft.extra?.carouselTemplateId;
+        const existingTemplate = isFitswapBrand(merged) && AUTO_ROTATION_TEMPLATES.has(storedTemplate)
+            ? null
+            : storedTemplate;
+        const regenTemplate = isTudyBrand(merged) ? TUDY_DEFAULT_HTML_TEMPLATE : existingTemplate || autoTemplate;
         const templateSlideCount = resolveHtmlTemplateSlideCount(regenTemplate, requestedSlideCount || draft.slideCount || 0);
 
         // ElevePic moodboard: regenerar também com imagens IA
@@ -2411,6 +2426,8 @@ export async function regenerateDraftPost(postId, newPrompt) {
         
         await db.collection('posts').doc(postId).update({
             htmlContent: html,
+            carouselTemplateId: regenTemplate,
+            ...(draft.extra ? { extra: { ...draft.extra, carouselTemplateId: regenTemplate } } : {}),
             generationPrompt: newPrompt,
             slideCount: htmlSlideCount,
             exportStatus: 'not_exported',
@@ -2422,6 +2439,8 @@ export async function regenerateDraftPost(postId, newPrompt) {
         return normalizeStoredPostRecord({
             ...draft,
             htmlContent: html,
+            carouselTemplateId: regenTemplate,
+            ...(draft.extra ? { extra: { ...draft.extra, carouselTemplateId: regenTemplate } } : {}),
             generationPrompt: newPrompt,
             slideCount: htmlSlideCount,
             exportStatus: 'not_exported',

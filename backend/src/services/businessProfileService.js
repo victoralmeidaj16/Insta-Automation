@@ -51,6 +51,7 @@ export async function createBusinessProfile(userId, profileData) {
             },
             aiPreferences: {
                 defaultAspectRatio: aiPreferences?.defaultAspectRatio || '1:1',
+                ...(aiPreferences?.defaultHtmlTemplate ? { defaultHtmlTemplate: aiPreferences.defaultHtmlTemplate } : {}),
                 style: aiPreferences?.style || '',
                 tone: aiPreferences?.tone || '',
                 promptTemplate: aiPreferences?.promptTemplate || '',

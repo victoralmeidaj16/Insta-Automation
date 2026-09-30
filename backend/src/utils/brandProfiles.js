@@ -92,6 +92,12 @@ export function normalizeBrandKey(input = {}) {
         .replace(/^-+|-+$/g, '');
 }
 
+export const TUDY_DEFAULT_HTML_TEMPLATE = 'tudy-impacto';
+
+export function isTudyBrand(input = {}) {
+    return normalizeBrandKey(input) === 'tudy';
+}
+
 export function isFitswapBrand(input = {}) {
     return normalizeBrandKey(input) === 'fitswap';
 }
@@ -357,6 +363,7 @@ ALWAYS: Dark surfaces as base. Blue as primary interaction color. Progress and s
 
             aiPreferences: {
                 defaultAspectRatio: '4:5',
+                defaultHtmlTemplate: TUDY_DEFAULT_HTML_TEMPLATE,
                 style: 'Tudy dark editorial. Deep navy backgrounds (#0F1113, #191C20). Electric blue (#2257F5) accents. Focused human subjects in real study environments. Premium but human — real students, not models.',
                 tone: 'Inteligente, direto, encorajador, focado, preciso. Nunca acadêmico frio. Nunca exagerado ou teatral. Linguagem orientada à ação.',
                 favoritePrompts: []
@@ -853,6 +860,9 @@ export function mergeBrandProfileDefaults(profile = {}) {
         ...(profile.aiPreferences || {}),
         favoritePrompts: mergeFavoritePrompts(profile.aiPreferences?.favoritePrompts, preset.aiPreferences?.favoritePrompts || [])
     };
+
+    // O padrão aprovado da Tudy vale também para perfis já salvos.
+    if (brandKey === 'tudy') aiPreferences.defaultHtmlTemplate = TUDY_DEFAULT_HTML_TEMPLATE;
 
     // editorialPillars: profile overrides preset entirely if defined, otherwise use preset
     const editorialPillars = (profile.editorialPillars && profile.editorialPillars.length > 0)

@@ -310,6 +310,35 @@ function PreviewFree() {
   );
 }
 
+function PreviewTudyImpacto() {
+  return <svg width="54" height="68" viewBox="0 0 54 68" aria-hidden="true"><rect width="54" height="68" fill="#0F1113"/><text x="5" y="10" fill="white" fontSize="5">tudy✳</text><text x="5" y="27" fill="white" fontSize="9" fontWeight="700">TRAVOU.</text><text x="5" y="37" fill="#88A4FF" fontSize="8" fontWeight="700">RESPIRA.</text><text x="5" y="47" fill="white" fontSize="8" fontWeight="700">AVANÇA.</text><path d="M5 56H41" stroke="#2257F5" strokeWidth="5"/></svg>;
+}
+function PreviewTudyCaderno() {
+  return <svg width="54" height="68" viewBox="0 0 54 68" aria-hidden="true"><rect width="54" height="68" fill="#10151D"/><path d="M5 0V68M0 16H54M0 28H54M0 40H54M0 52H54M0 64H54" stroke="#34425E" strokeWidth=".4"/><text x="10" y="12" fill="white" fontSize="5">tudy✳</text><text x="10" y="27" fill="white" fontSize="7">Uma dúvida.</text><text x="10" y="36" fill="#88A4FF" fontSize="7">Um começo.</text><path d="M10 39H46" stroke="#2257F5"/><rect x="10" y="45" width="36" height="15" fill="#1B2844" transform="rotate(-3 28 52)"/></svg>;
+}
+function PreviewTudyTrilha() {
+  return <svg width="54" height="68" viewBox="0 0 54 68" aria-hidden="true"><rect width="54" height="68" fill="#101218"/><text x="5" y="10" fill="white" fontSize="5">tudy✳</text><text x="5" y="26" fill="white" fontSize="7">Existe um</text><text x="5" y="35" fill="#88A4FF" fontSize="7">caminho.</text><path d="M10 51H44" stroke="#7C3AED"/><rect x="5" y="46" width="10" height="10" rx="3" fill="#2257F5"/><rect x="22" y="46" width="10" height="10" rx="3" fill="#7C3AED"/><rect x="39" y="46" width="10" height="10" rx="3" fill="#10B981"/></svg>;
+}
+
+function PreviewTudyFoco() {
+  return (
+    <svg width="54" height="68" viewBox="0 0 54 68" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="54" height="68" fill="#0F1113" />
+      <text x="5" y="9" fill="#F4F7FA" fontSize="5" fontWeight="700">tudy</text>
+      <rect x="5" y="16" width="23" height="1.5" fill="#8FAAFF" />
+      <text x="5" y="27" fill="#F4F7FA" fontSize="8" fontWeight="700">Travou na</text>
+      <text x="5" y="36" fill="#F4F7FA" fontSize="8" fontWeight="700">matéria?</text>
+      <text x="5" y="45" fill="#7898FF" fontSize="7" fontWeight="700">Tem caminho.</text>
+      <path d="M12 55H43" stroke="#4C5564" />
+      <circle cx="10" cy="55" r="4" fill="#191C20" stroke="#4C5564" />
+      <circle cx="27" cy="55" r="4" fill="#2257F5" />
+      <circle cx="44" cy="55" r="4" fill="#2257F5" />
+      <path d="m42 55 1.5 1.5 2-3" stroke="white" strokeWidth=".7" />
+      <path d="M5 63H49" stroke="#30353E" />
+    </svg>
+  );
+}
+
 function PreviewTudy() {
   return (
     <svg width="54" height="68" viewBox="0 0 54 68" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -365,6 +394,10 @@ const TEMPLATE_PREVIEWS: Record<string, React.FC> = {
   template1:       PreviewTemplate1,
   free:            PreviewFree,
   tudy:            PreviewTudy,
+  'tudy-foco':     PreviewTudyFoco,
+  'tudy-impacto': PreviewTudyImpacto,
+  'tudy-caderno': PreviewTudyCaderno,
+  'tudy-trilha': PreviewTudyTrilha,
 };
 
 // ─── Template metadata ─────────────────────────────────────────────────────────
@@ -390,6 +423,10 @@ const TEMPLATES: TemplateOption[] = [
   { id: 'comparison',    name: 'Before & After',    description: 'Dois mockups no 1º slide: Sem vs. Com o produto — imagens geradas por IA', slides: 6, badge: 'IA imagens', color: '#6366f1', previewTemplateId: 'comparison' },
   { id: 'fitswap-swap',  name: 'Food Swap',         description: 'Hook com 2 fotos de refeição + mito + trocas X→Y + impacto numérico + aperitivo do app', slides: 6, badge: 'IA imagens', color: '#A6F000', previewTemplateId: 'fitswap-swap' },
   { id: 'tudy',          name: 'Tudy Style',        description: 'Dark tech: badge, card, flow, chart e CTA',   slides: 7,     badge: 'Biblioteca',  color: '#2257F5', previewTemplateId: 'tudy' },
+  { id: 'tudy-foco',     name: 'Tudy Foco',         description: 'Editorial escuro, azul elétrico e prática guiada em 7 slides', slides: 7, badge: 'Sem imagens', color: '#2257F5', previewTemplateId: 'tudy-foco' },
+  { id: 'tudy-impacto', name: 'Tudy Impacto', description: 'Títulos grandes, alto contraste e acentos em azul', slides: 7, badge: 'Sem imagens', color: '#2257F5', previewTemplateId: 'tudy-impacto' },
+  { id: 'tudy-caderno', name: 'Tudy Caderno', description: 'Anotações, pauta escura e exercícios comentados', slides: 7, badge: 'Sem imagens', color: '#2257F5', previewTemplateId: 'tudy-caderno' },
+  { id: 'tudy-trilha', name: 'Tudy Trilha', description: 'Etapas conectadas, diagramas e progresso visual', slides: 7, badge: 'Sem imagens', color: '#2257F5', previewTemplateId: 'tudy-trilha' },
   { id: 'template1',     name: 'Bold Overlay (IA)', description: 'Design gerado livremente pela IA',         slides: '4–8', badge: 'IA livre',    color: '#ec4899' },
   { id: 'free',          name: 'Livre (IA)',        description: 'Estrutura criada do zero pela IA',         slides: '4–8', badge: 'IA livre',    color: '#a855f7' },
 ];
