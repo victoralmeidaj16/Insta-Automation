@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fitswap — A ou B</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/*
+ * Carrossel Fitswap "A ou B": mesmo prato em duas versões (A tradicional, B Fitswap).
+ * Slides 1–2 em tela cheia (fotos A/B empilhadas + card sobre a costura);
+ * slides 3–7 no padrão Clareza. Cada .slide tem 420×525 e o conteúdo é
+ * desenhado em 1080×1350 dentro de .cv, reduzido com zoom.
+ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --lime: #A6F000; --lime-ink: #4F7A00; --ink: #111827; --muted: #5B6270; --line: #E6E8E1; --soft: #F6F7F4; }
+
+body { font-family: 'Inter', system-ui, sans-serif; color: var(--ink); background: #e9ebe4; -webkit-font-smoothing: antialiased; margin: 0; }
+.carousel-wrap { width: 420px; height: 525px; position: relative; overflow: hidden; margin: 0 auto; background: #fff; }
+.slide { position: absolute; inset: 0; width: 420px; height: 525px; overflow: hidden; background: #fff; opacity: 0; transition: opacity .35s ease; }
+.slide.active { opacity: 1; }
+.cv { width: 1080px; height: 1350px; zoom: 0.3888889; position: relative; overflow: hidden; background: #fff; padding: 88px 96px 84px; display: flex; flex-direction: column; }
+.num { font-variant-numeric: tabular-nums; }
+em.hl, .t2 em, .t1 em { font-style: normal; background: linear-gradient(transparent 60%, var(--lime) 60%, var(--lime) 90%, transparent 90%); padding: 0 6px; margin: 0 -6px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+
+/* ── Tela cheia (slides 1–2) ── */
+.cv.full { padding: 0; display: block; }
+.half { position: absolute; left: 0; right: 0; height: 675px; overflow: hidden; background: #EEF0EA; }
+.half.a { top: 0; }
+.half.b { bottom: 0; }
+.half img { width: 100%; height: 100%; object-fit: cover; object-position: center 56%; display: block; }
+.half.a::after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(17,24,39,.18), transparent 30%); }
+.seam { position: absolute; left: 0; right: 0; top: 673px; height: 4px; background: #fff; }
+.chip { position: absolute; top: 56px; z-index: 3; display: flex; align-items: center; gap: 16px; background: rgba(255,255,255,.94); border-radius: 999px; padding: 12px 28px 12px 12px; font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+.chip img { width: 52px; height: 52px; border-radius: 50%; }
+.chip.brand { left: 56px; }
+.chip.count { right: 56px; padding: 18px 28px; font-size: 26px; font-weight: 700; color: var(--muted); }
+.letter { position: absolute; left: 56px; z-index: 3; width: 128px; height: 128px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 72px; font-weight: 900; box-shadow: 0 10px 30px rgba(17,24,39,.18); }
+.half.a .letter { top: 160px; }
+.half.b .letter { bottom: 56px; }
+.card { position: absolute; left: 56px; right: 56px; top: 50%; transform: translateY(-50%); z-index: 4; background: #fff; border-radius: 44px; padding: 44px 52px 46px; box-shadow: 0 24px 60px rgba(17,24,39,.22); }
+.card h1 { font-size: 88px; font-weight: 900; line-height: 1; letter-spacing: -.045em; }
+.card h1 em { white-space: nowrap; }
+.card p { font-size: 36px; font-weight: 500; color: var(--muted); margin-top: 22px; }
+.card p b { color: var(--ink); font-weight: 800; }
+.go { position: absolute; right: 56px; bottom: 56px; z-index: 3; display: flex; align-items: center; gap: 18px; background: rgba(255,255,255,.94); border-radius: 999px; padding: 10px 10px 10px 32px; font-size: 28px; font-weight: 700; }
+.go b { width: 72px; height: 72px; border-radius: 50%; background: var(--lime); display: grid; place-items: center; font-size: 36px; }
+.half.lose img { filter: saturate(.55) brightness(1.06); }
+.half.lose::before { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,.28); z-index: 1; }
+.half.win .letter { background: var(--lime); }
+.kcal { position: absolute; right: 56px; z-index: 3; display: flex; align-items: baseline; gap: 12px; border-radius: 28px; padding: 20px 30px; background: rgba(255,255,255,.95); }
+.kcal strong { font-size: 76px; font-weight: 900; letter-spacing: -.04em; line-height: 1; }
+.kcal span { font-size: 30px; font-weight: 700; color: var(--muted); }
+.half.a .kcal { top: 176px; }
+.half.b .kcal { bottom: 56px; background: var(--ink); color: #fff; }
+.half.b .kcal span { color: var(--lime); }
+.card.reveal { display: flex; align-items: center; gap: 40px; }
+.card.reveal .txt { flex: 1; }
+.card.reveal h1 { font-size: 96px; }
+.card.reveal p { margin-top: 14px; font-size: 34px; }
+.pct { flex: none; background: var(--lime); border-radius: 32px; padding: 26px 30px; text-align: center; }
+.pct strong { display: block; font-size: 96px; font-weight: 900; letter-spacing: -.05em; line-height: 1; }
+.pct span { font-size: 24px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #3d5900; }
+
+/* ── Clareza (slides 3–7) ── */
+.top { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+.brand { display: flex; align-items: center; gap: 18px; font-size: 32px; font-weight: 800; letter-spacing: -.02em; }
+.brand img { width: 60px; height: 60px; border-radius: 50%; }
+.count { font-size: 26px; font-weight: 600; color: #9CA3AF; }
+.body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; position: relative; z-index: 1; }
+.tag { align-self: flex-start; font-size: 24px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--lime-ink); background: rgba(166,240,0,.2); padding: 14px 24px; border-radius: 999px; margin-bottom: 28px; }
+.tag.plain { color: var(--muted); background: #EEF0EA; }
+.t1 { font-size: 104px; font-weight: 900; line-height: .98; letter-spacing: -.045em; }
+.t2 { font-size: 84px; font-weight: 900; line-height: 1; letter-spacing: -.04em; }
+.sub { font-size: 38px; line-height: 1.4; color: var(--muted); font-weight: 500; margin-top: 32px; max-width: 860px; }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 40px; position: relative; z-index: 1; margin-top: 36px; }
+.bar { display: flex; gap: 10px; flex: 1; max-width: 520px; }
+.bar i { height: 8px; flex: 1; border-radius: 4px; background: #ECEEE8; }
+.bar i.on { background: var(--ink); }
+.bar.done i { background: var(--ink); }
+.bar.done i:last-child { background: var(--lime); }
+.save { display: flex; align-items: center; gap: 18px; font-size: 28px; font-weight: 700; }
+.save b { width: 72px; height: 72px; border-radius: 50%; background: var(--lime); display: grid; place-items: center; }
+.save svg { width: 34px; height: 34px; }
+.deco { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.ring { position: absolute; right: -220px; top: -220px; width: 720px; height: 720px; border-radius: 50%; border: 3px solid var(--lime); opacity: .9; }
+.ring2 { position: absolute; right: -120px; top: -120px; width: 520px; height: 520px; border-radius: 50%; background: rgba(166,240,0,.12); }
+
+.frame { position: relative; border-radius: 36px; overflow: hidden; background: #EEF0EA; }
+.frame img { width: 100%; height: 100%; object-fit: cover; object-position: center 60%; display: block; }
+.wide { height: 260px; margin-top: 30px; flex: none; }
+
+.tbl { margin-top: 20px; }
+.tr { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; padding: 12px 0; border-top: 2px solid var(--line); font-size: 32px; font-weight: 600; }
+.tr span { color: var(--muted); font-weight: 500; }
+.tr span em { font-style: normal; color: var(--ink); font-weight: 700; }
+.tr b { font-weight: 800; white-space: nowrap; }
+.tr.total { border-top: 4px solid var(--ink); padding-top: 18px; font-size: 42px; }
+.tr.total span { color: var(--ink); font-weight: 900; }
+.tr.total b { font-size: 60px; font-weight: 900; letter-spacing: -.03em; }
+.tr.total.win b { background: var(--lime); border-radius: 16px; padding: 4px 18px; }
+
+.swaps { margin-top: 36px; display: flex; flex-direction: column; gap: 10px; }
+.sw { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 24px; background: var(--soft); border-radius: 28px; padding: 14px 34px; }
+.sw .from { font-size: 28px; font-weight: 600; color: #8B919C; text-decoration: line-through; text-decoration-color: rgba(17,24,39,.3); }
+.sw .to { font-size: 40px; font-weight: 800; letter-spacing: -.02em; margin-top: 4px; }
+.sw .to::before { content: '→ '; color: var(--lime-ink); }
+.sw .cut { font-size: 40px; font-weight: 900; letter-spacing: -.03em; background: var(--lime); border-radius: 18px; padding: 12px 20px; white-space: nowrap; }
+.tip { margin-top: 20px; font-size: 28px; line-height: 1.4; font-weight: 500; color: var(--muted); }
+.tip b { color: var(--ink); }
+
+.macros { margin-top: 36px; display: flex; flex-direction: column; gap: 20px; }
+.mc { background: var(--soft); border-radius: 32px; padding: 24px 36px 28px; }
+.mc-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.mc-h span { font-size: 38px; font-weight: 800; letter-spacing: -.02em; }
+.mc-h b { font-size: 38px; font-weight: 900; letter-spacing: -.03em; background: var(--lime); border-radius: 16px; padding: 6px 18px; }
+.mc-h b.flat { background: #E4E6E0; }
+.bars { display: flex; flex-direction: column; gap: 12px; }
+.bw { display: flex; align-items: center; gap: 18px; }
+.bw i { font-style: normal; width: 36px; font-size: 26px; font-weight: 900; color: #9CA3AF; }
+.bw .track { flex: 1; display: flex; align-items: center; gap: 16px; }
+.bw .fill { height: 36px; border-radius: 10px; background: #D5D8D0; }
+.bw.b .fill { background: var(--ink); }
+.bw.b i { color: var(--ink); }
+.bw em { font-style: normal; font-size: 30px; font-weight: 800; white-space: nowrap; color: var(--muted); }
+.bw.b em { color: var(--ink); }
+
+.btn { margin-top: 56px; align-self: flex-start; display: flex; align-items: center; gap: 26px; background: var(--ink); color: #fff; font-size: 40px; font-weight: 800; padding: 22px 22px 22px 48px; border-radius: 999px; }
+.btn b { width: 84px; height: 84px; border-radius: 50%; background: var(--lime); color: var(--ink); display: grid; place-items: center; font-size: 40px; }
+.note { margin-top: 26px; font-size: 30px; color: var(--muted); font-weight: 600; }
+.ask { margin-top: 44px; display: flex; flex-wrap: wrap; gap: 16px; }
+.ask span { font-size: 32px; font-weight: 700; background: var(--soft); border-radius: 999px; padding: 18px 30px; }
+</style>
+</head>
+<body>
+<div class="carousel-wrap" id="carousel">
+
+  <!-- 1 · Hook: A ou B -->
+  <div class="slide active" data-index="0"><div class="cv full">
+    <div class="half a"><!--EP:s0_img_a--><img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt=""><!--/EP:s0_img_a--><div class="letter">A</div></div>
+    <div class="half b"><!--EP:s0_img_b--><img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt=""><!--/EP:s0_img_b--><div class="letter">B</div></div>
+    <div class="seam"></div>
+    <div class="chip brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div>
+    <div class="chip count num">01 / 07</div>
+    <div class="card">
+      <h1 class="fit"><!--EP:s0_title-->Uma dessas tem <em class="hl">464 kcal</em> a menos.<!--/EP:s0_title--></h1>
+      <p class="fit"><!--EP:s0_subtitle-->Mesma lasanha. Mesmo sabor. <b>Qual é?</b><!--/EP:s0_subtitle--></p>
+    </div>
+    <div class="go">Chuta e desliza <b>→</b></div>
+  </div></div>
+
+  <!-- 2 · Revelação -->
+  <div class="slide" data-index="1"><div class="cv full">
+    <div class="half a lose"><!--EP:s1_img_a--><img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt=""><!--/EP:s1_img_a--><div class="letter">A</div><div class="kcal"><strong class="num"><!--EP:s1_kcal_a-->933<!--/EP:s1_kcal_a--></strong><span>kcal</span></div></div>
+    <div class="half b win"><!--EP:s1_img_b--><img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt=""><!--/EP:s1_img_b--><div class="letter">B</div><div class="kcal"><strong class="num"><!--EP:s1_kcal_b-->469<!--/EP:s1_kcal_b--></strong><span>kcal</span></div></div>
+    <div class="seam"></div>
+    <div class="chip brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div>
+    <div class="chip count num">02 / 07</div>
+    <div class="card reveal">
+      <div class="txt"><h1><!--EP:s1_title-->Era a <em class="hl">B.</em><!--/EP:s1_title--></h1><p class="fit"><!--EP:s1_note-->Metade das calorias, na <b>mesma fatia generosa.</b><!--/EP:s1_note--></p></div>
+      <div class="pct"><strong class="num"><!--EP:s1_pct-->−50%<!--/EP:s1_pct--></strong><span>calorias</span></div>
+    </div>
+  </div></div>
+
+  <!-- 3 · Prato A -->
+  <div class="slide" data-index="2"><div class="cv">
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">03 / 07</div></div>
+    <div class="body">
+      <div class="tag plain">A · O tradicional</div>
+      <h2 class="t2">Onde moram as calorias</h2>
+      <div class="frame wide"><!--EP:s2_img_a--><img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt=""><!--/EP:s2_img_a--></div>
+      <div class="tbl"><!--EP:s2_rows--><div class="tr"><span><em>Massa de lasanha</em> · 60 g</span><b class="num">216</b></div><div class="tr"><span><em>Carne moída comum</em> · 100 g</span><b class="num">254</b></div><div class="tr"><span><em>Molho branco com manteiga</em> · 100 g</span><b class="num">140</b></div><div class="tr"><span><em>Muçarela</em> · 60 g</span><b class="num">198</b></div><div class="tr"><span><em>Presunto</em> · 30 g</span><b class="num">35</b></div><div class="tr"><span><em>Óleo</em> · 1 col. sopa</span><b class="num">90</b></div><div class="tr total"><span>Total</span><b class="num">933 kcal</b></div><!--/EP:s2_rows--></div>
+    </div>
+    <div class="foot"><div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></div></div>
+  </div></div>
+
+  <!-- 4 · Prato B -->
+  <div class="slide" data-index="3"><div class="cv">
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">04 / 07</div></div>
+    <div class="body">
+      <div class="tag">B · A versão Fitswap</div>
+      <h2 class="t2">Mesmo prato, <em>montado melhor</em></h2>
+      <div class="frame wide"><!--EP:s3_img_b--><img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt=""><!--/EP:s3_img_b--></div>
+      <div class="tbl"><!--EP:s3_rows--><div class="tr"><span><em>Massa + abobrinha</em> · 30 g + 100 g</span><b class="num">125</b></div><div class="tr"><span><em>Patinho moído</em> · 100 g</span><b class="num">133</b></div><div class="tr"><span><em>Molho branco com leite desnatado</em> · 100 g</span><b class="num">60</b></div><div class="tr"><span><em>Muçarela light</em> · 40 g</span><b class="num">100</b></div><div class="tr"><span><em>Espinafre</em> · 30 g</span><b class="num">7</b></div><div class="tr"><span><em>Azeite</em> · 1 col. chá</span><b class="num">44</b></div><div class="tr total win"><span>Total</span><b class="num">469 kcal</b></div><!--/EP:s3_rows--></div>
+    </div>
+    <div class="foot"><div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div></div>
+  </div></div>
+
+  <!-- 5 · As trocas -->
+  <div class="slide" data-index="4"><div class="cv">
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">05 / 07</div></div>
+    <div class="body">
+      <h2 class="t2"><!--EP:s4_title-->6 trocas. <em>Zero sacrifício.</em><!--/EP:s4_title--></h2>
+      <div class="swaps"><!--EP:s4_swaps--><div class="sw"><div><div class="from">Carne moída comum</div><div class="to">Patinho moído</div></div><div class="cut num">−121</div></div><div class="sw"><div><div class="from">Muçarela</div><div class="to">Muçarela light</div></div><div class="cut num">−98</div></div><div class="sw"><div><div class="from">Massa de lasanha</div><div class="to">Massa + abobrinha</div></div><div class="cut num">−91</div></div><div class="sw"><div><div class="from">Molho branco com manteiga</div><div class="to">Molho branco com leite desnatado</div></div><div class="cut num">−80</div></div><div class="sw"><div><div class="from">Óleo</div><div class="to">Azeite</div></div><div class="cut num">−46</div></div><div class="sw"><div><div class="from">Presunto</div><div class="to">Espinafre</div></div><div class="cut num">−28</div></div><!--/EP:s4_swaps--></div>
+      <p class="tip"><!--EP:s4_tip--><b>Dica:</b> fatie a abobrinha bem fina e deixe 10 min no sal. Ela solta a água e a lasanha não fica encharcada.<!--/EP:s4_tip--></p>
+    </div>
+    <div class="foot"><div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div><div class="save">Salve este post <b><svg viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.2" stroke-linejoin="round"><path d="M6.5 2.5h11a1.5 1.5 0 0 1 1.5 1.5v16.6a.6.6 0 0 1-1 .45l-5.3-5a1 1 0 0 0-1.4 0l-5.3 5a.6.6 0 0 1-1-.45V4a1.5 1.5 0 0 1 1.5-1.5z"/></svg></b></div></div>
+  </div></div>
+
+  <!-- 6 · Macros -->
+  <div class="slide" data-index="5"><div class="cv">
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">06 / 07</div></div>
+    <div class="body">
+      <div class="tag">Não é só caloria</div>
+      <h2 class="t2"><!--EP:s5_title--><em>Bem menos</em> gordura.<!--/EP:s5_title--></h2>
+      <div class="macros"><!--EP:s5_macros--><div class="mc"><div class="mc-h"><span>Proteína</span><b class="num flat">−3 g</b></div><div class="bars"><div class="bw"><i>A</i><div class="track"><div class="fill" style="width:73%"></div><em class="num">44 g</em></div></div><div class="bw b"><i>B</i><div class="track"><div class="fill" style="width:68%"></div><em class="num">41 g</em></div></div></div></div><div class="mc"><div class="mc-h"><span>Gordura</span><b class="num">−40 g</b></div><div class="bars"><div class="bw"><i>A</i><div class="track"><div class="fill" style="width:83%"></div><em class="num">58 g</em></div></div><div class="bw b"><i>B</i><div class="track"><div class="fill" style="width:26%"></div><em class="num">18 g</em></div></div></div></div><div class="mc"><div class="mc-h"><span>Calorias</span><b class="num">−464</b></div><div class="bars"><div class="bw"><i>A</i><div class="track"><div class="fill" style="width:78%"></div><em class="num">933 kcal</em></div></div><div class="bw b"><i>B</i><div class="track"><div class="fill" style="width:39%"></div><em class="num">469 kcal</em></div></div></div></div><!--/EP:s5_macros--></div>
+    </div>
+    <div class="foot"><div class="bar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div><div class="save">Salve este post <b><svg viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.2" stroke-linejoin="round"><path d="M6.5 2.5h11a1.5 1.5 0 0 1 1.5 1.5v16.6a.6.6 0 0 1-1 .45l-5.3-5a1 1 0 0 0-1.4 0l-5.3 5a.6.6 0 0 1-1-.45V4a1.5 1.5 0 0 1 1.5-1.5z"/></svg></b></div></div>
+  </div></div>
+
+  <!-- 7 · CTA -->
+  <div class="slide" data-index="6"><div class="cv">
+    <div class="deco"><div class="ring2"></div><div class="ring"></div></div>
+    <div class="top"><div class="brand"><img src="__FITSWAP_LOGO__" alt="">fitswap</div><div class="count num">07 / 07</div></div>
+    <div class="body">
+      <div class="tag"><!--EP:s6_tag-->Prazer sem culpa<!--/EP:s6_tag--></div>
+      <h1 class="t1 fit"><!--EP:s6_title-->Qual prato vira o <em>próximo?</em><!--/EP:s6_title--></h1>
+      <p class="sub fit"><!--EP:s6_subtitle-->Comenta o que você quer ver na versão leve. A IA da Fitswap faz essa troca com qualquer receita, do seu jeito.<!--/EP:s6_subtitle--></p>
+      <div class="ask"><!--EP:s6_chips--><span>Strogonoff</span><span>Feijoada</span><span>Brigadeiro</span><span>Pizza</span><!--/EP:s6_chips--></div>
+      <div class="btn"><!--EP:s6_cta_text-->Baixe a Fitswap<!--/EP:s6_cta_text--><b>→</b></div>
+      <div class="note"><!--EP:s6_cta_sub-->Link na bio · Salve para fazer no fim de semana<!--/EP:s6_cta_sub--></div>
+    </div>
+    <div class="foot"><div class="bar done"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+  </div></div>
+
+</div>
+
+<script>
+(function () {
+  // Nomes de ingrediente longos ou 6 trocas não podem vazar do slide: encolhe
+  // os textos do miolo até caber, sem passar de 60% do tamanho original.
+  function fitSlide(slide) {
+    var body = slide.querySelector('.body');
+    if (!body || !body.clientHeight) return;
+    var targets = slide.querySelectorAll('.t1, .t2, .sub, .tr, .sw .from, .sw .to, .sw .cut, .tip, .mc-h span, .mc-h b, .bw em');
+    var base = [];
+    for (var i = 0; i < targets.length; i++) base.push(parseFloat(getComputedStyle(targets[i]).fontSize));
+    for (var step = 1; step <= 12 && body.scrollHeight > body.clientHeight + 1; step++) {
+      var ratio = 1 - step * 0.035;
+      for (var j = 0; j < targets.length; j++) targets[j].style.fontSize = (base[j] * ratio) + 'px';
+    }
+  }
+  // O card da capa fica sobre a costura das fotos: título longo encolhe em vez de cobrir o prato.
+  function fitCard(card) {
+    var h = card.querySelector('h1');
+    if (!h) return;
+    var size = parseFloat(getComputedStyle(h).fontSize);
+    while (card.offsetHeight > 420 && size > 60) { size -= 4; h.style.fontSize = size + 'px'; }
+  }
+  function fitAll() {
+    var slides = document.querySelectorAll('.slide');
+    for (var i = 0; i < slides.length; i++) fitSlide(slides[i]);
+    var cards = document.querySelectorAll('.card');
+    for (var k = 0; k < cards.length; k++) fitCard(cards[k]);
+  }
+
+  var slides = document.querySelectorAll('.slide');
+  var current = 0;
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    current = (n + slides.length) % slides.length;
+    slides[current].classList.add('active');
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') goTo(current + 1);
+    if (e.key === 'ArrowLeft') goTo(current - 1);
+  });
+  var startX = 0;
+  var wrap = document.getElementById('carousel');
+  wrap.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; }, { passive: true });
+  wrap.addEventListener('touchend', function (e) {
+    var dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 50) goTo(current + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  fitAll();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
+})();
+</script>
+</body>
+</html>

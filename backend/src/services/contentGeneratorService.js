@@ -44,6 +44,7 @@ const HTML_TEMPLATE_SLIDE_LIMITS = {
     bold: { min: 7, max: 7, fallback: 7 },
     editorial: { min: 7, max: 7, fallback: 7 },
     'fitswap-clareza': { min: 7, max: 7, fallback: 7 },
+    'fitswap-ab': { min: 7, max: 7, fallback: 7 },
 
     'editorial-sci': { min: 3, max: 7, fallback: 5 },
     photo: { min: 7, max: 7, fallback: 7 },

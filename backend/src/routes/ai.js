@@ -14,7 +14,7 @@ import { db } from '../config/firebase.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const TEMPLATES_DIR = join(__dirname, '../templates/elevepic');
-const VALID_TEMPLATE_IDS = new Set(['bold', 'editorial', 'split', 'editorial-sci', 'photo', 'moodboard', 'instagram', 'comparison', 'fitswap-swap', 'fitswap-clareza', 'template1', 'free', 'tudy', 'tudy-foco', 'tudy-impacto', 'tudy-caderno', 'tudy-trilha']);
+const VALID_TEMPLATE_IDS = new Set(['bold', 'editorial', 'split', 'editorial-sci', 'photo', 'moodboard', 'instagram', 'comparison', 'fitswap-swap', 'fitswap-clareza', 'fitswap-ab', 'template1', 'free', 'tudy', 'tudy-foco', 'tudy-impacto', 'tudy-caderno', 'tudy-trilha']);
 
 const router = express.Router();
 
