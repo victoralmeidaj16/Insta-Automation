@@ -5,30 +5,24 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import ffmpeg from 'fluent-ffmpeg';
+import {
+    EXPORT_NAVIGATION_SELECTORS,
+    EXPORT_VALIDATION_VERSION,
+    assertExportSlideCount,
+    assertNoTextOverflow,
+    inspectVisibleTextOverflow,
+    resolveExpectedSlideCount,
+} from './carousel/carouselExportValidation.js';
 
 const VIEW_W = 420;
 const VIEW_H = 525;
 const SCALE = 1080 / 420;
 
-const HIDE_SELECTORS = [
-    '.ig-header', '.ig-dots', '.ig-actions', '.ig-caption',
-    '.nav-btn', '.nav-prev', '.nav-next',
-    '.progress-bar', '.slide-counter',
-    '.nav-dots',
-    '.bottom-bar .bb-swipe',
-];
-
 /**
  * Applies the clean-export layout tweaks inside the page.
  * Called via page.evaluate() so must be serialisable — no closures over outer vars.
  */
-function applyCleanLayout() {
-    const hide = [
-        '.ig-header', '.ig-dots', '.ig-actions', '.ig-caption',
-        '.nav-btn', '.nav-prev', '.nav-next',
-        '.progress-bar', '.slide-counter',
-        '.nav-dots', '.bottom-bar .bb-swipe',
-    ];
+function applyCleanLayout(hide) {
     hide.forEach(sel => {
         document.querySelectorAll(sel).forEach(el => el.style.display = 'none');
     });
@@ -141,7 +135,7 @@ function convertToMp4(inputPath, outputPath) {
 /**
  * Renders each HTML carousel slide as a JPEG and uploads to Firebase Storage.
  */
-export async function renderHtmlToImages(htmlContent, storageFolder) {
+export async function renderHtmlToImages(htmlContent, storageFolder, options = {}) {
     let browser;
     try {
         browser = await launchChromium();
@@ -158,8 +152,9 @@ export async function renderHtmlToImages(htmlContent, storageFolder) {
 
         const slideCount = await page.evaluate(() => document.querySelectorAll('.slide').length || 1);
         console.log(`📸 Detected ${slideCount} slides.`);
+        assertExportSlideCount({ expected: options.expectedSlideCount, rendered: slideCount });
 
-        await page.evaluate(applyCleanLayout);
+        await page.evaluate(applyCleanLayout, EXPORT_NAVIGATION_SELECTORS);
 
         const mediaUrls = [];
 
@@ -168,6 +163,9 @@ export async function renderHtmlToImages(htmlContent, storageFolder) {
             await page.evaluate(activateSlide, i);
             await page.evaluate(fitOversizedText);
             await page.waitForTimeout(1500);
+
+            const overflowIssues = await page.evaluate(inspectVisibleTextOverflow);
+            assertNoTextOverflow(overflowIssues, i);
 
             const buffer = await page.screenshot({
                 type: 'jpeg',
@@ -182,6 +180,11 @@ export async function renderHtmlToImages(htmlContent, storageFolder) {
             mediaUrls.push(`https://storage.googleapis.com/${storage.name}/${fileName}`);
         }
 
+        assertExportSlideCount({
+            expected: options.expectedSlideCount,
+            rendered: slideCount,
+            exported: mediaUrls.length,
+        });
         return { mediaUrls, slideCount };
     } finally {
         if (browser) await browser.close();
@@ -198,7 +201,7 @@ export async function renderHtmlToImages(htmlContent, storageFolder) {
  * @param {string} storageFolder  - Firebase Storage prefix for the uploaded files
  * @param {number} slideDurationMs - How long to record each slide (default: 5 s)
  */
-export async function renderHtmlToVideos(htmlContent, storageFolder, slideDurationMs = 5000) {
+export async function renderHtmlToVideos(htmlContent, storageFolder, slideDurationMs = 5000, options = {}) {
     const tmpDir = path.join(os.tmpdir(), `carousel-video-${uuidv4()}`);
     await fs.mkdir(tmpDir, { recursive: true });
 
@@ -213,6 +216,7 @@ export async function renderHtmlToVideos(htmlContent, storageFolder, slideDurati
         const slideCount = await countPage.evaluate(() => document.querySelectorAll('.slide').length || 1);
         await countCtx.close();
         console.log(`🎬 Detected ${slideCount} slides for video export.`);
+        assertExportSlideCount({ expected: options.expectedSlideCount, rendered: slideCount });
 
         const mediaUrls = [];
 
@@ -236,12 +240,15 @@ export async function renderHtmlToVideos(htmlContent, storageFolder, slideDurati
             await page.setContent(htmlContent, { waitUntil: 'networkidle' });
             await page.waitForTimeout(500); // fonts / images settle before we start
 
-            await page.evaluate(applyCleanLayout);
+            await page.evaluate(applyCleanLayout, EXPORT_NAVIGATION_SELECTORS);
             await page.evaluate(activateSlide, i);
             await page.evaluate(fitOversizedText);
 
             // Let CSS animations run
             await page.waitForTimeout(slideDurationMs);
+
+            const overflowIssues = await page.evaluate(inspectVisibleTextOverflow);
+            assertNoTextOverflow(overflowIssues, i);
 
             // Closing the page finalises the .webm file
             await page.close();
@@ -264,6 +271,11 @@ export async function renderHtmlToVideos(htmlContent, storageFolder, slideDurati
             console.log(`✅ Slide ${i + 1} uploaded: ${publicUrl}`);
         }
 
+        assertExportSlideCount({
+            expected: options.expectedSlideCount,
+            rendered: slideCount,
+            exported: mediaUrls.length,
+        });
         return { mediaUrls, slideCount };
     } finally {
         if (browser) await browser.close();
@@ -288,6 +300,7 @@ export async function exportHtmlCarouselToImages(postId) {
 
     const exportAsVideo = post.extra?.exportAsVideo === true || post.format === 'carousel-html-video';
     const mode = exportAsVideo ? 'video' : 'image';
+    const expectedSlideCount = resolveExpectedSlideCount(post);
     console.log(`🎨 Starting HTML → ${mode} export for post: ${postId}`);
 
     try {
@@ -295,13 +308,15 @@ export async function exportHtmlCarouselToImages(postId) {
         const storageFolder = `exported_carousels/${postId}/${uniqueFolder}`;
 
         const { mediaUrls, slideCount } = exportAsVideo
-            ? await renderHtmlToVideos(htmlContent, storageFolder, post.extra?.slideDurationMs)
-            : await renderHtmlToImages(htmlContent, storageFolder);
+            ? await renderHtmlToVideos(htmlContent, storageFolder, post.extra?.slideDurationMs, { expectedSlideCount })
+            : await renderHtmlToImages(htmlContent, storageFolder, { expectedSlideCount });
 
         await postRef.update({
             mediaUrls,
             exportStatus: 'exported',
             exportMode: mode,
+            exportValidationVersion: EXPORT_VALIDATION_VERSION,
+            exportValidatedAt: new Date(),
             slideCount,
             updatedAt: new Date(),
         });
@@ -336,20 +351,29 @@ export async function exportLibraryHtmlToImages(itemId, options = {}) {
 
     const exportAsVideo = options.exportAsVideo === true || item.exportAsVideo === true;
     const mode = exportAsVideo ? 'video' : 'image';
+    const expectedSlideCount = resolveExpectedSlideCount(item);
     console.log(`🎨 Starting HTML → ${mode} export for library item: ${itemId}`);
 
     try {
         const uniqueFolder = uuidv4();
         const storageFolder = `library_exports/${itemId}/${uniqueFolder}`;
 
-        const { mediaUrls } = exportAsVideo
-            ? await renderHtmlToVideos(htmlContent, storageFolder, options.slideDurationMs)
-            : await renderHtmlToImages(htmlContent, storageFolder);
+        const { mediaUrls, slideCount } = exportAsVideo
+            ? await renderHtmlToVideos(htmlContent, storageFolder, options.slideDurationMs, { expectedSlideCount })
+            : await renderHtmlToImages(htmlContent, storageFolder, { expectedSlideCount });
+
+        assertExportSlideCount({
+            expected: expectedSlideCount,
+            rendered: slideCount,
+            exported: mediaUrls.length,
+        });
 
         await itemRef.update({
             mediaUrls,
             hasExportedImages: true,
             exportMode: mode,
+            exportValidationVersion: EXPORT_VALIDATION_VERSION,
+            exportValidatedAt: new Date(),
             updatedAt: new Date(),
         });
 

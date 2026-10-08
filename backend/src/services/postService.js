@@ -4,6 +4,7 @@ import { getAccountsByProfile, getBusinessProfile, getOwnedBusinessProfile } fro
 import { uploadPhotos, uploadVideo, cancelScheduledPost } from './uploadPostService.js';
 import { createScheduledPostRecord, normalizeStoredPostRecord } from '../domain/contentModels.js';
 import { getCreatablePostTypes, isReelFormat, isStoryFormat, normalizeFormat } from '../domain/formatRules.js';
+import { assertCarouselReadyForPublication } from './carousel/carouselExportValidation.js';
 
 export function shouldPreserveReusableMedia(post = {}) {
     return Boolean(post.libraryItemId && isStoryFormat(post.format || post.type));
@@ -540,6 +541,8 @@ export async function executePost(postId) {
         }
         const post = claim.post;
 
+        assertCarouselReadyForPublication(post);
+
         // Resolve account — fall back to Business Profile if no direct account linked
         let account;
         try {
@@ -681,6 +684,7 @@ export async function executePost(postId) {
 
 export async function scheduleApprovedPost(postId, accountId = null) {
     const post = await getPost(postId);
+    assertCarouselReadyForPublication(post);
     if (isStoryFormat(post.format || post.type) && post.businessProfileId) {
         const profile = await getBusinessProfile(post.businessProfileId);
         if (Number(profile?.contentSchedule?.storiesPerWeek) === 0) {
