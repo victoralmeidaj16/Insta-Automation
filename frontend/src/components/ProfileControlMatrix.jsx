@@ -257,13 +257,12 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                                         borderRadius: '20px',
                                         fontSize: '0.75rem',
                                         fontWeight: '700',
-                                        border: 'none',
+                                        minWidth: '52px',
+                                        border: isAutopilotOn ? '1px solid #fff' : '1px solid rgba(255, 255, 255, 0.25)',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s ease',
-                                        background: isAutopilotOn
-                                            ? '#3f3f46'
-                                            : 'rgba(255, 255, 255, 0.1)',
-                                        color: '#fff',
+                                        background: isAutopilotOn ? '#fff' : 'transparent',
+                                        color: isAutopilotOn ? '#0a0a0a' : 'rgba(255, 255, 255, 0.6)',
                                         opacity: isUpdatingAutopilot ? 0.6 : 1
                                     }}
                                 >
@@ -289,13 +288,12 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                                         borderRadius: '20px',
                                         fontSize: '0.75rem',
                                         fontWeight: '700',
-                                        border: 'none',
+                                        minWidth: '52px',
+                                        border: isAutoApproveOn ? '1px solid #fff' : '1px solid rgba(255, 255, 255, 0.25)',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s ease',
-                                        background: isAutoApproveOn
-                                            ? '#3f3f46'
-                                            : 'rgba(255, 255, 255, 0.1)',
-                                        color: '#fff',
+                                        background: isAutoApproveOn ? '#fff' : 'transparent',
+                                        color: isAutoApproveOn ? '#0a0a0a' : 'rgba(255, 255, 255, 0.6)',
                                         opacity: isUpdatingAutoApprove ? 0.6 : 1
                                     }}
                                 >
