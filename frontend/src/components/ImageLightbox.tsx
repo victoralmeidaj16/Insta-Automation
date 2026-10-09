@@ -40,7 +40,7 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                 left: 0,
                 right: 0,
                 bottom: 0,
-                background: 'rgba(0, 0, 0, 0.95)',
+                background: 'rgba(12, 16, 20, 0.95)',
                 zIndex: 2000,
                 display: 'flex',
                 alignItems: 'center',
@@ -58,7 +58,7 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                     right: '1rem',
                     background: 'rgba(255, 255, 255, 0.1)',
                     border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: '#fff',
+                    color: '#F5F5F5',
                     width: '40px',
                     height: '40px',
                     borderRadius: '50%',
@@ -86,9 +86,9 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                     position: 'absolute',
                     top: '1rem',
                     right: '4rem',
-                    background: 'rgba(124, 58, 237, 0.8)',
-                    border: '1px solid rgba(124, 58, 237, 1)',
-                    color: '#fff',
+                    background: 'rgba(245, 245, 245, 0.8)',
+                    border: '1px solid rgba(245, 245, 245, 1)',
+                    color: '#F5F5F5',
                     padding: '0.5rem 1rem',
                     borderRadius: '0.5rem',
                     cursor: 'pointer',
@@ -97,8 +97,8 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                     transition: 'all 0.2s',
                     zIndex: 2001
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(124, 58, 237, 1)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(124, 58, 237, 0.8)'}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(245, 245, 245, 1)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(245, 245, 245, 0.8)'}
             >
                 ⬇️ Download
             </button>
@@ -111,8 +111,8 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                         top: '1rem',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        background: 'rgba(0, 0, 0, 0.7)',
-                        color: '#fff',
+                        background: 'rgba(12, 16, 20, 0.7)',
+                        color: '#F5F5F5',
                         padding: '0.5rem 1rem',
                         borderRadius: '0.5rem',
                         fontSize: '0.875rem',
@@ -137,7 +137,7 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                         transform: 'translateY(-50%)',
                         background: 'rgba(255, 255, 255, 0.1)',
                         border: '1px solid rgba(255, 255, 255, 0.2)',
-                        color: '#fff',
+                        color: '#F5F5F5',
                         width: '50px',
                         height: '50px',
                         borderRadius: '50%',
@@ -170,7 +170,7 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                         transform: 'translateY(-50%)',
                         background: 'rgba(255, 255, 255, 0.1)',
                         border: '1px solid rgba(255, 255, 255, 0.2)',
-                        color: '#fff',
+                        color: '#F5F5F5',
                         width: '50px',
                         height: '50px',
                         borderRadius: '50%',
@@ -199,7 +199,7 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                     maxHeight: '90%',
                     objectFit: 'contain',
                     borderRadius: '0.5rem',
-                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+                    boxShadow: 'none'
                 }}
             />
 
@@ -213,7 +213,7 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                         transform: 'translateX(-50%)',
                         display: 'flex',
                         gap: '0.5rem',
-                        background: 'rgba(0, 0, 0, 0.7)',
+                        background: 'rgba(12, 16, 20, 0.7)',
                         padding: '0.75rem',
                         borderRadius: '0.5rem',
                         maxWidth: '90%',
@@ -234,7 +234,7 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                                 objectFit: 'cover',
                                 borderRadius: '0.375rem',
                                 cursor: 'pointer',
-                                border: idx === safeIndex ? '2px solid #7c3aed' : '2px solid transparent',
+                                border: idx === safeIndex ? '2px solid rgba(245, 245, 245, 0.4)' : '2px solid transparent',
                                 opacity: idx === safeIndex ? 1 : 0.6,
                                 transition: 'all 0.2s'
                             }}

@@ -57,15 +57,14 @@ export default function ProfileSwitcher({ style = {}, className = '' }) {
                     MozAppearance: 'none',
                     padding: '0.8rem 2.8rem 0.8rem 2.5rem',
                     borderRadius: '0.9rem',
-                    background: selectedProfile ? 'rgba(124, 58, 237, 0.2)' : 'rgba(39, 39, 42, 0.85)',
-                    border: selectedProfile ? '1px solid rgba(124, 58, 237, 0.45)' : '1px solid rgba(255, 255, 255, 0.1)',
-                    color: '#fff',
+                    background: selectedProfile ? 'rgba(245, 245, 245, 0.2)' : '#25292F',
+                    border: selectedProfile ? '1px solid rgba(245, 245, 245, 0.45)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#F5F5F5',
                     fontSize: '0.875rem',
                     fontWeight: 600,
                     cursor: 'pointer',
                     outline: 'none',
-                    boxShadow: selectedProfile ? '0 0 0 1px rgba(124, 58, 237, 0.12)' : 'none',
-                    backdropFilter: 'blur(10px)',
+                    boxShadow: selectedProfile ? '0 0 0 1px rgba(245, 245, 245, 0.12)' : 'none',
                     textOverflow: 'ellipsis'
                 }}
                 title={selectedLabel}

@@ -43,10 +43,10 @@ export function showSmartToast(
                     }}
                     style={{
                         padding: '0.5rem 1rem',
-                        background: '#7c3aed',
+                        background: '#F5F5F5',
                         border: 'none',
                         borderRadius: '0.5rem',
-                        color: '#fff',
+                        color: '#0C1014',
                         fontSize: '0.875rem',
                         fontWeight: 600,
                         cursor: 'pointer',

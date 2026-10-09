@@ -39,16 +39,16 @@ function CoverageLine({ coverage }) {
 
     return (
         <div style={{
-            background: 'rgba(255,255,255,0.04)', border: `1px solid ${tone}33`,
+            background: '#25292F', border: `1px solid ${tone}33`,
             borderRadius: '0.5rem', padding: '0.6rem 0.7rem',
         }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.7rem', color: '#a1a1aa', fontWeight: 600 }}>📅 Conteúdo até</span>
+                <span style={{ fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.7)', fontWeight: 600 }}>📅 Conteúdo até</span>
                 <span style={{ fontSize: '0.95rem', fontWeight: 800, color: tone }}>
                     {coveredUntil ? formatDay(coveredUntil) : 'sem fila'}
                 </span>
             </div>
-            <p style={{ margin: '0.2rem 0 0', fontSize: '0.7rem', color: '#a1a1aa', lineHeight: 1.4 }}>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.7)', lineHeight: 1.4 }}>
                 {coveredUntil
                     ? `${days} ${days === 1 ? 'dia' : 'dias'} à frente${breakdown ? ` · ${breakdown}` : ''}`
                     : 'Nenhum post futuro garantido.'}
@@ -142,7 +142,7 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
 
     if (loading) {
         return (
-            <div className="card-glass mb-lg" style={{ padding: '1.5rem', textAlign: 'center', color: '#a1a1aa' }}>
+            <div className="card-glass mb-lg" style={{ padding: '1.5rem', textAlign: 'center', color: 'rgba(245, 245, 245, 0.7)' }}>
                 Carregando Matriz de Controle dos Perfis...
             </div>
         );
@@ -159,7 +159,7 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                     <h3 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         🎛️ Matriz de Controle de Perfis
                     </h3>
-                    <p style={{ fontSize: '0.85rem', color: '#a1a1aa', margin: '0.25rem 0 0 0' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'rgba(245, 245, 245, 0.7)', margin: '0.25rem 0 0 0' }}>
                         Até quando cada marca tem conteúdo garantido, e os interruptores que decidem isso.
                     </p>
                 </div>
@@ -171,7 +171,7 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                     title={collapsed ? 'Expandir painel' : 'Recolher painel'}
                     style={{
                         flexShrink: 0, width: '2rem', height: '2rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        padding: 0, color: '#cbd5e1', background: 'rgba(255,255,255,0.06)',
+                        padding: 0, color: '#cbd5e1', background: '#25292F',
                         border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', cursor: 'pointer',
                         transition: 'background 160ms ease, color 160ms ease'
                     }}
@@ -200,7 +200,7 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                         <div
                             key={profile.id}
                             style={{
-                                background: 'rgba(255, 255, 255, 0.03)',
+                                background: '#25292F',
                                 border: '1px solid rgba(255, 255, 255, 0.08)',
                                 borderRadius: '0.75rem',
                                 padding: '1.25rem',
@@ -213,10 +213,10 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                             {/* Profile Header */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div>
-                                    <h4 style={{ fontSize: '1rem', margin: 0, fontWeight: '700', color: '#fff' }}>
+                                    <h4 style={{ fontSize: '1rem', margin: 0, fontWeight: '700', color: '#F5F5F5' }}>
                                         {profile.name}
                                     </h4>
-                                    <p style={{ fontSize: '0.75rem', color: username ? '#a855f7' : '#ef4444', margin: '0.15rem 0 0 0' }}>
+                                    <p style={{ fontSize: '0.75rem', color: username ? '#EAEBEB' : '#ef4444', margin: '0.15rem 0 0 0' }}>
                                         {username ? `@${username}` : '⚠️ Sem conta conectada'}
                                     </p>
                                 </div>
@@ -224,8 +224,8 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                                     width: '32px',
                                     height: '32px',
                                     borderRadius: '50%',
-                                    background: 'rgba(124, 58, 237, 0.2)',
-                                    color: '#c084fc',
+                                    background: 'rgba(245, 245, 245, 0.2)',
+                                    color: '#EAEBEB',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -242,10 +242,10 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                             {/* Toggle 1: Piloto Automático */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div>
-                                    <span style={{ fontSize: '0.825rem', fontWeight: '600', color: '#e4e4e7' }}>
+                                    <span style={{ fontSize: '0.825rem', fontWeight: '600', color: '#F5F5F5' }}>
                                         🤖 Piloto Automático
                                     </span>
-                                    <p style={{ fontSize: '0.7rem', color: '#a1a1aa', margin: 0 }}>
+                                    <p style={{ fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.7)', margin: 0 }}>
                                         Geração semanal automática
                                     </p>
                                 </div>
@@ -261,9 +261,9 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                                         cursor: 'pointer',
                                         transition: 'all 0.2s ease',
                                         background: isAutopilotOn
-                                            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                                            ? '#F5F5F5'
                                             : 'rgba(255, 255, 255, 0.1)',
-                                        color: isAutopilotOn ? '#fff' : '#a1a1aa',
+                                        color: isAutopilotOn ? '#0C1014' : 'rgba(245, 245, 245, 0.7)',
                                         opacity: isUpdatingAutopilot ? 0.6 : 1
                                     }}
                                 >
@@ -274,10 +274,10 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                             {/* Toggle 2: Auto-Aprovação 24h */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div>
-                                    <span style={{ fontSize: '0.825rem', fontWeight: '600', color: '#e4e4e7' }}>
+                                    <span style={{ fontSize: '0.825rem', fontWeight: '600', color: '#F5F5F5' }}>
                                         ⚡ Auto-Aprovação 24h
                                     </span>
-                                    <p style={{ fontSize: '0.7rem', color: '#a1a1aa', margin: 0 }}>
+                                    <p style={{ fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.7)', margin: 0 }}>
                                         Agenda rascunhos 24h antes
                                     </p>
                                 </div>
@@ -293,9 +293,9 @@ export default function ProfileControlMatrix({ onProfilesUpdated }) {
                                         cursor: 'pointer',
                                         transition: 'all 0.2s ease',
                                         background: isAutoApproveOn
-                                            ? 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'
+                                            ? '#F5F5F5'
                                             : 'rgba(255, 255, 255, 0.1)',
-                                        color: isAutoApproveOn ? '#fff' : '#a1a1aa',
+                                        color: isAutoApproveOn ? '#0C1014' : 'rgba(245, 245, 245, 0.7)',
                                         opacity: isUpdatingAutoApprove ? 0.6 : 1
                                     }}
                                 >

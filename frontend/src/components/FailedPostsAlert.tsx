@@ -107,7 +107,7 @@ export default function FailedPostsAlert() {
                         style={{
                             background: 'none',
                             border: 'none',
-                            color: '#71717a',
+                            color: 'rgba(245, 245, 245, 0.55)',
                             cursor: 'pointer',
                             fontSize: '0.75rem',
                             padding: '0.25rem 0.5rem',
@@ -133,14 +133,14 @@ export default function FailedPostsAlert() {
                         }}
                     >
                         <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#d4d4d8', fontFamily: 'monospace' }}>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#F5F5F5', fontFamily: 'monospace' }}>
                                 {post.format || 'post'} · {post.id.slice(0, 8)}
                             </p>
                             {post.caption && (
                                 <p style={{
                                     margin: '0.15rem 0 0',
                                     fontSize: '0.8rem',
-                                    color: '#a1a1aa',
+                                    color: 'rgba(245, 245, 245, 0.7)',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
@@ -160,7 +160,7 @@ export default function FailedPostsAlert() {
                             style={{
                                 background: 'none',
                                 border: 'none',
-                                color: '#52525b',
+                                color: 'rgba(245, 245, 245, 0.4)',
                                 cursor: 'pointer',
                                 fontSize: '1rem',
                                 lineHeight: 1,

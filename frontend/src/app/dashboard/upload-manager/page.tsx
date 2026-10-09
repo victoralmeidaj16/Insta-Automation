@@ -139,7 +139,7 @@ export default function UploadManagerPage() {
     };
 
     return (
-        <div style={{ minHeight: '100vh', padding: '2rem', background: '#000', color: '#fff' }}>
+        <div style={{ minHeight: '100vh', padding: '2rem', background: '#000', color: '#F5F5F5' }}>
             <div className="container" style={{ maxWidth: '1400px', margin: '0 auto' }}>
                 <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -152,30 +152,30 @@ export default function UploadManagerPage() {
 
                     {/* Left: Staging Area */}
                     <div style={{
-                        background: '#18181b',
+                        background: '#25292F',
                         borderRadius: '0.75rem',
                         padding: '1.5rem',
-                        border: '1px solid #27272a',
+                        border: '1px solid rgba(245, 245, 245, 0.08)',
                         minHeight: '600px'
                     }}>
                         {/* Dropzone / Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Arquivos em Espera</h2>
-                                <p style={{ color: '#a1a1aa', fontSize: '0.85rem' }}>{files.length} arquivos selecionados</p>
+                                <p style={{ color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.85rem' }}>{files.length} arquivos selecionados</p>
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button
                                     onClick={handleSelectAll}
-                                    style={{ padding: '0.5rem 1rem', background: '#27272a', borderRadius: '0.5rem', border: '1px solid #3f3f46', color: '#fff', cursor: 'pointer' }}
+                                    style={{ padding: '0.5rem 1rem', background: '#25292F', borderRadius: '0.5rem', border: '1px solid rgba(245, 245, 245, 0.14)', color: '#F5F5F5', cursor: 'pointer' }}
                                 >
                                     {selectedIndices.length === files.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
                                 </button>
                                 <label style={{
                                     padding: '0.5rem 1rem',
-                                    background: '#7c3aed',
+                                    background: '#F5F5F5',
                                     borderRadius: '0.5rem',
-                                    color: '#fff',
+                                    color: '#0C1014',
                                     cursor: 'pointer',
                                     fontWeight: 600,
                                     display: 'flex',
@@ -191,14 +191,14 @@ export default function UploadManagerPage() {
                         {/* Grid */}
                         {files.length === 0 ? (
                             <div style={{
-                                border: '2px dashed #27272a',
+                                border: '2px dashed rgba(245, 245, 245, 0.08)',
                                 borderRadius: '0.75rem',
                                 height: '400px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: '#52525b'
+                                color: 'rgba(245, 245, 245, 0.4)'
                             }}>
                                 <p style={{ fontSize: '3rem', marginBottom: '1rem' }}>📂</p>
                                 <p>Arraste arquivos ou clique em Adicionar</p>
@@ -219,7 +219,7 @@ export default function UploadManagerPage() {
                                             overflow: 'hidden',
                                             aspectRatio: '1',
                                             cursor: 'pointer',
-                                            border: selectedIndices.includes(i) ? '2px solid #7c3aed' : '2px solid transparent',
+                                            border: selectedIndices.includes(i) ? '2px solid rgba(245, 245, 245, 0.4)' : '2px solid transparent',
                                             transition: 'all 0.2s'
                                         }}
                                     >
@@ -235,8 +235,8 @@ export default function UploadManagerPage() {
                                             width: '1.25rem',
                                             height: '1.25rem',
                                             borderRadius: '50%',
-                                            background: selectedIndices.includes(i) ? '#7c3aed' : 'rgba(0,0,0,0.5)',
-                                            border: '2px solid #fff'
+                                            background: selectedIndices.includes(i) ? '#EAEBEB' : 'rgba(12, 16, 20, 0.5)',
+                                            border: '2px solid #F5F5F5'
                                         }} />
                                     </div>
                                 ))}
@@ -247,25 +247,25 @@ export default function UploadManagerPage() {
                     {/* Right: Actions Panel */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         <div style={{
-                            background: '#18181b',
+                            background: '#25292F',
                             padding: '1.5rem',
                             borderRadius: '0.75rem',
-                            border: '1px solid #27272a',
+                            border: '1px solid rgba(245, 245, 245, 0.08)',
                             position: 'sticky',
                             top: '2rem'
                         }}>
                             <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1.5rem' }}>Ações ({selectedIndices.length})</h3>
 
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', color: '#a1a1aa', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Conta de Destino</label>
+                                <label style={{ display: 'block', color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Conta de Destino</label>
                                 <select
                                     style={{
                                         width: '100%',
                                         padding: '0.75rem',
-                                        background: '#27272a',
-                                        border: '1px solid #3f3f46',
+                                        background: '#25292F',
+                                        border: '1px solid rgba(245, 245, 245, 0.14)',
                                         borderRadius: '0.5rem',
-                                        color: '#fff',
+                                        color: '#F5F5F5',
                                         outline: 'none'
                                     }}
                                     value={selectedProfile?.id || ''}
@@ -287,10 +287,10 @@ export default function UploadManagerPage() {
                                 style={{
                                     width: '100%',
                                     padding: '0.75rem',
-                                    background: '#27272a',
-                                    border: '1px solid #3f3f46',
+                                    background: '#25292F',
+                                    border: '1px solid rgba(245, 245, 245, 0.14)',
                                     borderRadius: '0.5rem',
-                                    color: '#fff',
+                                    color: '#F5F5F5',
                                     fontWeight: 600,
                                     marginBottom: '0.75rem',
                                     cursor: selectedIndices.length === 0 ? 'not-allowed' : 'pointer',
@@ -310,10 +310,10 @@ export default function UploadManagerPage() {
                                 style={{
                                     width: '100%',
                                     padding: '0.75rem',
-                                    background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                    background: '#F5F5F5',
                                     border: 'none',
                                     borderRadius: '0.5rem',
-                                    color: '#fff',
+                                    color: '#0C1014',
                                     fontWeight: 600,
                                     cursor: selectedIndices.length < 2 ? 'not-allowed' : 'pointer',
                                     opacity: selectedIndices.length < 2 || uploading ? 0.5 : 1

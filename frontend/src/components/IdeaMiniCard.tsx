@@ -11,8 +11,8 @@ export default function IdeaMiniCard({ title, reason, onSelect }: IdeaMiniCardPr
         <div
             onClick={onSelect}
             style={{
-                background: 'rgba(39, 39, 42, 0.6)',
-                border: '1px solid #3f3f46',
+                background: '#25292F',
+                border: '1px solid rgba(245, 245, 245, 0.14)',
                 borderRadius: '0.75rem',
                 padding: '1rem',
                 cursor: 'pointer',
@@ -28,15 +28,15 @@ export default function IdeaMiniCard({ title, reason, onSelect }: IdeaMiniCardPr
                 e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)';
             }}
             onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#3f3f46';
-                e.currentTarget.style.background = 'rgba(39, 39, 42, 0.6)';
+                e.currentTarget.style.borderColor = 'rgba(245, 245, 245, 0.08)';
+                e.currentTarget.style.background = '#25292F';
             }}
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: '#fff' }}>{title}</h4>
+                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: '#F5F5F5' }}>{title}</h4>
                 <span style={{ fontSize: '1.2rem' }}>✨</span>
             </div>
-            <div style={{ margin: 0, fontSize: '0.75rem', color: '#a1a1aa' }}>
+            <div style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.7)' }}>
                 {formatIdeaContent(reason)}
             </div>
         </div>
@@ -78,7 +78,7 @@ function formatIdeaContent(content: string) {
                 const value = part.replace(matchedKey, '').trim();
                 return (
                     <div key={index} style={{ marginBottom: '0.5rem' }}>
-                        <strong style={{ color: '#e4e4e7', display: 'block' }}>{matchedKey}</strong>
+                        <strong style={{ color: '#F5F5F5', display: 'block' }}>{matchedKey}</strong>
                         <span>{value}</span>
                     </div>
                 );

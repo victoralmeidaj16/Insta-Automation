@@ -52,7 +52,7 @@ class ErrorBoundary extends React.Component {
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '2rem',
-                    background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)'
+                    background: '#0C1014'
                 }}>
                     <div className="card-glass" style={{
                         maxWidth: '600px',
@@ -69,9 +69,7 @@ class ErrorBoundary extends React.Component {
                         <h1 style={{
                             fontSize: '2rem',
                             marginBottom: '1rem',
-                            background: 'linear-gradient(135deg, #8e44ad 0%, #c44569 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
+                            color: '#F5F5F5',
                             backgroundClip: 'text'
                         }}>
                             Oops! Algo deu errado

@@ -67,8 +67,7 @@ export default function BatchApproveModal({
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(12, 16, 20, 0.75)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -79,8 +78,8 @@ export default function BatchApproveModal({
                 maxWidth: '480px',
                 width: '100%',
                 padding: '2rem',
-                border: '1px solid rgba(124, 58, 237, 0.3)',
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)'
+                border: '1px solid rgba(245, 245, 245, 0.3)',
+                boxShadow: 'none'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
                     <div style={{
@@ -88,7 +87,7 @@ export default function BatchApproveModal({
                         width: '48px',
                         height: '48px',
                         borderRadius: '12px',
-                        background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(109, 40, 217, 0.2) 100%)',
+                        background: 'rgba(245, 245, 245, 0.06)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -99,28 +98,28 @@ export default function BatchApproveModal({
                         <h3 style={{ fontSize: '1.2rem', margin: 0, fontWeight: '700' }}>
                             Aprovação em Lote (1 Clique)
                         </h3>
-                        <p style={{ fontSize: '0.85rem', color: '#a1a1aa', margin: '0.2rem 0 0 0' }}>
-                            Perfil: <strong style={{ color: '#c084fc' }}>{profileName || 'Selecionado'}</strong>
+                        <p style={{ fontSize: '0.85rem', color: 'rgba(245, 245, 245, 0.7)', margin: '0.2rem 0 0 0' }}>
+                            Perfil: <strong style={{ color: '#EAEBEB' }}>{profileName || 'Selecionado'}</strong>
                         </p>
                     </div>
                 </div>
 
                 <div style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
+                    background: '#25292F',
                     borderRadius: '0.75rem',
                     padding: '1rem',
                     marginBottom: '1.25rem',
                     border: '1px solid rgba(255, 255, 255, 0.08)'
                 }}>
-                    <p style={{ fontSize: '0.9rem', fontWeight: '600', margin: '0 0 0.75rem 0', color: '#e4e4e7' }}>
+                    <p style={{ fontSize: '0.9rem', fontWeight: '600', margin: '0 0 0.75rem 0', color: '#F5F5F5' }}>
                         Conteúdos na fila para aprovar ({totalCount}):
                     </p>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         {carouselsCount > 0 && (
                             <span style={{
                                 padding: '0.35rem 0.65rem',
-                                background: 'rgba(168, 85, 247, 0.15)',
-                                color: '#c084fc',
+                                background: 'rgba(245, 245, 245, 0.15)',
+                                color: '#EAEBEB',
                                 borderRadius: '6px',
                                 fontSize: '0.8rem',
                                 fontWeight: '600'
@@ -155,7 +154,7 @@ export default function BatchApproveModal({
                     </div>
                 </div>
 
-                <p style={{ fontSize: '0.85rem', color: '#a1a1aa', marginBottom: '1.5rem', lineHeight: '1.4' }}>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(245, 245, 245, 0.7)', marginBottom: '1.5rem', lineHeight: '1.4' }}>
                     💡 Ao confirmar, todos os {totalCount} rascunhos passarão para o status <strong style={{ color: '#22c55e' }}>Agendado</strong> e aparecerão na grade do seu <strong>Calendário</strong> imediatamente.
                 </p>
 
@@ -175,7 +174,8 @@ export default function BatchApproveModal({
                         style={{
                             fontSize: '0.9rem',
                             padding: '0.6rem 1.2rem',
-                            background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                            background: '#F5F5F5',
+                            color: '#0C1014',
                             fontWeight: '700'
                         }}
                     >

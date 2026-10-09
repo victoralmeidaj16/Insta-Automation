@@ -84,7 +84,7 @@ export default function DashboardPage() {
 
                 {/* Profile Switcher */}
                 <div style={{ marginBottom: '2rem' }}>
-                    <h3 style={{ fontSize: '1rem', color: '#a1a1aa', marginBottom: '0.75rem' }}>Perfil Selecionado</h3>
+                    <h3 style={{ fontSize: '1rem', color: 'rgba(245, 245, 245, 0.7)', marginBottom: '0.75rem' }}>Perfil Selecionado</h3>
                     <ProfileSwitcher style={{ width: '100%', maxWidth: '300px' }} />
                 </div>
 

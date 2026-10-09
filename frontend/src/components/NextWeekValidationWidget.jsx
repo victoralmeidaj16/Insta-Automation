@@ -20,10 +20,10 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
     if (profileDrafts.length === 0) {
         return (
             <div className="card-glass mb-lg" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#f4f4f5' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#F5F5F5' }}>
                     📅 Validação da Próxima Semana
                 </h3>
-                <p style={{ color: '#a1a1aa', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                <p style={{ color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.9rem', marginBottom: '1rem' }}>
                     Nenhum post pendente de revisão para {selectedProfile.name}.
                 </p>
                 <Link href="/dashboard/generate" className="btn btn-secondary" style={{ fontSize: '0.85rem' }}>
@@ -90,7 +90,7 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                                 {profileDrafts.length} pendentes
                             </span>
                         </h2>
-                        <p style={{ fontSize: '0.875rem', color: '#a1a1aa', margin: '0.25rem 0 0 0' }}>
+                        <p style={{ fontSize: '0.875rem', color: 'rgba(245, 245, 245, 0.7)', margin: '0.25rem 0 0 0' }}>
                             Revise e aprove os posts gerados para a semana de {selectedProfile.name}.
                         </p>
                     </div>
@@ -109,7 +109,8 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                             style={{
                                 fontSize: '0.85rem',
                                 padding: '0.5rem 0.85rem',
-                                background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                                background: '#F5F5F5',
+                                color: '#0C1014',
                                 fontWeight: '700'
                             }}
                         >
@@ -134,7 +135,7 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                             <div
                                 key={draft.id}
                                 style={{
-                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    background: '#25292F',
                                     border: '1px solid rgba(255, 255, 255, 0.08)',
                                     borderRadius: '12px',
                                     overflow: 'hidden',
@@ -146,7 +147,7 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                                 <div
                                     style={{
                                         height: '160px',
-                                        backgroundColor: '#18181b',
+                                        backgroundColor: '#25292F',
                                         position: 'relative',
                                         backgroundImage: `url(${thumbUrl})`,
                                         backgroundSize: 'cover',
@@ -158,9 +159,8 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                                             position: 'absolute',
                                             top: '8px',
                                             right: '8px',
-                                            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-                                            backdropFilter: 'blur(4px)',
-                                            color: '#fff',
+                                            backgroundColor: 'rgba(12, 16, 20, 0.65)',
+                                            color: '#F5F5F5',
                                             fontSize: '0.75rem',
                                             padding: '0.2rem 0.5rem',
                                             borderRadius: '6px'
@@ -176,7 +176,7 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                                                 bottom: '8px',
                                                 left: '8px',
                                                 backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                                                color: '#fff',
+                                                color: '#F5F5F5',
                                                 fontSize: '0.7rem',
                                                 padding: '0.15rem 0.4rem',
                                                 borderRadius: '4px',
@@ -194,7 +194,7 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                                     <p
                                         style={{
                                             fontSize: '0.85rem',
-                                            color: '#e4e4e7',
+                                            color: '#F5F5F5',
                                             margin: '0 0 1rem 0',
                                             display: '-webkit-box',
                                             WebkitLineClamp: 3,

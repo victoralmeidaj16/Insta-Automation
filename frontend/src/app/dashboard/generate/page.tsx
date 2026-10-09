@@ -1711,41 +1711,41 @@ export default function GeneratePage() {
         minHeight: generationMode === 'standard' ? '96px' : '152px',
         padding: '1rem 1.125rem',
         borderRadius: '0.75rem',
-        border: '1px solid #3f3f46',
-        background: '#18181b',
-        color: '#f4f4f5',
+        border: '1px solid rgba(245, 245, 245, 0.14)',
+        background: '#25292F',
+        color: '#F5F5F5',
         fontSize: '0.95rem',
         fontFamily: 'inherit',
         fontWeight: 400,
         letterSpacing: 'normal',
         lineHeight: 1.6,
         resize: 'vertical',
-        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+        boxShadow: 'none',
     };
 
     const helperNoticeStyle: React.CSSProperties = {
-        background: 'rgba(24, 24, 27, 0.88)',
-        border: '1px solid #27272a',
+        background: '#25292F',
+        border: '1px solid rgba(245, 245, 245, 0.08)',
         borderRadius: '0.75rem',
         padding: '1rem 1.125rem',
     };
 
 
     return (
-        <div style={{ minHeight: '100vh', padding: '2rem', background: '#000', color: '#fff' }}>
+        <div style={{ minHeight: '100vh', padding: '2rem', background: '#000', color: '#F5F5F5' }}>
             <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
                 <PageHeader
                     title="Gerador de Conteúdo IA"
                     subtitle="Crie imagens e carrosséis incríveis para suas redes sociais"
                     actions={
                         <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button onClick={() => setView('generate')} className="btn" style={{ background: view === 'generate' ? '#7c3aed' : '#27272a', padding: '0.5rem 1rem', borderRadius: '9999px', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <button onClick={() => setView('generate')} className="btn" style={{ background: view === 'generate' ? '#EAEBEB' : '#25292F', padding: '0.5rem 1rem', borderRadius: '9999px', border: 'none', color: '#F5F5F5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <MagicIcon /> Gerar
                             </button>
-                            <button onClick={() => setView('calendar')} className="btn" style={{ background: view === 'calendar' ? '#7c3aed' : '#27272a', padding: '0.5rem 1rem', borderRadius: '9999px', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <button onClick={() => setView('calendar')} className="btn" style={{ background: view === 'calendar' ? '#EAEBEB' : '#25292F', padding: '0.5rem 1rem', borderRadius: '9999px', border: 'none', color: '#F5F5F5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <CalendarIcon /> Calendário
                             </button>
-                            <button onClick={() => router.push('/dashboard/history')} className="btn" style={{ background: '#27272a', padding: '0.5rem 1rem', borderRadius: '9999px', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <button onClick={() => router.push('/dashboard/history')} className="btn" style={{ background: '#25292F', padding: '0.5rem 1rem', borderRadius: '9999px', border: 'none', color: '#F5F5F5', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <HistoryIcon /> Histórico
                             </button>
                         </div>
@@ -1754,11 +1754,11 @@ export default function GeneratePage() {
 
                 {/* Inline profile selector — shown when no profile is selected via header */}
                 {!selectedProfile && profiles.length > 0 && (
-                    <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: 'rgba(124, 58, 237, 0.07)', border: '1px solid rgba(124, 58, 237, 0.25)', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: 'rgba(245, 245, 245, 0.07)', border: '1px solid rgba(245, 245, 245, 0.25)', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '1.25rem' }}>🌐</span>
                         <div style={{ flex: 1, minWidth: '200px' }}>
-                            <p style={{ margin: '0 0 0.25rem', fontSize: '0.875rem', fontWeight: 600, color: '#e4e4e7' }}>Selecione um perfil de negócio</p>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#71717a' }}>Necessário para gerar conteúdo personalizado</p>
+                            <p style={{ margin: '0 0 0.25rem', fontSize: '0.875rem', fontWeight: 600, color: '#F5F5F5' }}>Selecione um perfil de negócio</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)' }}>Necessário para gerar conteúdo personalizado</p>
                         </div>
                         <select
                             value=""
@@ -1766,7 +1766,7 @@ export default function GeneratePage() {
                                 const p = profiles.find(p => p.id === e.target.value);
                                 if (p) setSelectedProfile(p);
                             }}
-                            style={{ padding: '0.625rem 1rem', borderRadius: '0.5rem', background: '#27272a', border: '1px solid #3f3f46', color: '#fff', fontSize: '0.875rem', cursor: 'pointer', minWidth: '200px' }}
+                            style={{ padding: '0.625rem 1rem', borderRadius: '0.5rem', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.14)', color: '#F5F5F5', fontSize: '0.875rem', cursor: 'pointer', minWidth: '200px' }}
                         >
                             <option value="" disabled>Escolher perfil…</option>
                             {profiles.map(p => (
@@ -1777,19 +1777,19 @@ export default function GeneratePage() {
                 )}
 
                 {selectedProfile && (
-                    <div className="card-glass" style={{ padding: '0.75rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', background: 'rgba(24, 24, 27, 0.6)', border: '1px solid #27272a' }}>
+                    <div className="card-glass" style={{ padding: '0.75rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: selectedProfile.branding?.primaryColor || '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: selectedProfile.branding?.primaryColor || '#EAEBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 700, color: '#F5F5F5' }}>
                                 {selectedProfile.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                                <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#fff', margin: 0 }}>{selectedProfile.name}</p>
-                                <p style={{ fontSize: '0.75rem', color: selectedProfile.branding?.primaryColor || '#a78bfa', margin: 0 }}>● Perfil Conectado</p>
+                                <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#F5F5F5', margin: 0 }}>{selectedProfile.name}</p>
+                                <p style={{ fontSize: '0.75rem', color: selectedProfile.branding?.primaryColor || '#EAEBEB', margin: 0 }}>● Perfil Conectado</p>
                             </div>
                         </div>
                         {selectedProfile.aiPreferences?.promptTemplate && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 0.75rem', background: 'rgba(124, 58, 237, 0.1)', borderRadius: '999px', border: '1px solid rgba(124, 58, 237, 0.2)' }}>
-                                <span style={{ fontSize: '0.75rem', color: '#a78bfa' }}>📋 Prompt Personalizado Ativo</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 0.75rem', background: 'rgba(245, 245, 245, 0.1)', borderRadius: '999px', border: '1px solid rgba(245, 245, 245, 0.2)' }}>
+                                <span style={{ fontSize: '0.75rem', color: '#EAEBEB' }}>📋 Prompt Personalizado Ativo</span>
                             </div>
                         )}
                     </div>
@@ -1797,8 +1797,8 @@ export default function GeneratePage() {
 
                 {view === 'generate' ? (
                     <>
-                        <section className="card-glass" style={{ padding: '2rem', marginBottom: '2rem', background: '#0a0a0a' }}>
-                            <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', background: '#27272a', padding: '0.5rem', borderRadius: '0.5rem' }}>
+                        <section className="card-glass" style={{ padding: '2rem', marginBottom: '2rem', background: '#0C1014' }}>
+                            <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', background: '#25292F', padding: '0.5rem', borderRadius: '0.5rem' }}>
                                 <button
                                     onClick={() => setGenerationMode('standard')}
                                     style={{
@@ -1807,15 +1807,15 @@ export default function GeneratePage() {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '0.5rem',
-                                        background: generationMode === 'standard' ? 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)' : 'rgba(39, 39, 42, 0.4)',
-                                        color: generationMode === 'standard' ? '#fff' : '#a1a1aa',
+                                        background: generationMode === 'standard' ? '#F5F5F5' : '#25292F',
+                                        color: generationMode === 'standard' ? '#0C1014' : 'rgba(245, 245, 245, 0.7)',
                                         padding: '0.875rem',
                                         borderRadius: '0.75rem',
-                                        border: generationMode === 'standard' ? '1px solid rgba(124, 58, 237, 0.5)' : '1px solid rgba(63, 63, 70, 0.2)',
+                                        border: generationMode === 'standard' ? '1px solid rgba(245, 245, 245, 0.5)' : '1px solid #25292F',
                                         cursor: 'pointer',
                                         fontWeight: 700,
                                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        boxShadow: generationMode === 'standard' ? '0 4px 15px rgba(124, 58, 237, 0.25)' : 'none'
+                                        boxShadow: generationMode === 'standard' ? 'none' : 'none'
                                     }}
                                 >
                                     ✨ Geração em Lote
@@ -1833,15 +1833,15 @@ export default function GeneratePage() {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '0.5rem',
-                                        background: generationMode === 'premium' ? 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)' : 'rgba(39, 39, 42, 0.4)',
-                                        color: generationMode === 'premium' ? '#fff' : '#a1a1aa',
+                                        background: generationMode === 'premium' ? '#F5F5F5' : '#25292F',
+                                        color: generationMode === 'premium' ? '#0C1014' : 'rgba(245, 245, 245, 0.7)',
                                         padding: '0.875rem',
                                         borderRadius: '0.75rem',
-                                        border: generationMode === 'premium' ? '1px solid rgba(251, 191, 36, 0.5)' : '1px solid rgba(63, 63, 70, 0.2)',
+                                        border: generationMode === 'premium' ? '1px solid rgba(251, 191, 36, 0.5)' : '1px solid #25292F',
                                         cursor: 'pointer',
                                         fontWeight: 700,
                                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        boxShadow: generationMode === 'premium' ? '0 4px 15px rgba(251, 191, 36, 0.25)' : 'none'
+                                        boxShadow: generationMode === 'premium' ? 'none' : 'none'
                                     }}
                                 >
                                     💎 Carrossel Premium
@@ -1858,15 +1858,15 @@ export default function GeneratePage() {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '0.5rem',
-                                        background: generationMode === 'html' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'rgba(39, 39, 42, 0.4)',
-                                        color: generationMode === 'html' ? '#fff' : '#a1a1aa',
+                                        background: generationMode === 'html' ? '#F5F5F5' : '#25292F',
+                                        color: generationMode === 'html' ? '#0C1014' : 'rgba(245, 245, 245, 0.7)',
                                         padding: '0.875rem',
                                         borderRadius: '0.75rem',
-                                        border: generationMode === 'html' ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid rgba(63, 63, 70, 0.2)',
+                                        border: generationMode === 'html' ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid #25292F',
                                         cursor: 'pointer',
                                         fontWeight: 700,
                                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        boxShadow: generationMode === 'html' ? '0 4px 15px rgba(59, 130, 246, 0.25)' : 'none'
+                                        boxShadow: generationMode === 'html' ? 'none' : 'none'
                                     }}
                                 >
                                     🌐 Carrossel HTML
@@ -1874,7 +1874,7 @@ export default function GeneratePage() {
                             </div>
 
                             <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ fontSize: '0.875rem', color: '#a1a1aa', display: 'block', marginBottom: '0.5rem' }}>
+                                <label style={{ fontSize: '0.875rem', color: 'rgba(245, 245, 245, 0.7)', display: 'block', marginBottom: '0.5rem' }}>
                                     {generationMode === 'html'
                                         ? '🌐 Modo HTML: gera código HTML pronto para Satori/Puppeteer com a identidade da marca.'
                                         : generationMode === 'premium'
@@ -1885,7 +1885,7 @@ export default function GeneratePage() {
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                                 <div>
-                                    <label style={{ fontSize: '0.75rem', color: '#71717a', display: 'block', marginBottom: '0.5rem' }}>
+                                    <label style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', display: 'block', marginBottom: '0.5rem' }}>
                                         Proporção (Aspect Ratio)
                                     </label>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
@@ -1895,11 +1895,11 @@ export default function GeneratePage() {
                                                 onClick={() => setAspectRatio(ratio)}
                                                 className="btn"
                                                 style={{
-                                                    background: aspectRatio === ratio ? '#7c3aed' : '#27272a',
+                                                    background: aspectRatio === ratio ? '#EAEBEB' : '#25292F',
                                                     padding: '0.5rem',
                                                     borderRadius: '0.5rem',
                                                     border: 'none',
-                                                    color: '#fff',
+                                                    color: '#F5F5F5',
                                                     fontSize: '0.875rem',
                                                     cursor: 'pointer'
                                                 }}
@@ -1911,11 +1911,11 @@ export default function GeneratePage() {
                                 </div>
 
                                 <div>
-                                    <label style={{ fontSize: '0.75rem', color: '#71717a', display: 'block', marginBottom: '0.5rem' }}>
+                                    <label style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', display: 'block', marginBottom: '0.5rem' }}>
                                         {generationMode === 'standard' ? 'Quantidade de Posts' : 'Quantidade de Slides'}
                                     </label>
                                     {generationMode === 'html' && (
-                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.72rem', color: '#71717a' }}>
+                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.72rem', color: 'rgba(245, 245, 245, 0.55)' }}>
                                             Template atual: {currentHtmlTemplateRule.label}
                                         </p>
                                     )}
@@ -1931,11 +1931,11 @@ export default function GeneratePage() {
                                                     style={{
                                                         flex: '1 0 calc(20% - 0.5rem)',
                                                         minWidth: '44px',
-                                                        background: imageCount === count ? '#7c3aed' : '#27272a',
+                                                        background: imageCount === count ? '#EAEBEB' : '#25292F',
                                                         padding: '0.5rem 0.25rem',
                                                         borderRadius: '0.5rem',
                                                         border: 'none',
-                                                        color: isDisabled ? '#52525b' : '#fff',
+                                                        color: isDisabled ? 'rgba(245, 245, 245, 0.4)' : '#F5F5F5',
                                                         fontSize: '0.75rem',
                                                         cursor: isDisabled ? 'not-allowed' : 'pointer',
                                                         opacity: isDisabled ? 0.45 : 1
@@ -1965,10 +1965,10 @@ export default function GeneratePage() {
                                                 style={{
                                                     fontSize: '0.75rem',
                                                     padding: '0.25rem 0.75rem',
-                                                    background: 'linear-gradient(90deg, #7c3aed 0%, #a78bfa 100%)',
+                                                    background: '#F5F5F5',
                                                     border: 'none',
                                                     borderRadius: '999px',
-                                                    color: '#fff',
+                                                    color: '#0C1014',
                                                     cursor: 'pointer',
                                                     opacity: isGeneratingIdeas ? 0.7 : 1
                                                 }}
@@ -1991,7 +1991,7 @@ export default function GeneratePage() {
                                     />
 
                                     <div style={helperNoticeStyle}>
-                                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#a1a1aa', lineHeight: 1.6 }}>
+                                        <p style={{ margin: 0, fontSize: '0.875rem', color: 'rgba(245, 245, 245, 0.7)', lineHeight: 1.6 }}>
                                             {generationMode === 'html' && htmlTemplate === 'comparison'
                                                 ? '✅ Auto-preenchido com base no perfil de negócio. Edite se quiser customizar o cenário comparado.'
                                                 : generationMode === 'premium'
@@ -2003,24 +2003,24 @@ export default function GeneratePage() {
                                     <div style={{ marginBottom: '1rem' }}>
                                         <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                             🖼️ Imagem de Referência (Opcional)
-                                            <span style={{ fontSize: '0.7rem', color: '#71717a' }}>(O estilo visual desta imagem será considerado pela IA)</span>
+                                            <span style={{ fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.55)' }}>(O estilo visual desta imagem será considerado pela IA)</span>
                                         </label>
 
                                         {!referenceImage ? (
                                             <div
                                                 {...getReferenceRootProps()}
                                                 style={{
-                                                    border: '2px dashed #3f3f46',
+                                                    border: '2px dashed rgba(245, 245, 245, 0.14)',
                                                     borderRadius: '0.5rem',
                                                     padding: '2rem',
                                                     textAlign: 'center',
                                                     cursor: 'pointer',
-                                                    background: 'rgba(24, 24, 27, 0.5)',
+                                                    background: '#25292F',
                                                     transition: 'border-color 0.2s'
                                                 }}
                                             >
                                                 <input {...getReferenceInputProps()} />
-                                                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>
+                                                <p style={{ color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.875rem' }}>
                                                     Arraste uma imagem ou clique para selecionar
                                                 </p>
                                             </div>
@@ -2034,7 +2034,7 @@ export default function GeneratePage() {
                                                         height: '100%',
                                                         objectFit: 'cover',
                                                         borderRadius: '0.5rem',
-                                                        border: '1px solid #7c3aed'
+                                                        border: '1px solid rgba(245, 245, 245, 0.4)'
                                                     }}
                                                 />
                                                 <button
@@ -2044,7 +2044,7 @@ export default function GeneratePage() {
                                                         top: '-0.5rem',
                                                         right: '-0.5rem',
                                                         background: '#ef4444',
-                                                        color: '#fff',
+                                                        color: '#F5F5F5',
                                                         border: 'none',
                                                         borderRadius: '50%',
                                                         width: '20px',
@@ -2065,7 +2065,7 @@ export default function GeneratePage() {
                             ) : (
                                 <>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                        <label style={{ fontSize: '0.875rem', color: '#a1a1aa', display: 'block' }}>
+                                        <label style={{ fontSize: '0.875rem', color: 'rgba(245, 245, 245, 0.7)', display: 'block' }}>
                                             {imageCount > 1 ? '💡 Temas Base Específicos (Em Lote)' : 'Descrição do Post Único'}
                                         </label>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -2081,10 +2081,10 @@ export default function GeneratePage() {
                                                 style={{
                                                     fontSize: '0.75rem',
                                                     padding: '0.25rem 0.75rem',
-                                                    background: '#27272a',
-                                                    border: '1px solid #3f3f46',
+                                                    background: '#25292F',
+                                                    border: '1px solid rgba(245, 245, 245, 0.14)',
                                                     borderRadius: '999px',
-                                                    color: '#d4d4d8',
+                                                    color: '#F5F5F5',
                                                     cursor: 'pointer',
                                                 }}
                                             >
@@ -2097,10 +2097,10 @@ export default function GeneratePage() {
                                             style={{
                                                 fontSize: '0.75rem',
                                                 padding: '0.25rem 0.75rem',
-                                                background: 'linear-gradient(90deg, #10b981, #059669)',
+                                                background: '#F5F5F5',
                                                 border: 'none',
                                                 borderRadius: '999px',
-                                                color: '#fff',
+                                                color: '#0C1014',
                                                 cursor: 'pointer',
                                                 opacity: isGeneratingIdeas ? 0.7 : 1
                                             }}
@@ -2140,8 +2140,8 @@ export default function GeneratePage() {
                                         width: '100%',
                                         marginBottom: '0.5rem',
                                         padding: '1rem',
-                                        background: 'linear-gradient(135deg, #FF0080 0%, #7928CA 100%)',
-                                        color: '#fff',
+                                        background: '#F5F5F5',
+                                        color: '#0C1014',
                                         border: 'none',
                                         fontWeight: 700,
                                         borderRadius: '0.75rem',
@@ -2159,8 +2159,8 @@ export default function GeneratePage() {
                                         width: '100%',
                                         marginBottom: '0.5rem',
                                         padding: '1rem',
-                                        background: generationMode === 'premium' ? 'linear-gradient(90deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(90deg, #10b981, #059669)',
-                                        color: generationMode === 'premium' ? '#000' : '#fff',
+                                        background: generationMode === 'premium' ? '#F5F5F5' : '#F5F5F5',
+                                        color: generationMode === 'premium' ? '#0C1014' : '#F5F5F5',
                                         border: 'none',
                                         fontWeight: 700,
                                         borderRadius: '0.75rem',
@@ -2176,7 +2176,7 @@ export default function GeneratePage() {
                                     onClick={handleGeneratePromptsFromConcepts}
                                     disabled={isGeneratingPrompt}
                                     className="btn"
-                                    style={{ width: '100%', marginBottom: '0.5rem', background: '#7c3aed', border: 'none', color: '#fff' }}
+                                    style={{ width: '100%', marginBottom: '0.5rem', background: '#F5F5F5', border: 'none', color: '#0C1014' }}
                                 >
                                     {isGeneratingPrompt ? '🧠 Gerando Prompts...' : '🧠 Gerar Todos os Prompts Visuais'}
                                 </button>
@@ -2190,9 +2190,9 @@ export default function GeneratePage() {
                                     style={{
                                         width: '100%',
                                         marginBottom: '1rem',
-                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        background: '#F5F5F5',
                                         border: 'none',
-                                        color: '#fff',
+                                        color: '#0C1014',
                                         opacity: carouselCards.some(card => !card.prompt) ? 0.5 : 1
                                     }}
                                 >
@@ -2208,9 +2208,9 @@ export default function GeneratePage() {
                                     style={{
                                         width: '100%',
                                         marginBottom: '1rem',
-                                        background: 'linear-gradient(90deg, #FFD700 0%, #FFA500 100%)',
+                                        background: '#F5F5F5',
                                         border: 'none',
-                                        color: '#111',
+                                        color: '#0C1014',
                                         fontWeight: 700,
                                         opacity: !carouselCards.some(card => card.premiumBaseImage && !isPremiumOverlayApplied(card)) ? 0.5 : 1
                                     }}
@@ -2221,15 +2221,15 @@ export default function GeneratePage() {
 
                             {generationMode === 'html' && generatedHtml && (
                                 <div style={{ marginTop: '2rem' }}>
-                                    <h3 style={{ marginBottom: '1rem', color: '#ec4899' }}>Resultado HTML Gerado</h3>
+                                    <h3 style={{ marginBottom: '1rem', color: '#EAEBEB' }}>Resultado HTML Gerado</h3>
                                     
                                     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 420px', gap: '2rem', alignItems: 'start' }}>
                                         <div style={{
                                             flex: 1, 
-                                            background: '#1a1a1a', 
+                                            background: '#25292F', 
                                             padding: '1.5rem', 
                                             borderRadius: '1rem', 
-                                            border: '1px solid #333',
+                                            border: '1px solid rgba(245, 245, 245, 0.1)',
                                             height: '525px',
                                             display: 'flex',
                                             flexDirection: 'column'
@@ -2251,7 +2251,7 @@ export default function GeneratePage() {
                                                         style={{
                                                             background: '#333',
                                                             border: 'none',
-                                                            color: '#fff',
+                                                            color: '#F5F5F5',
                                                             padding: '0.25rem 0.75rem',
                                                             borderRadius: '0.25rem',
                                                             cursor: 'pointer',
@@ -2264,9 +2264,9 @@ export default function GeneratePage() {
                                                         onClick={handleSaveHtmlToLibrary}
                                                         className="btn"
                                                         style={{
-                                                            background: 'linear-gradient(135deg, #FF0080 0%, #7928CA 100%)',
+                                                            background: '#F5F5F5',
                                                             border: 'none',
-                                                            color: '#fff',
+                                                            color: '#0C1014',
                                                             padding: '0.25rem 0.75rem',
                                                             borderRadius: '0.25rem',
                                                             cursor: 'pointer',
@@ -2281,9 +2281,9 @@ export default function GeneratePage() {
                                                         disabled={isSavingHtmlTemplate}
                                                         className="btn"
                                                         style={{
-                                                            background: 'rgba(168, 85, 247, 0.15)',
-                                                            border: '1px solid rgba(168, 85, 247, 0.4)',
-                                                            color: '#c084fc',
+                                                            background: 'rgba(245, 245, 245, 0.15)',
+                                                            border: '1px solid rgba(245, 245, 245, 0.4)',
+                                                            color: '#EAEBEB',
                                                             padding: '0.25rem 0.75rem',
                                                             borderRadius: '0.25rem',
                                                             cursor: 'pointer',
@@ -2299,7 +2299,7 @@ export default function GeneratePage() {
                                                 margin: 0,
                                                 padding: '1rem',
                                                 overflow: 'auto',
-                                                color: '#d4d4d8',
+                                                color: '#F5F5F5',
                                                 fontSize: '0.75rem',
                                                 flex: 1
                                             }}>
@@ -2309,13 +2309,13 @@ export default function GeneratePage() {
 
                                         <div>
                                             <div style={{
-                                                border: '1px solid #3f3f46',
+                                                border: '1px solid rgba(245, 245, 245, 0.14)',
                                                 borderRadius: '0.5rem',
                                                 overflow: 'hidden',
                                                 width: '420px',
                                                 height: '525px',
                                                 background: '#fff',
-                                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
+                                                boxShadow: 'none'
                                             }}>
                                                 <iframe
                                                     srcDoc={prepareHtmlCarouselPreview(generatedHtml)}
@@ -2323,14 +2323,14 @@ export default function GeneratePage() {
                                                     title="Preview HTML"
                                                 />
                                             </div>
-                                            <p style={{ textAlign: 'center', color: '#a1a1aa', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+                                            <p style={{ textAlign: 'center', color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.75rem', marginTop: '0.5rem' }}>
                                                 Preview interativo (Arraste para rolar o carrossel se aplicável)
                                             </p>
 
                                             <div style={{
                                                 marginTop: '1rem',
-                                                background: '#18181b',
-                                                border: '1px solid rgba(168, 85, 247, 0.2)',
+                                                background: '#25292F',
+                                                border: '1px solid rgba(245, 245, 245, 0.2)',
                                                 borderRadius: '0.75rem',
                                                 padding: '1rem'
                                             }}>
@@ -2342,10 +2342,10 @@ export default function GeneratePage() {
                                                     marginBottom: '0.75rem'
                                                 }}>
                                                     <div>
-                                                        <p style={{ margin: 0, color: '#f4f4f5', fontSize: '0.85rem', fontWeight: 700 }}>
+                                                        <p style={{ margin: 0, color: '#F5F5F5', fontSize: '0.85rem', fontWeight: 700 }}>
                                                             Legenda do HTML
                                                         </p>
-                                                        <p style={{ margin: '0.25rem 0 0', color: '#a1a1aa', fontSize: '0.72rem' }}>
+                                                        <p style={{ margin: '0.25rem 0 0', color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.72rem' }}>
                                                             Gerada automaticamente após criar um novo HTML
                                                         </p>
                                                     </div>
@@ -2353,10 +2353,10 @@ export default function GeneratePage() {
                                                         value={captionTone}
                                                         onChange={(e) => setCaptionTone(e.target.value as typeof captionTone)}
                                                         style={{
-                                                            background: '#09090b',
-                                                            border: '1px solid #3f3f46',
+                                                            background: '#0C1014',
+                                                            border: '1px solid rgba(245, 245, 245, 0.14)',
                                                             borderRadius: '0.5rem',
-                                                            color: '#e4e4e7',
+                                                            color: '#F5F5F5',
                                                             padding: '0.45rem 0.65rem',
                                                             fontSize: '0.75rem',
                                                             minWidth: '120px'
@@ -2377,10 +2377,10 @@ export default function GeneratePage() {
                                                     rows={7}
                                                     style={{
                                                         width: '100%',
-                                                        background: '#09090b',
-                                                        border: '1px solid #3f3f46',
+                                                        background: '#0C1014',
+                                                        border: '1px solid rgba(245, 245, 245, 0.14)',
                                                         borderRadius: '0.75rem',
-                                                        color: '#e4e4e7',
+                                                        color: '#F5F5F5',
                                                         padding: '0.875rem',
                                                         fontSize: '0.82rem',
                                                         lineHeight: 1.6,
@@ -2397,11 +2397,11 @@ export default function GeneratePage() {
                                                             flex: 1,
                                                             padding: '0.65rem 0.9rem',
                                                             background: isGeneratingHtmlCaption
-                                                                ? '#3f3f46'
-                                                                : 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+                                                                ? '#25292F'
+                                                                : '#F5F5F5',
                                                             border: 'none',
                                                             borderRadius: '0.65rem',
-                                                            color: '#fff',
+                                                            color: isGeneratingHtmlCaption ? '#F5F5F5' : '#0C1014',
                                                             fontWeight: 700,
                                                             fontSize: '0.8rem',
                                                             cursor: isGeneratingHtmlCaption ? 'not-allowed' : 'pointer'
@@ -2417,10 +2417,10 @@ export default function GeneratePage() {
                                                         disabled={!htmlCaption.trim()}
                                                         style={{
                                                             padding: '0.65rem 0.9rem',
-                                                            background: 'rgba(255, 255, 255, 0.04)',
-                                                            border: '1px solid #3f3f46',
+                                                            background: '#25292F',
+                                                            border: '1px solid rgba(245, 245, 245, 0.14)',
                                                             borderRadius: '0.65rem',
-                                                            color: htmlCaption.trim() ? '#e4e4e7' : '#71717a',
+                                                            color: htmlCaption.trim() ? '#F5F5F5' : 'rgba(245, 245, 245, 0.55)',
                                                             fontWeight: 600,
                                                             fontSize: '0.8rem',
                                                             cursor: htmlCaption.trim() ? 'pointer' : 'not-allowed',
@@ -2463,12 +2463,12 @@ export default function GeneratePage() {
                                             {showHtmlFixer && (
                                                 <div style={{
                                                     marginTop: '0.75rem',
-                                                    background: '#18181b',
+                                                    background: '#25292F',
                                                     border: '1px solid rgba(251, 191, 36, 0.25)',
                                                     borderRadius: '0.75rem',
                                                     padding: '1rem'
                                                 }}>
-                                                    <p style={{ fontSize: '0.75rem', color: '#a1a1aa', marginBottom: '0.5rem' }}>
+                                                    <p style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.7)', marginBottom: '0.5rem' }}>
                                                         Descreva o que deve ser corrigido ou ajustado no carrossel:
                                                     </p>
                                                     <textarea
@@ -2478,10 +2478,10 @@ export default function GeneratePage() {
                                                         rows={4}
                                                         style={{
                                                             width: '100%',
-                                                            background: '#09090b',
-                                                            border: '1px solid #3f3f46',
+                                                            background: '#0C1014',
+                                                            border: '1px solid rgba(245, 245, 245, 0.14)',
                                                             borderRadius: '0.5rem',
-                                                            color: '#e4e4e7',
+                                                            color: '#F5F5F5',
                                                             padding: '0.625rem',
                                                             fontSize: '0.8rem',
                                                             resize: 'vertical',
@@ -2500,10 +2500,10 @@ export default function GeneratePage() {
                                                             marginTop: '0.75rem',
                                                             width: '100%',
                                                             padding: '0.625rem',
-                                                            background: isFixingHtml ? '#3f3f46' : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                                                            background: isFixingHtml ? '#25292F' : '#F5F5F5',
                                                             border: 'none',
                                                             borderRadius: '0.5rem',
-                                                            color: '#111',
+                                                            color: isFixingHtml ? '#25292F' : '#0C1014',
                                                             fontWeight: 700,
                                                             fontSize: '0.8rem',
                                                             cursor: isFixingHtml ? 'not-allowed' : 'pointer',
@@ -2512,7 +2512,7 @@ export default function GeneratePage() {
                                                     >
                                                         {isFixingHtml ? '🔄 Corrigindo...' : '🔧 Aplicar Correção'}
                                                     </button>
-                                                    <p style={{ fontSize: '0.7rem', color: '#52525b', marginTop: '0.5rem', textAlign: 'center' }}>
+                                                    <p style={{ fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.4)', marginTop: '0.5rem', textAlign: 'center' }}>
                                                         Dica: Cmd/Ctrl + Enter para enviar
                                                     </p>
                                                 </div>
@@ -2524,7 +2524,7 @@ export default function GeneratePage() {
 
                             {generationMode !== 'html' && carouselCards.length > 0 && (
                                 <div style={{ marginTop: '2rem' }}>
-                                    <h3 style={{ marginBottom: '1rem', color: generationMode === 'premium' ? '#facc15' : '#a78bfa' }}>
+                                    <h3 style={{ marginBottom: '1rem', color: '#F5F5F5' }}>
                                         {imageCount > 1 ? `Cards do Carrossel (${carouselCards.length}/${imageCount})` : 'Card do Post'}
                                     </h3>
 
@@ -2533,14 +2533,14 @@ export default function GeneratePage() {
                                             <div
                                                 key={index}
                                                 style={{
-                                                    background: '#18181b',
-                                                    border: '1px solid #27272a',
+                                                    background: '#25292F',
+                                                    border: '1px solid rgba(245, 245, 245, 0.08)',
                                                     borderRadius: '1rem',
                                                     padding: '1rem'
                                                 }}
                                             >
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
-                                                    <h4 style={{ color: generationMode === 'premium' ? '#facc15' : '#a78bfa', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                    <h4 style={{ color: '#F5F5F5', fontSize: '0.75rem', fontWeight: 600 }}>
                                                         Card {index + 1}
                                                     </h4>
                                                     {card.image && (
@@ -2566,15 +2566,15 @@ export default function GeneratePage() {
 
                                                 {card.concept && (
                                                     <div style={{ marginBottom: '0.75rem' }}>
-                                                        <label style={{ fontSize: '0.625rem', color: '#71717a', display: 'block', marginBottom: '0.5rem' }}>
+                                                        <label style={{ fontSize: '0.625rem', color: 'rgba(245, 245, 245, 0.55)', display: 'block', marginBottom: '0.5rem' }}>
                                                             Conceito
                                                         </label>
                                                         <p style={{
-                                                            background: '#09090b',
+                                                            background: '#0C1014',
                                                             padding: '0.5rem',
                                                             borderRadius: '0.5rem',
                                                             fontSize: '0.75rem',
-                                                            color: '#d4d4d8',
+                                                            color: '#F5F5F5',
                                                             lineHeight: '1.4'
                                                         }}>
                                                             {card.concept}
@@ -2583,15 +2583,15 @@ export default function GeneratePage() {
                                                 )}
 
                                                 <div style={{ marginBottom: '0.75rem' }}>
-                                                    <label style={{ fontSize: '0.625rem', color: '#71717a', display: 'block', marginBottom: '0.5rem' }}>
+                                                    <label style={{ fontSize: '0.625rem', color: 'rgba(245, 245, 245, 0.55)', display: 'block', marginBottom: '0.5rem' }}>
                                                         Prompt
                                                     </label>
                                                     <p style={{
-                                                        background: '#09090b',
+                                                        background: '#0C1014',
                                                         padding: '0.5rem',
                                                         borderRadius: '0.5rem',
                                                         fontSize: '0.75rem',
-                                                        color: '#d4d4d8',
+                                                        color: '#F5F5F5',
                                                         lineHeight: '1.4',
                                                         minHeight: '4.5rem',
                                                         maxHeight: '7rem',
@@ -2633,8 +2633,8 @@ export default function GeneratePage() {
                                                                         width: '100%',
                                                                         fontSize: '0.75rem',
                                                                         marginBottom: '0.5rem',
-                                                                        background: 'linear-gradient(90deg, #FFD700 0%, #FFA500 100%)',
-                                                                        color: '#111',
+                                                                        background: '#F5F5F5',
+                                                                        color: '#0C1014',
                                                                         border: 'none',
                                                                         fontWeight: 700
                                                                     }}
@@ -2649,8 +2649,8 @@ export default function GeneratePage() {
                                                                         width: '100%',
                                                                         fontSize: '0.75rem',
                                                                         marginBottom: '0.5rem',
-                                                                        background: 'linear-gradient(90deg, #FFD700 0%, #FFA500 100%)',
-                                                                        color: '#111',
+                                                                        background: '#F5F5F5',
+                                                                        color: '#0C1014',
                                                                         border: 'none',
                                                                         fontWeight: 700
                                                                     }}
@@ -2708,10 +2708,10 @@ export default function GeneratePage() {
                                                 style={{
                                                     flex: '1 1 auto',
                                                     padding: '0.625rem',
-                                                    background: '#27272a',
-                                                    border: '1px solid #3f3f46',
+                                                    background: '#25292F',
+                                                    border: '1px solid rgba(245, 245, 245, 0.14)',
                                                     borderRadius: '0.5rem',
-                                                    color: '#e4e4e7',
+                                                    color: '#F5F5F5',
                                                     fontSize: '0.8rem',
                                                     fontWeight: 500,
                                                     cursor: 'pointer',
@@ -2728,10 +2728,10 @@ export default function GeneratePage() {
                                                 style={{
                                                     flex: '1 1 auto',
                                                     padding: '0.625rem',
-                                                    background: '#27272a',
-                                                    border: '1px solid #3f3f46',
+                                                    background: '#25292F',
+                                                    border: '1px solid rgba(245, 245, 245, 0.14)',
                                                     borderRadius: '0.5rem',
-                                                    color: '#e4e4e7',
+                                                    color: '#F5F5F5',
                                                     fontSize: '0.8rem',
                                                     fontWeight: 500,
                                                     cursor: 'pointer',
@@ -2748,10 +2748,10 @@ export default function GeneratePage() {
                                                 style={{
                                                     flex: '1 1 auto',
                                                     padding: '0.625rem',
-                                                    background: '#27272a',
-                                                    border: '1px solid #3f3f46',
+                                                    background: '#25292F',
+                                                    border: '1px solid rgba(245, 245, 245, 0.14)',
                                                     borderRadius: '0.5rem',
-                                                    color: '#e4e4e7',
+                                                    color: '#F5F5F5',
                                                     fontSize: '0.8rem',
                                                     fontWeight: 500,
                                                     cursor: 'pointer',
@@ -2768,10 +2768,10 @@ export default function GeneratePage() {
                                                 style={{
                                                     flex: '1 1 auto',
                                                     padding: '0.625rem',
-                                                    background: '#27272a',
-                                                    border: '1px solid #3f3f46',
+                                                    background: '#25292F',
+                                                    border: '1px solid rgba(245, 245, 245, 0.14)',
                                                     borderRadius: '0.5rem',
-                                                    color: '#e4e4e7',
+                                                    color: '#F5F5F5',
                                                     fontSize: '0.8rem',
                                                     fontWeight: 500,
                                                     cursor: 'pointer',
@@ -2788,10 +2788,10 @@ export default function GeneratePage() {
                                                 style={{
                                                     flex: '1 1 auto',
                                                     padding: '0.625rem',
-                                                    background: '#27272a',
-                                                    border: '1px solid #3f3f46',
+                                                    background: '#25292F',
+                                                    border: '1px solid rgba(245, 245, 245, 0.14)',
                                                     borderRadius: '0.5rem',
-                                                    color: '#e4e4e7',
+                                                    color: '#F5F5F5',
                                                     fontSize: '0.8rem',
                                                     fontWeight: 500,
                                                     cursor: 'pointer',
@@ -2808,7 +2808,7 @@ export default function GeneratePage() {
                                                 style={{
                                                     flex: '1 1 auto',
                                                     padding: '0.625rem',
-                                                    background: '#27272a',
+                                                    background: '#25292F',
                                                     border: '1px solid #22c55e',
                                                     borderRadius: '0.5rem',
                                                     color: '#4ade80',
@@ -2831,8 +2831,8 @@ export default function GeneratePage() {
                     </>
                 ) : (
                     <div className="card-glass" style={{ padding: '2rem', textAlign: 'center' }}>
-                        <p style={{ textAlign: 'center', color: '#a1a1aa' }}>Visualização de calendário disponível na aba de Calendário.</p>
-                        <button onClick={() => router.push('/dashboard/calendar')} className="btn" style={{ margin: '1rem auto', display: 'block', background: '#7c3aed', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '999px' }}>
+                        <p style={{ textAlign: 'center', color: 'rgba(245, 245, 245, 0.7)' }}>Visualização de calendário disponível na aba de Calendário.</p>
+                        <button onClick={() => router.push('/dashboard/calendar')} className="btn" style={{ margin: '1rem auto', display: 'block', background: '#F5F5F5', color: '#0C1014', border: 'none', padding: '0.5rem 1rem', borderRadius: '999px' }}>
                             Ir para o Calendário
                         </button>
                     </div>
@@ -2846,7 +2846,7 @@ export default function GeneratePage() {
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            background: 'rgba(0,0,0,0.8)',
+                            background: 'rgba(12, 16, 20, 0.8)',
                             zIndex: 1500,
                             display: 'flex',
                             alignItems: 'center',
@@ -2867,7 +2867,7 @@ export default function GeneratePage() {
                                     style={{
                                         background: 'none',
                                         border: 'none',
-                                        color: '#fff',
+                                        color: '#F5F5F5',
                                         fontSize: '1.5rem',
                                         cursor: 'pointer'
                                     }}
@@ -2902,14 +2902,14 @@ export default function GeneratePage() {
 
                             {generatedCaption && (
                                 <div style={{
-                                    background: 'rgba(124, 58, 237, 0.1)',
-                                    border: '1px solid rgba(124, 58, 237, 0.3)',
+                                    background: 'rgba(245, 245, 245, 0.1)',
+                                    border: '1px solid rgba(245, 245, 245, 0.3)',
                                     borderRadius: '0.5rem',
                                     padding: '1rem',
                                     marginTop: '1rem'
                                 }}>
                                     <div className="flex-between mb-sm">
-                                        <p style={{ fontSize: '0.875rem', color: '#a78bfa', fontWeight: 600 }}>
+                                        <p style={{ fontSize: '0.875rem', color: '#EAEBEB', fontWeight: 600 }}>
                                             Caption Gerada:
                                         </p>
                                         <button
@@ -2924,7 +2924,7 @@ export default function GeneratePage() {
                                         </button>
                                     </div>
                                     <p style={{
-                                        color: '#fff',
+                                        color: '#F5F5F5',
                                         fontSize: '0.875rem',
                                         lineHeight: '1.6',
                                         whiteSpace: 'pre-wrap'
@@ -2945,7 +2945,7 @@ export default function GeneratePage() {
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            background: 'rgba(0,0,0,0.8)',
+                            background: 'rgba(12, 16, 20, 0.8)',
                             zIndex: 2000,
                             display: 'flex',
                             alignItems: 'center',
@@ -2956,30 +2956,30 @@ export default function GeneratePage() {
                     >
                         <div
                             style={{
-                                background: '#18181b',
-                                border: '1px solid #27272a',
+                                background: '#25292F',
+                                border: '1px solid rgba(245, 245, 245, 0.08)',
                                 borderRadius: '1rem',
                                 padding: '2rem',
                                 maxWidth: '900px',
                                 width: '100%',
                                 maxHeight: '85vh',
                                 overflow: 'auto',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                                boxShadow: 'none'
                             }}
                             onClick={e => e.stopPropagation()}
                         >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid #27272a', paddingBottom: '1rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '1px solid rgba(245, 245, 245, 0.08)', paddingBottom: '1rem' }}>
                                 <div>
-                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', margin: 0 }}>
+                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F5F5F5', margin: 0 }}>
                                         ✨ Brainstorm de Ideias
                                     </h2>
-                                    <p style={{ color: '#a1a1aa', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                                    <p style={{ color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
                                         Sugestões baseadas no perfil <b>{selectedProfile?.name}</b>
                                     </p>
                                 </div>
                                 <button
                                     onClick={() => setShowIdeasModal(false)}
-                                    style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', fontSize: '1.5rem' }}
+                                    style={{ background: 'none', border: 'none', color: 'rgba(245, 245, 245, 0.55)', cursor: 'pointer', fontSize: '1.5rem' }}
                                 >
                                     ×
                                 </button>
@@ -2990,8 +2990,8 @@ export default function GeneratePage() {
                                     <div
                                         key={index}
                                         style={{
-                                            background: '#09090b',
-                                            border: '1px solid #27272a',
+                                            background: '#0C1014',
+                                            border: '1px solid rgba(245, 245, 245, 0.08)',
                                             borderRadius: '0.75rem',
                                             padding: '1.5rem',
                                             display: 'flex',
@@ -3001,18 +3001,18 @@ export default function GeneratePage() {
                                             cursor: 'pointer'
                                         }}
                                         onMouseEnter={(e) => {
-                                            e.currentTarget.style.borderColor = '#7c3aed';
+                                            e.currentTarget.style.borderColor = 'rgba(245, 245, 245, 0.3)';
                                             e.currentTarget.style.transform = 'translateY(-2px)';
                                         }}
                                         onMouseLeave={(e) => {
-                                            e.currentTarget.style.borderColor = '#27272a';
+                                            e.currentTarget.style.borderColor = 'rgba(245, 245, 245, 0.08)';
                                             e.currentTarget.style.transform = 'translateY(0)';
                                         }}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div style={{
-                                                background: idea.type === 'carousel' ? 'rgba(124, 58, 237, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                                                color: idea.type === 'carousel' ? '#a78bfa' : '#34d399',
+                                                background: idea.type === 'carousel' ? 'rgba(245, 245, 245, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                                color: idea.type === 'carousel' ? '#EAEBEB' : '#34d399',
                                                 fontSize: '0.75rem',
                                                 fontWeight: 600,
                                                 padding: '0.25rem 0.75rem',
@@ -3025,15 +3025,15 @@ export default function GeneratePage() {
                                         </div>
 
                                         <div>
-                                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#fff', marginBottom: '0.5rem', lineHeight: '1.3' }}>
+                                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#F5F5F5', marginBottom: '0.5rem', lineHeight: '1.3' }}>
                                                 {idea.title}
                                             </h3>
-                                            <p style={{ fontSize: '0.875rem', color: '#d4d4d8', lineHeight: '1.5' }}>
+                                            <p style={{ fontSize: '0.875rem', color: '#F5F5F5', lineHeight: '1.5' }}>
                                                 {idea.description}
                                             </p>
                                         </div>
 
-                                        <div style={{ fontSize: '0.75rem', color: '#71717a', fontStyle: 'italic', borderTop: '1px solid #27272a', paddingTop: '1rem', marginTop: 'auto' }}>
+                                        <div style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', fontStyle: 'italic', borderTop: '1px solid rgba(245, 245, 245, 0.08)', paddingTop: '1rem', marginTop: 'auto' }}>
                                             💡 {idea.reason}
                                         </div>
 
@@ -3044,10 +3044,10 @@ export default function GeneratePage() {
                                                 width: '100%',
                                                 marginTop: '1rem',
                                                 padding: '0.75rem',
-                                                background: '#7c3aed',
+                                                background: '#F5F5F5',
                                                 border: 'none',
                                                 borderRadius: '0.5rem',
-                                                color: '#fff',
+                                                color: '#0C1014',
                                                 fontWeight: 600,
                                                 cursor: 'pointer'
                                             }}
@@ -3069,7 +3069,7 @@ export default function GeneratePage() {
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            background: 'rgba(0,0,0,0.9)',
+                            background: 'rgba(12, 16, 20, 0.9)',
                             zIndex: 1600,
                             display: 'flex',
                             alignItems: 'center',
@@ -3090,7 +3090,7 @@ export default function GeneratePage() {
                                     style={{
                                         background: 'none',
                                         border: 'none',
-                                        color: '#fff',
+                                        color: '#F5F5F5',
                                         fontSize: '1.5rem',
                                         cursor: 'pointer'
                                     }}
@@ -3099,7 +3099,7 @@ export default function GeneratePage() {
                                 </button>
                             </div>
 
-                            <p style={{ color: '#a1a1aa', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                            <p style={{ color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
                                 {carouselCards.filter(card => card.image).length} imagens prontas para postar
                             </p>
 
@@ -3119,15 +3119,15 @@ export default function GeneratePage() {
                                                 height: '200px',
                                                 objectFit: 'cover',
                                                 borderRadius: '0.5rem',
-                                                border: '2px solid rgba(124, 58, 237, 0.3)'
+                                                border: '2px solid rgba(245, 245, 245, 0.3)'
                                             }}
                                         />
                                         <span style={{
                                             position: 'absolute',
                                             top: '0.5rem',
                                             left: '0.5rem',
-                                            background: 'rgba(0,0,0,0.7)',
-                                            color: '#fff',
+                                            background: 'rgba(12, 16, 20, 0.7)',
+                                            color: '#F5F5F5',
                                             padding: '0.25rem 0.5rem',
                                             borderRadius: '0.25rem',
                                             fontSize: '0.75rem'
@@ -3140,13 +3140,13 @@ export default function GeneratePage() {
 
                             {carouselDescription && (
                                 <div style={{
-                                    background: 'rgba(255,255,255,0.05)',
+                                    background: '#25292F',
                                     padding: '1rem',
                                     borderRadius: '0.5rem',
                                     marginBottom: '1.5rem'
                                 }}>
-                                    <p style={{ fontSize: '0.75rem', color: '#71717a', marginBottom: '0.5rem' }}>Descrição:</p>
-                                    <p style={{ fontSize: '0.875rem', color: '#d4d4d8' }}>{carouselDescription}</p>
+                                    <p style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginBottom: '0.5rem' }}>Descrição:</p>
+                                    <p style={{ fontSize: '0.875rem', color: '#F5F5F5' }}>{carouselDescription}</p>
                                 </div>
                             )}
 
@@ -3203,24 +3203,24 @@ export default function GeneratePage() {
             {showModelManager && (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex',
+                    background: 'rgba(12, 16, 20, 0.8)', zIndex: 1000, display: 'flex',
                     alignItems: 'center', justifyContent: 'center', padding: '1rem'
                 }}>
                     <div style={{
-                        background: '#18181b', borderRadius: '1rem', width: '100%', maxWidth: '600px',
-                        border: '1px solid #3f3f46', padding: '2rem', maxHeight: '90vh', overflowY: 'auto'
+                        background: '#25292F', borderRadius: '1rem', width: '100%', maxWidth: '600px',
+                        border: '1px solid rgba(245, 245, 245, 0.14)', padding: '2rem', maxHeight: '90vh', overflowY: 'auto'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                            <h2 style={{ fontSize: '1.25rem', margin: 0, color: '#fff' }}>Gerenciar Modelos</h2>
-                            <button onClick={() => setShowModelManager(false)} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', fontSize: '1.5rem' }}>×</button>
+                            <h2 style={{ fontSize: '1.25rem', margin: 0, color: '#F5F5F5' }}>Gerenciar Modelos</h2>
+                            <button onClick={() => setShowModelManager(false)} style={{ background: 'none', border: 'none', color: 'rgba(245, 245, 245, 0.7)', cursor: 'pointer', fontSize: '1.5rem' }}>×</button>
                         </div>
 
-                        <div style={{ background: '#09090b', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid #27272a' }}>
-                            <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#e4e4e7' }}>
+                        <div style={{ background: '#0C1014', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid rgba(245, 245, 245, 0.08)' }}>
+                            <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#F5F5F5' }}>
                                 {editingTemplateId ? 'Editar Modelo' : 'Salvar Novo Modelo'}
                             </h3>
                             <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: '#a1a1aa' }}>Título do Modelo</label>
+                                <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'rgba(245, 245, 245, 0.7)' }}>Título do Modelo</label>
                                 <input 
                                     className="input" 
                                     value={templateName} 
@@ -3229,7 +3229,7 @@ export default function GeneratePage() {
                                 />
                             </div>
                             <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: '#a1a1aa' }}>Texto do Modelo</label>
+                                <label style={{ display: 'block', fontSize: '0.875rem', marginBottom: '0.5rem', color: 'rgba(245, 245, 245, 0.7)' }}>Texto do Modelo</label>
                                 <textarea
                                     value={templateText}
                                     onChange={(e) => setTemplateText(e.target.value)}
@@ -3238,10 +3238,10 @@ export default function GeneratePage() {
                                     style={{
                                         width: '100%',
                                         padding: '0.75rem',
-                                        background: '#27272a',
+                                        background: '#25292F',
                                         border: '1px solid rgba(255, 255, 255, 0.1)',
                                         borderRadius: '0.5rem',
-                                        color: '#fff',
+                                        color: '#F5F5F5',
                                         outline: 'none'
                                     }}
                                 />
@@ -3266,12 +3266,12 @@ export default function GeneratePage() {
                         </div>
 
                         <div>
-                            <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#e4e4e7' }}>Modelos Salvos</h3>
+                            <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#F5F5F5' }}>Modelos Salvos</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                 {selectedProfile?.aiPreferences?.favoritePrompts?.map((prompt: any) => (
                                     <div key={prompt.id} style={{
                                         padding: '1rem',
-                                        background: '#27272a',
+                                        background: '#25292F',
                                         borderRadius: '0.75rem',
                                         display: 'flex',
                                         justifyContent: 'space-between',
@@ -3282,8 +3282,8 @@ export default function GeneratePage() {
                                             setShowModelManager(false);
                                             toast.success('Modelo carregado!');
                                         }}>
-                                            <div style={{ fontWeight: 600, color: '#fff' }}>{prompt.name}</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '0.25rem' }}>
+                                            <div style={{ fontWeight: 600, color: '#F5F5F5' }}>{prompt.name}</div>
+                                            <div style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem' }}>
                                                 {prompt.text?.substring(0, 80)}...
                                             </div>
                                         </div>
@@ -3294,13 +3294,13 @@ export default function GeneratePage() {
                                                     setTemplateName(prompt.name);
                                                     setTemplateText(prompt.text);
                                                 }}
-                                                style={{ background: 'transparent', border: 'none', color: '#a1a1aa', cursor: 'pointer' }}
+                                                style={{ background: 'transparent', border: 'none', color: 'rgba(245, 245, 245, 0.7)', cursor: 'pointer' }}
                                             >
                                                 ✏️
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteTemplate(prompt.id)}
-                                                style={{ background: 'transparent', border: 'none', color: '#a1a1aa', cursor: 'pointer' }}
+                                                style={{ background: 'transparent', border: 'none', color: 'rgba(245, 245, 245, 0.7)', cursor: 'pointer' }}
                                             >
                                                 🗑️
                                             </button>
