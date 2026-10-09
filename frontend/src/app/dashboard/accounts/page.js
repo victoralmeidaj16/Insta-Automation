@@ -133,7 +133,7 @@ export default function AccountsPage() {
 
                 {/* Modal */}
                 {showModal && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(12, 16, 20, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                         <div className="card-glass" style={{ maxWidth: '500px', width: '90%', padding: '2rem' }}>
                             <h2 className="mb-md">Adicionar Conta</h2>
                             <form onSubmit={handleSubmit}>

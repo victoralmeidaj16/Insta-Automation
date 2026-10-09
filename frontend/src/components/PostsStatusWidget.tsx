@@ -89,13 +89,13 @@ export default function PostsStatusWidget() {
         return (
             <div style={{
                 padding: '1rem',
-                background: '#25292F',
-                border: '1px solid rgba(245, 245, 245, 0.08)',
+                background: 'rgba(24, 24, 27, 0.6)',
+                border: '1px solid #27272a',
                 borderRadius: '0.75rem',
                 minWidth: '200px'
             }}>
                 <div style={{ height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color: 'rgba(245, 245, 245, 0.55)' }}>Carregando...</span>
+                    <span style={{ color: '#fff' }}>Carregando...</span>
                 </div>
             </div>
         );
@@ -111,25 +111,25 @@ export default function PostsStatusWidget() {
         >
             <div style={{
                 padding: '1rem',
-                background: '#25292F',
-                border: '1px solid rgba(245, 245, 245, 0.08)',
+                background: 'rgba(24, 24, 27, 0.6)',
+                border: '1px solid #27272a',
                 borderRadius: '0.75rem',
                 minWidth: '200px',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
             }}
                 onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#25292F';
-                    e.currentTarget.style.borderColor = 'rgba(245, 245, 245, 0.3)';
+                    e.currentTarget.style.background = 'rgba(24, 24, 27, 0.8)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                 }}
                 onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#25292F';
-                    e.currentTarget.style.borderColor = 'rgba(245, 245, 245, 0.08)';
+                    e.currentTarget.style.background = 'rgba(24, 24, 27, 0.6)';
+                    e.currentTarget.style.borderColor = '#27272a';
                 }}
             >
                 <h3 style={{
                     fontSize: '0.875rem',
-                    color: 'rgba(245, 245, 245, 0.7)',
+                    color: '#fff',
                     marginBottom: '1rem',
                     fontWeight: 600
                 }}>
@@ -142,10 +142,9 @@ export default function PostsStatusWidget() {
                             width: '8px',
                             height: '8px',
                             borderRadius: '50%',
-                            background: '#F5F5F5',
-                            color: '#0C1014',
+                            background: '#3f3f46'
                         }} />
-                        <span style={{ fontSize: '0.875rem', color: '#F5F5F5' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#fff' }}>
                             {stats.todayScheduled} Agendados
                         </span>
                     </div>
@@ -155,9 +154,9 @@ export default function PostsStatusWidget() {
                             width: '8px',
                             height: '8px',
                             borderRadius: '50%',
-                            background: '#22c55e'
+                            background: '#3f3f46'
                         }} />
-                        <span style={{ fontSize: '0.875rem', color: '#F5F5F5' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#fff' }}>
                             {stats.todayPublished} Publicado{stats.todayPublished !== 1 ? 's' : ''}
                         </span>
                     </div>
@@ -166,17 +165,17 @@ export default function PostsStatusWidget() {
                         <div style={{
                             marginTop: '0.5rem',
                             paddingTop: '0.75rem',
-                            borderTop: '1px solid rgba(245, 245, 245, 0.08)'
+                            borderTop: '1px solid #27272a'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <span style={{ fontSize: '0.875rem' }}>⏰</span>
                                 <div>
-                                    <p style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', margin: 0 }}>
+                                    <p style={{ fontSize: '0.75rem', color: '#fff', margin: 0 }}>
                                         Próximo às
                                     </p>
                                     <p style={{
                                         fontSize: '1rem',
-                                        color: '#EAEBEB',
+                                        color: '#fff',
                                         fontWeight: 600,
                                         margin: 0
                                     }}>
@@ -191,7 +190,7 @@ export default function PostsStatusWidget() {
                         <div style={{
                             marginTop: '0.5rem',
                             fontSize: '0.75rem',
-                            color: 'rgba(245, 245, 245, 0.55)'
+                            color: '#fff'
                         }}>
                             {stats.totalPending} pendente{stats.totalPending !== 1 ? 's' : ''} no total
                         </div>

@@ -25,20 +25,20 @@ export default function RootLayout({ children }) {
                         position="top-right"
                         toastOptions={{
                             style: {
-                                background: '#25292F',
-                                color: '#F5F5F5',
+                                background: '#1e1e1e',
+                                color: '#fff',
                                 border: '1px solid rgba(255, 255, 255, 0.1)',
                             },
                             success: {
                                 iconTheme: {
-                                    primary: '#27ae60',
-                                    secondary: '#F5F5F5',
+                                    primary: '#fff',
+                                    secondary: '#000',
                                 },
                             },
                             error: {
                                 iconTheme: {
-                                    primary: '#e74c3c',
-                                    secondary: '#F5F5F5',
+                                    primary: '#fff',
+                                    secondary: '#000',
                                 },
                             },
                         }}

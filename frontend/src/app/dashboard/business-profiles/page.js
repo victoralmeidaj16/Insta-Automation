@@ -106,7 +106,7 @@ function LineListField({ label, value, onChange, placeholder, rows = 4, help }) 
                 placeholder={placeholder}
                 rows={rows}
             />
-            {help && <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>{help}</small>}
+            {help && <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>{help}</small>}
         </div>
     );
 }
@@ -131,7 +131,7 @@ export default function BusinessProfilesPage() {
             username: ''
         },
         branding: {
-            primaryColor: '#EAEBEB',
+            primaryColor: '#8e44ad',
             secondaryColor: '#e74c3c',
             logoUrl: '',
             style: '',
@@ -236,7 +236,7 @@ export default function BusinessProfilesPage() {
                 productService: '',
                 instagram: { username: '' },
                 branding: {
-                    primaryColor: '#EAEBEB', secondaryColor: '#e74c3c',
+                    primaryColor: '#8e44ad', secondaryColor: '#e74c3c',
                     logoUrl: '', style: '', guidelines: ''
                 },
                 brandKit: createEmptyBrandKit(),
@@ -511,9 +511,9 @@ export default function BusinessProfilesPage() {
                         <div
                             key={profile.id}
                             style={{
-                                background: '#25292F', // Darker background like library
+                                background: '#18181b', // Darker background like library
                                 borderRadius: '0.75rem',
-                                border: selectedProfile?.id === profile.id ? '1px solid rgba(245, 245, 245, 0.4)' : '1px solid rgba(245, 245, 245, 0.08)',
+                                border: selectedProfile?.id === profile.id ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid #27272a',
                                 padding: '1.5rem',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s',
@@ -521,19 +521,19 @@ export default function BusinessProfilesPage() {
                                 display: 'flex',
                                 flexDirection: 'column',
                                 height: '100%',
-                                boxShadow: selectedProfile?.id === profile.id ? '0 0 20px rgba(245, 245, 245, 0.15)' : 'none'
+                                boxShadow: selectedProfile?.id === profile.id ? '0 0 20px rgba(0, 0, 0, 0.15)' : 'none'
                             }}
                             onClick={() => setSelectedProfile(profile)}
                             onMouseEnter={(e) => {
                                 if (selectedProfile?.id !== profile.id) {
-                                    e.currentTarget.style.borderColor = 'rgba(245, 245, 245, 0.08)';
-                                    e.currentTarget.style.background = '#25292F';
+                                    e.currentTarget.style.borderColor = '#3f3f46';
+                                    e.currentTarget.style.background = '#27272a';
                                 }
                             }}
                             onMouseLeave={(e) => {
                                 if (selectedProfile?.id !== profile.id) {
-                                    e.currentTarget.style.borderColor = 'rgba(245, 245, 245, 0.08)';
-                                    e.currentTarget.style.background = '#25292F';
+                                    e.currentTarget.style.borderColor = '#27272a';
+                                    e.currentTarget.style.background = '#18181b';
                                 }
                             }}
                         >
@@ -548,13 +548,13 @@ export default function BusinessProfilesPage() {
                                                 height: '40px',
                                                 objectFit: 'cover',
                                                 borderRadius: '50%',
-                                                border: '2px solid rgba(245, 245, 245, 0.5)',
+                                                border: '2px solid rgba(255, 255, 255, 0.25)',
                                                 flexShrink: 0
                                             }}
                                         />
                                     )}
                                     <h3 style={{
-                                        color: '#F5F5F5',
+                                        color: '#fff',
                                         fontSize: '1.1rem',
                                         fontWeight: 600,
                                         margin: 0
@@ -564,9 +564,9 @@ export default function BusinessProfilesPage() {
                                 </div>
                                 {selectedProfile?.id === profile.id && (
                                     <span style={{
-                                        background: 'rgba(245, 245, 245, 0.2)',
-                                        color: '#EAEBEB',
-                                        border: '1px solid rgba(245, 245, 245, 0.4)',
+                                        background: 'rgba(255, 255, 255, 0.10)',
+                                        color: '#fff',
+                                        border: '1px solid rgba(255, 255, 255, 0.25)',
                                         fontSize: '0.75rem',
                                         padding: '0.25rem 0.75rem',
                                         borderRadius: '999px',
@@ -578,7 +578,7 @@ export default function BusinessProfilesPage() {
                             </div>
 
                             {profile.description && (
-                                <p style={{ fontSize: '0.875rem', marginBottom: '1.5rem', color: 'rgba(245, 245, 245, 0.7)', flex: 1 }}>
+                                <p style={{ fontSize: '0.875rem', marginBottom: '1.5rem', color: '#fff', flex: 1 }}>
                                     {profile.description}
                                 </p>
                             )}
@@ -588,14 +588,14 @@ export default function BusinessProfilesPage() {
                                 gap: '1rem',
                                 fontSize: '0.75rem',
                                 marginBottom: '1.5rem',
-                                color: 'rgba(245, 245, 245, 0.55)'
+                                color: '#fff'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <span style={{
                                         width: '8px',
                                         height: '8px',
                                         borderRadius: '50%',
-                                        background: profile.branding?.primaryColor || '#EAEBEB'
+                                        background: profile.branding?.primaryColor || '#3f3f46'
                                     }} />
                                     Cor da Marca
                                 </div>
@@ -616,9 +616,9 @@ export default function BusinessProfilesPage() {
                                     style={{
                                         padding: '0.5rem 1rem',
                                         flex: 2,
-                                        background: '#25292F',
-                                        border: '1px solid rgba(245, 245, 245, 0.14)',
-                                        color: '#F5F5F5',
+                                        background: '#27272a',
+                                        border: '1px solid #3f3f46',
+                                        color: '#fff',
                                         fontSize: '0.875rem'
                                     }}
                                 >
@@ -634,8 +634,8 @@ export default function BusinessProfilesPage() {
                                         padding: '0.5rem 1rem',
                                         flex: 1,
                                         background: 'transparent',
-                                        border: '1px solid rgba(245, 245, 245, 0.14)',
-                                        color: 'rgba(245, 245, 245, 0.7)'
+                                        border: '1px solid #3f3f46',
+                                        color: '#fff'
                                     }}
                                 >
                                     Editar
@@ -649,8 +649,8 @@ export default function BusinessProfilesPage() {
                                     style={{
                                         padding: '0.5rem',
                                         background: 'transparent',
-                                        border: '1px solid #ef4444',
-                                        color: '#ef4444',
+                                        border: '1px solid rgba(255, 255, 255, 0.25)',
+                                        color: '#fff',
                                         opacity: 0.7
                                     }}
                                     title="Excluir"
@@ -664,13 +664,13 @@ export default function BusinessProfilesPage() {
 
                 {profiles.length === 0 && (
                     <div style={{
-                        border: '2px dashed rgba(245, 245, 245, 0.08)',
+                        border: '2px dashed #27272a',
                         borderRadius: '0.75rem',
                         padding: '4rem',
                         textAlign: 'center',
-                        color: 'rgba(245, 245, 245, 0.55)'
+                        color: '#fff'
                     }}>
-                        <h2 style={{ color: '#F5F5F5', marginBottom: '0.5rem' }}>Nenhum perfil criado</h2>
+                        <h2 style={{ color: '#fff', marginBottom: '0.5rem' }}>Nenhum perfil criado</h2>
                         <p>Crie seu primeiro perfil de negócio para organizar suas contas Instagram</p>
                     </div>
                 )}
@@ -683,7 +683,7 @@ export default function BusinessProfilesPage() {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: 'rgba(12, 16, 20, 0.8)',
+                        background: 'rgba(0,0,0,0.8)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -700,15 +700,15 @@ export default function BusinessProfilesPage() {
                                     right: '1rem',
                                     background: 'transparent',
                                     border: 'none',
-                                    color: 'rgba(245, 245, 245, 0.7)',
+                                    color: '#fff',
                                     fontSize: '1.5rem',
                                     cursor: 'pointer',
                                     padding: '0.25rem',
                                     lineHeight: 1,
                                     zIndex: 10
                                 }}
-                                onMouseEnter={(e) => e.target.style.color = '#F5F5F5'}
-                                onMouseLeave={(e) => e.target.style.color = 'rgba(245, 245, 245, 0.7)'}
+                                onMouseEnter={(e) => e.target.style.color = '#fff'}
+                                onMouseLeave={(e) => e.target.style.color = '#fff'}
                             >
                                 ×
                             </button>
@@ -738,7 +738,7 @@ export default function BusinessProfilesPage() {
                                         <option value="inner-boost">Inner Boost</option>
                                         <option value="viver-mais">Viver Mais</option>
                                     </select>
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>
                                         Use um identificador estável da marca para evitar depender de match por nome.
                                     </small>
                                 </div>
@@ -764,7 +764,7 @@ export default function BusinessProfilesPage() {
                                         rows={4}
                                         style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
                                     />
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>
                                         Informações detalhadas sobre a marca que a IA usará para gerar ideias e variações de posts mais relevantes.
                                     </small>
                                 </div>
@@ -779,7 +779,7 @@ export default function BusinessProfilesPage() {
                                         rows={6}
                                         style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
                                     />
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>
                                         Define os tipos de posts e a frequência sugerida que a IA deve priorizar ao gerar ideias.
                                     </small>
                                 </div>
@@ -792,7 +792,7 @@ export default function BusinessProfilesPage() {
                                         onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
                                         placeholder="Ex: Mulheres empreendedoras, 30-45 anos, focadas em carreira..."
                                     />
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem' }}>
                                         Essencial para a IA personalizar a linguagem e o tom.
                                     </small>
                                 </div>
@@ -805,7 +805,7 @@ export default function BusinessProfilesPage() {
                                         onChange={(e) => setFormData({ ...formData, productService: e.target.value })}
                                         placeholder="Ex: Mentoria de Liderança, Curso de Marketing, Terapia Online..."
                                     />
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem' }}>
                                         Ajuda a IA a criar metáforas visuais mais relevantes.
                                     </small>
                                 </div>
@@ -816,19 +816,19 @@ export default function BusinessProfilesPage() {
                                 {/* ── Instagram / Upload-Post Setup ───────────────── */}
                                 <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', overflow: 'hidden' }}>
                                     {/* Header */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 20px', background: 'rgba(245, 245, 245, 0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#F5F5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="#0C1014"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 20px', background: 'rgba(255, 255, 255, 0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#3f3f46', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#f1f5f9' }}>Conta Instagram</div>
-                                            <div style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '1px' }}>Publicação automática via Upload-Post</div>
+                                            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff' }}>Conta Instagram</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#fff', marginTop: '1px' }}>Publicação automática via Upload-Post</div>
                                         </div>
                                         {/* connection pill */}
                                         <div style={{ flexShrink: 0, padding: '4px 12px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px',
-                                            background: igTestStatus === 'ok' ? 'rgba(34,197,94,0.15)' : igTestStatus === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)',
-                                            border: `1px solid ${igTestStatus === 'ok' ? 'rgba(34,197,94,0.4)' : igTestStatus === 'error' ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                                            color: igTestStatus === 'ok' ? '#4ade80' : igTestStatus === 'error' ? '#f87171' : 'rgba(245, 245, 245, 0.55)'
+                                            background: igTestStatus === 'ok' ? 'rgba(255, 255, 255, 0.07)' : igTestStatus === 'error' ? 'rgba(255, 255, 255, 0.07)' : 'rgba(255,255,255,0.06)',
+                                            border: `1px solid ${igTestStatus === 'ok' ? 'rgba(255, 255, 255, 0.25)' : igTestStatus === 'error' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255,255,255,0.1)'}`,
+                                            color: igTestStatus === 'ok' ? '#fff' : igTestStatus === 'error' ? '#fff' : '#fff'
                                         }}>
                                             <span style={{ fontSize: '8px' }}>{igTestStatus === 'ok' ? '●' : igTestStatus === 'error' ? '●' : '○'}</span>
                                             {igTestStatus === 'ok' ? 'Conectado' : igTestStatus === 'error' ? 'Falha' : igTestStatus === 'loading' ? 'Verificando...' : 'Não verificado'}
@@ -839,9 +839,9 @@ export default function BusinessProfilesPage() {
                                     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         {/* Username */}
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'rgba(245, 245, 245, 0.55)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>@ Usuário do Instagram</label>
+                                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#fff', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>@ Usuário do Instagram</label>
                                             <div style={{ position: 'relative' }}>
-                                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(245, 245, 245, 0.55)', fontSize: '0.9rem', fontWeight: 600 }}>@</span>
+                                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>@</span>
                                                 <input
                                                     className="input"
                                                     type="text"
@@ -851,12 +851,12 @@ export default function BusinessProfilesPage() {
                                                     style={{ paddingLeft: '28px' }}
                                                 />
                                             </div>
-                                            <p style={{ fontSize: '0.72rem', color: '#4b5563', marginTop: '4px' }}>Usuário exato cadastrado na sua conta Upload-Post.</p>
+                                            <p style={{ fontSize: '0.72rem', color: '#fff', marginTop: '4px' }}>Usuário exato cadastrado na sua conta Upload-Post.</p>
                                         </div>
 
                                         {/* API Key */}
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'rgba(245, 245, 245, 0.55)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🔑 API Key — Upload-Post</label>
+                                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#fff', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>🔑 API Key — Upload-Post</label>
                                             <div style={{ position: 'relative' }}>
                                                 <input
                                                     className="input"
@@ -872,7 +872,7 @@ export default function BusinessProfilesPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowApiKey(v => !v)}
-                                                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245, 245, 245, 0.55)', padding: '4px', display: 'flex', alignItems: 'center' }}
+                                                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#fff', padding: '4px', display: 'flex', alignItems: 'center' }}
                                                     title={showApiKey ? 'Ocultar' : 'Mostrar'}
                                                 >
                                                     {showApiKey
@@ -881,7 +881,7 @@ export default function BusinessProfilesPage() {
                                                     }
                                                 </button>
                                             </div>
-                                            <p style={{ fontSize: '0.72rem', color: '#4b5563', marginTop: '4px' }}>Específica deste perfil. Sobrescreve a key global do <code style={{ background: 'rgba(255,255,255,0.07)', padding: '0 4px', borderRadius: '3px' }}>.env</code>.</p>
+                                            <p style={{ fontSize: '0.72rem', color: '#fff', marginTop: '4px' }}>Específica deste perfil. Sobrescreve a key global do <code style={{ background: 'rgba(255,255,255,0.07)', padding: '0 4px', borderRadius: '3px' }}>.env</code>.</p>
                                         </div>
 
                                         {/* Verify button + result */}
@@ -890,7 +890,7 @@ export default function BusinessProfilesPage() {
                                                 type="button"
                                                 onClick={handleTestInstagram}
                                                 disabled={igTestStatus === 'loading' || !canTestInstagram}
-                                                style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid rgba(245, 245, 245, 0.4)', background: igTestStatus === 'loading' ? 'rgba(245, 245, 245, 0.08)' : 'rgba(245, 245, 245, 0.12)', color: '#EAEBEB', fontWeight: 700, fontSize: '0.82rem', cursor: (!canTestInstagram || igTestStatus === 'loading') ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', opacity: !canTestInstagram ? 0.45 : 1, transition: 'all 0.15s' }}
+                                                style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.25)', background: igTestStatus === 'loading' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.06)', color: '#fff', fontWeight: 700, fontSize: '0.82rem', cursor: (!canTestInstagram || igTestStatus === 'loading') ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', opacity: !canTestInstagram ? 0.45 : 1, transition: 'all 0.15s' }}
                                             >
                                                 {igTestStatus === 'loading'
                                                     ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span> Verificando...</>
@@ -899,15 +899,15 @@ export default function BusinessProfilesPage() {
                                             </button>
 
                                             {igTestStatus === 'ok' && igTestResult && (
-                                                <div style={{ flex: 1, padding: '9px 14px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '8px', fontSize: '0.8rem', color: '#4ade80', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <div style={{ flex: 1, padding: '9px 14px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '8px', fontSize: '0.8rem', color: '#fff', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                     <span style={{ fontWeight: 700 }}>✅ API key válida!</span>
                                                     {igTestResult.configuredUsername && (
-                                                        <span style={{ color: '#86efac', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                        <span style={{ color: '#fff', fontSize: '0.75rem', fontWeight: 600 }}>
                                                             Conta configurada para este perfil: @{igTestResult.configuredUsername}
                                                         </span>
                                                     )}
                                                     {igTestResult.instagramAccounts?.length > 1 && (
-                                                        <span style={{ color: 'rgba(134,239,172,0.6)', fontSize: '0.72rem' }}>
+                                                        <span style={{ color: '#fff', fontSize: '0.72rem' }}>
                                                             Outras contas na key: {igTestResult.instagramAccounts.filter(a => a.username !== igTestResult.configuredUsername).map(a => `@${a.username}`).join(', ')}
                                                         </span>
                                                     )}
@@ -915,14 +915,14 @@ export default function BusinessProfilesPage() {
                                             )}
 
                                             {igTestStatus === 'error' && (
-                                                <div style={{ flex: 1, padding: '9px 14px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px', fontSize: '0.8rem', color: '#f87171' }}>
+                                                <div style={{ flex: 1, padding: '9px 14px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '8px', fontSize: '0.8rem', color: '#fff' }}>
                                                     <span style={{ fontWeight: 700 }}>❌ Erro: </span>{igTestError}
                                                 </div>
                                             )}
                                         </div>
 
                                         {!editingProfile?.id && (
-                                            <p style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', padding: '8px 12px', background: '#25292F', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', margin: 0 }}>
+                                            <p style={{ fontSize: '0.75rem', color: '#fff', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', margin: 0 }}>
                                                 💡 Salve o perfil primeiro para habilitar a verificação de conexão.
                                             </p>
                                         )}
@@ -947,10 +947,10 @@ export default function BusinessProfilesPage() {
                                         rows={8}
                                         style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
                                     />
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>
                                         Documentação completa da identidade visual da empresa
                                     </small>
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>
                                         Documentação completa da identidade visual da empresa
                                     </small>
                                 </div>
@@ -971,7 +971,7 @@ export default function BusinessProfilesPage() {
                                         rows={4}
                                         style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
                                     />
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>
                                         Essas imagens são anexadas automaticamente como referência visual para a IA.
                                     </small>
                                 </div>
@@ -992,7 +992,7 @@ export default function BusinessProfilesPage() {
                                         rows={3}
                                         style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
                                     />
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>
                                         Para Fitswap, isso ajuda o modelo a sugerir uma interface mais fiel que um glow genérico.
                                     </small>
                                 </div>
@@ -1005,7 +1005,7 @@ export default function BusinessProfilesPage() {
                                                 <img 
                                                     src={formData.brandKit.appScreenshotUrl} 
                                                     alt="Preview App UI" 
-                                                    style={{ width: '120px', borderRadius: '0.5rem', border: '1px solid rgba(245, 245, 245, 0.14)' }} 
+                                                    style={{ width: '120px', borderRadius: '0.5rem', border: '1px solid #3f3f46' }} 
                                                 />
                                                 <button
                                                     type="button"
@@ -1015,7 +1015,7 @@ export default function BusinessProfilesPage() {
                                                     })}
                                                     style={{
                                                         position: 'absolute', top: '-5px', right: '-5px',
-                                                        background: '#ef4444', color: '#F5F5F5', border: 'none',
+                                                        background: '#3f3f46', color: '#fff', border: 'none',
                                                         borderRadius: '50%', width: '20px', height: '20px',
                                                         fontSize: '12px', cursor: 'pointer'
                                                     }}
@@ -1043,7 +1043,7 @@ export default function BusinessProfilesPage() {
                                                     style={{ display: 'none' }}
                                                 />
                                             </label>
-                                            <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.5rem', display: 'block' }}>
+                                            <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.5rem', display: 'block' }}>
                                                 Imagem real da interface do app. Será usada automaticamente em cenas de celular.
                                             </small>
                                         </div>
@@ -1056,20 +1056,20 @@ export default function BusinessProfilesPage() {
                                         marginTop: '1.5rem', marginBottom: '1rem', display: 'flex',
                                         alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
                                         padding: '0.75rem', borderRadius: '0.5rem',
-                                        background: showBrandIdentitySection ? 'rgba(245, 245, 245, 0.12)' : 'rgba(255,255,255,0.03)',
-                                        border: '1px solid rgba(245, 245, 245, 0.25)'
+                                        background: showBrandIdentitySection ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255, 255, 255, 0.25)'
                                     }}
                                 >
                                     <div>
                                         <h3 style={{ margin: 0, fontSize: '1.2rem' }}>🧠 Identidade de marca (IA)</h3>
-                                        <small style={{ color: 'rgba(245, 245, 245, 0.7)' }}>Voz, narrativa, direção visual e regras usadas nas gerações.</small>
+                                        <small style={{ color: '#fff' }}>Voz, narrativa, direção visual e regras usadas nas gerações.</small>
                                     </div>
                                     <span style={{ fontSize: '1.4rem', transform: showBrandIdentitySection ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
                                 </div>
 
                                 {showBrandIdentitySection && (
-                                    <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem' }}>
-                                        <h4 style={{ margin: '0 0 1rem', color: '#EAEBEB' }}>Essência e voz</h4>
+                                    <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid #27272a', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem' }}>
+                                        <h4 style={{ margin: '0 0 1rem', color: '#fff' }}>Essência e voz</h4>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
                                             <div className="input-group">
                                                 <label className="input-label">Personalidade</label>
@@ -1106,7 +1106,7 @@ export default function BusinessProfilesPage() {
                                             onChange={(value) => updateBrandKitField('headlineExamples', value)}
                                             placeholder="Uma headline aprovada por linha" />
 
-                                        <h4 style={{ margin: '1.5rem 0 1rem', color: '#EAEBEB' }}>Estrutura narrativa</h4>
+                                        <h4 style={{ margin: '1.5rem 0 1rem', color: '#fff' }}>Estrutura narrativa</h4>
                                         <div className="input-group">
                                             <label className="input-label">Descrição do arco</label>
                                             <textarea className="input" rows={3} value={formData.brandKit?.narrativeStructure?.description || ''}
@@ -1139,16 +1139,16 @@ export default function BusinessProfilesPage() {
                                                 <button type="button" onClick={() => {
                                                     const roles = (formData.brandKit?.narrativeStructure?.slideRoles || []).filter((_, roleIndex) => roleIndex !== index);
                                                     updateNarrativeStructure({ slideRoles: roles });
-                                                }} style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '0.375rem', padding: '0.55rem', cursor: 'pointer' }}>🗑️</button>
+                                                }} style={{ background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.25)', color: '#fff', borderRadius: '0.375rem', padding: '0.55rem', cursor: 'pointer' }}>🗑️</button>
                                             </div>
                                         ))}
                                         <button type="button" onClick={() => updateNarrativeStructure({
                                             slideRoles: [...(formData.brandKit?.narrativeStructure?.slideRoles || []), { position: 'middle', role: '', rules: '' }]
-                                        })} style={{ background: 'rgba(245, 245, 245, 0.15)', border: '1px solid rgba(245, 245, 245, 0.4)', color: '#EAEBEB', borderRadius: '0.375rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+                                        })} style={{ background: 'rgba(255, 255, 255, 0.07)', border: '1px solid rgba(255, 255, 255, 0.25)', color: '#fff', borderRadius: '0.375rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
                                             ➕ Adicionar papel de slide
                                         </button>
 
-                                        <h4 style={{ margin: '1.5rem 0 1rem', color: '#EAEBEB' }}>Direção visual</h4>
+                                        <h4 style={{ margin: '1.5rem 0 1rem', color: '#fff' }}>Direção visual</h4>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
                                             {[
                                                 ['photographyStyle', 'Estilo fotográfico', 'Luz, enquadramento, cenário e acabamento.'],
@@ -1169,7 +1169,7 @@ export default function BusinessProfilesPage() {
                                             onChange={(value) => updateBrandKitField('forbiddenVisuals', value)}
                                             placeholder="Um elemento visual proibido por linha" />
 
-                                        <h4 style={{ margin: '1.5rem 0 1rem', color: '#EAEBEB' }}>CTA, legenda e restrições</h4>
+                                        <h4 style={{ margin: '1.5rem 0 1rem', color: '#fff' }}>CTA, legenda e restrições</h4>
                                         <LineListField label="Regras de CTA" value={formData.brandKit?.ctaRules}
                                             onChange={(value) => updateBrandKitField('ctaRules', value)} placeholder="Uma regra por linha" />
                                         <LineListField label="Regras de legenda" value={formData.brandKit?.captionRules}
@@ -1195,7 +1195,7 @@ export default function BusinessProfilesPage() {
                                                 fontSize: '0.75rem',
                                                 background: 'transparent',
                                                 border: 'none',
-                                                color: '#EAEBEB',
+                                                color: '#fff',
                                                 cursor: 'pointer',
                                                 textDecoration: 'underline'
                                             }}
@@ -1206,13 +1206,13 @@ export default function BusinessProfilesPage() {
 
                                     {showStyleExtractor && (
                                         <div style={{
-                                            background: 'rgba(245, 245, 245, 0.1)',
+                                            background: 'rgba(255, 255, 255, 0.05)',
                                             padding: '1rem',
                                             borderRadius: '0.5rem',
                                             marginBottom: '0.5rem',
-                                            border: '1px solid rgba(245, 245, 245, 0.4)'
+                                            border: '1px solid rgba(255, 255, 255, 0.25)'
                                         }}>
-                                            <p style={{ fontSize: '0.8rem', color: '#ddd', marginBottom: '0.5rem' }}>
+                                            <p style={{ fontSize: '0.8rem', color: '#fff', marginBottom: '0.5rem' }}>
                                                 Cole um prompt de imagem que você gostou e a IA vai &quot;copiar&quot; o estilo dele para usar na sua conta.
                                             </p>
                                             <textarea
@@ -1245,7 +1245,7 @@ export default function BusinessProfilesPage() {
                                         placeholder="Ex: Personagem 3D estilizado, textura laranja, iluminação de abajur, ambiente dark..."
                                         rows={3}
                                     />
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>
                                         Este estilo será aplicado automaticamente em todas as imagens geradas.
                                     </small>
                                 </div>
@@ -1262,7 +1262,7 @@ export default function BusinessProfilesPage() {
                                         placeholder="Ex: Minimalista premium, iluminação dramática de estúdio, grão de filme 35mm, tons pastéis..."
                                         rows={3}
                                     />
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>
                                         Define a estética visual profunda das fotos de fundo.
                                     </small>
                                 </div>
@@ -1279,7 +1279,7 @@ export default function BusinessProfilesPage() {
                                         placeholder="Ex: Fotos de banco genéricas, luz solar direta, cor vermelha, crianças, ambientes bagunçados..."
                                         rows={2}
                                     />
-                                    <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>
+                                    <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>
                                         O que a IA NUNCA deve incluir nas imagens de fundo.
                                     </small>
                                 </div>
@@ -1335,15 +1335,15 @@ export default function BusinessProfilesPage() {
 
                                     {formData.branding?.logoUrl ? (
                                         <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <div style={{ width: '44px', height: '44px', borderRadius: '999px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', background: '#25292F' }}>
+                                            <div style={{ width: '44px', height: '44px', borderRadius: '999px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', background: '#3f3f46' }}>
                                                 <img src={formData.branding.logoUrl} alt="Logo preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             </div>
-                                            <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)' }}>
+                                            <small style={{ fontSize: '0.75rem', color: '#fff' }}>
                                                 Esse logo será usado no círculo do Carrossel Premium quando você aplicar/assar o overlay.
                                             </small>
                                         </div>
                                     ) : (
-                                        <small style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.25rem', display: 'block' }}>
+                                        <small style={{ fontSize: '0.75rem', color: '#fff', marginTop: '0.25rem', display: 'block' }}>
                                             Se não definir o logo, o sistema usa as iniciais do nome do perfil.
                                         </small>
                                     )}
@@ -1355,7 +1355,7 @@ export default function BusinessProfilesPage() {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                             <input
                                                 type="color"
-                                                value={formData.branding.primaryColor || '#EAEBEB'}
+                                                value={formData.branding.primaryColor || '#8e44ad'}
                                                 onChange={(e) => setFormData({
                                                     ...formData,
                                                     branding: { ...formData.branding, primaryColor: e.target.value }
@@ -1426,7 +1426,7 @@ export default function BusinessProfilesPage() {
                                         cursor: 'pointer',
                                         padding: '0.5rem',
                                         borderRadius: '0.5rem',
-                                        background: showPromptLibrary ? '#25292F' : 'transparent',
+                                        background: showPromptLibrary ? 'rgba(255,255,255,0.05)' : 'transparent',
                                         transition: 'background 0.2s'
                                     }}
                                 >
@@ -1486,7 +1486,7 @@ export default function BusinessProfilesPage() {
 
                                         {formData.aiPreferences.favoritePrompts && formData.aiPreferences.favoritePrompts.length > 0 && (
                                             <div style={{ marginBottom: '1rem' }}>
-                                                <p style={{ fontSize: '0.875rem', color: 'rgba(245, 245, 245, 0.7)', marginBottom: '0.5rem' }}>
+                                                <p style={{ fontSize: '0.875rem', color: '#fff', marginBottom: '0.5rem' }}>
                                                     Prompts salvos ({formData.aiPreferences.favoritePrompts.length}):
                                                 </p>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -1495,7 +1495,7 @@ export default function BusinessProfilesPage() {
                                                             key={prompt.id}
                                                             style={{
                                                                 padding: '0.75rem',
-                                                                background: '#25292F',
+                                                                background: 'rgba(255,255,255,0.05)',
                                                                 borderRadius: '0.5rem',
                                                                 display: 'flex',
                                                                 justifyContent: 'space-between',
@@ -1509,7 +1509,7 @@ export default function BusinessProfilesPage() {
                                                                 </p>
                                                                 <p style={{
                                                                     fontSize: '0.75rem',
-                                                                    color: 'rgba(245, 245, 245, 0.55)',
+                                                                    color: '#fff',
                                                                     overflow: 'hidden',
                                                                     textOverflow: 'ellipsis',
                                                                     whiteSpace: 'nowrap',
@@ -1523,7 +1523,7 @@ export default function BusinessProfilesPage() {
                                                                     type="button"
                                                                     onClick={() => handleEditFavoritePrompt(prompt)}
                                                                     className="btn"
-                                                                    style={{ padding: '0.5rem', fontSize: '0.75rem', background: '#25292F', border: 'none', color: '#F5F5F5' }}
+                                                                    style={{ padding: '0.5rem', fontSize: '0.75rem', background: '#3f3f46', border: 'none', color: '#fff' }}
                                                                     title="Editar"
                                                                 >
                                                                     ✏️
@@ -1549,7 +1549,7 @@ export default function BusinessProfilesPage() {
                                 {/* Pilares Editoriais */}
                                 <div
                                     onClick={() => setShowPillarsSection(!showPillarsSection)}
-                                    style={{ marginTop: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.5rem', background: showPillarsSection ? '#25292F' : 'transparent', transition: 'background 0.2s' }}
+                                    style={{ marginTop: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.5rem', background: showPillarsSection ? 'rgba(255,255,255,0.05)' : 'transparent', transition: 'background 0.2s' }}
                                 >
                                     <h3 style={{ margin: 0, fontSize: '1.25rem' }}>🎯 Pilares Editoriais (Autopilot)</h3>
                                     <span style={{ fontSize: '1.5rem', transform: showPillarsSection ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
@@ -1557,12 +1557,12 @@ export default function BusinessProfilesPage() {
 
                                 {showPillarsSection && (
                                     <div style={{ marginBottom: '1.5rem' }}>
-                                        <p style={{ fontSize: '0.8rem', color: 'rgba(245, 245, 245, 0.55)', marginBottom: '1rem' }}>
+                                        <p style={{ fontSize: '0.8rem', color: '#fff', marginBottom: '1rem' }}>
                                             Defina os pilares de conteúdo com peso (%) para geração automática. A soma dos pesos deve ser 100.
                                         </p>
 
                                         {(formData.editorialPillars || []).map((pillar, index) => (
-                                            <div key={pillar.id || index} style={{ background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.5rem', padding: '1rem', marginBottom: '0.75rem' }}>
+                                            <div key={pillar.id || index} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid #27272a', borderRadius: '0.5rem', padding: '1rem', marginBottom: '0.75rem' }}>
                                                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
                                                     <input
                                                         className="input"
@@ -1595,7 +1595,7 @@ export default function BusinessProfilesPage() {
                                                             const updated = formData.editorialPillars.filter((_, i) => i !== index);
                                                             setFormData({ ...formData, editorialPillars: updated });
                                                         }}
-                                                        style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '0.375rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.875rem', flexShrink: 0 }}
+                                                        style={{ background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.25)', color: '#fff', borderRadius: '0.375rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.875rem', flexShrink: 0 }}
                                                     >🗑️</button>
                                                 </div>
                                                 <textarea
@@ -1629,7 +1629,7 @@ export default function BusinessProfilesPage() {
                                                         ['carousel-html', '🎨 HTML'],
                                                         ['story', '📱 Story'],
                                                     ].map(([fmt, label]) => (
-                                                        <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: 'rgba(245, 245, 245, 0.7)', cursor: 'pointer' }}>
+                                                        <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: '#fff', cursor: 'pointer' }}>
                                                             <input
                                                                 type="checkbox"
                                                                 checked={(pillar.formats || []).includes(fmt)}
@@ -1659,12 +1659,12 @@ export default function BusinessProfilesPage() {
                                                     const newPillar = { id: `pilar-${Date.now()}`, name: '', description: '', captionStyle: '', weight: 25, formats: ['static', 'carousel'], enabled: true };
                                                     setFormData({ ...formData, editorialPillars: [...(formData.editorialPillars || []), newPillar] });
                                                 }}
-                                                style={{ background: 'rgba(245, 245, 245, 0.15)', border: '1px solid rgba(245, 245, 245, 0.4)', color: '#EAEBEB', borderRadius: '0.375rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.875rem' }}
+                                                style={{ background: 'rgba(255, 255, 255, 0.07)', border: '1px solid rgba(255, 255, 255, 0.25)', color: '#fff', borderRadius: '0.375rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.875rem' }}
                                             >
                                                 ➕ Adicionar Pilar
                                             </button>
                                             {formData.editorialPillars?.length > 0 && (
-                                                <span style={{ fontSize: '0.75rem', color: (formData.editorialPillars.reduce((s, p) => s + (p.weight || 0), 0) === 100) ? '#22c55e' : '#f59e0b' }}>
+                                                <span style={{ fontSize: '0.75rem', color: (formData.editorialPillars.reduce((s, p) => s + (p.weight || 0), 0) === 100) ? '#fff' : '#fff' }}>
                                                     Total: {formData.editorialPillars.reduce((s, p) => s + (p.weight || 0), 0)}%
                                                     {formData.editorialPillars.reduce((s, p) => s + (p.weight || 0), 0) !== 100 ? ' ⚠️ deve ser 100%' : ' ✓'}
                                                 </span>
@@ -1676,14 +1676,14 @@ export default function BusinessProfilesPage() {
                                 {/* Configuração de Agendamento Automático */}
                                 <div
                                     onClick={() => setShowScheduleSection(!showScheduleSection)}
-                                    style={{ marginTop: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.5rem', background: showScheduleSection ? '#25292F' : 'transparent', transition: 'background 0.2s' }}
+                                    style={{ marginTop: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', padding: '0.5rem', borderRadius: '0.5rem', background: showScheduleSection ? 'rgba(255,255,255,0.05)' : 'transparent', transition: 'background 0.2s' }}
                                 >
                                     <h3 style={{ margin: 0, fontSize: '1.25rem' }}>⚙️ Agendamento Automático</h3>
                                     <span style={{ fontSize: '1.5rem', transform: showScheduleSection ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
                                 </div>
 
                                 {showScheduleSection && (
-                                    <div style={{ background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.5rem' }}>
+                                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #27272a', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.5rem' }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                                             <div className="input-group" style={{ margin: 0 }}>
                                                 <label className="input-label" style={{ fontSize: '0.8rem' }}>Posts por semana</label>
@@ -1694,7 +1694,7 @@ export default function BusinessProfilesPage() {
                                                 <label className="input-label" style={{ fontSize: '0.8rem' }}>Stories por semana</label>
                                                 <input className="input" type="number" min="0" max="21" value={formData.contentSchedule?.storiesPerWeek ?? 7}
                                                     onChange={(e) => setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, storiesPerWeek: Number(e.target.value) } })} />
-                                                <small style={{ display: 'block', color: Number(formData.contentSchedule?.storiesPerWeek) === 0 ? '#fbbf24' : 'rgba(245, 245, 245, 0.7)', marginTop: '0.35rem' }}>
+                                                <small style={{ display: 'block', color: Number(formData.contentSchedule?.storiesPerWeek) === 0 ? '#fff' : '#fff', marginTop: '0.35rem' }}>
                                                     {Number(formData.contentSchedule?.storiesPerWeek) === 0
                                                         ? 'Pausado para revisão: geração e publicação de stories bloqueadas. Para retomar, defina uma frequência maior que zero e salve.'
                                                         : 'Defina 0 para pausar a geração e a publicação de stories.'}
@@ -1714,7 +1714,7 @@ export default function BusinessProfilesPage() {
                                                                 const updated = selected ? days.filter(d => d !== val) : [...days, val];
                                                                 setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, preferredDays: updated } });
                                                             }}
-                                                            style={{ padding: '0.3rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: selected ? 'rgba(245, 245, 245, 0.3)' : 'rgba(255,255,255,0.05)', border: selected ? '1px solid rgba(245, 245, 245, 0.4)' : '1px solid rgba(245, 245, 245, 0.14)', color: selected ? '#EAEBEB' : 'rgba(245, 245, 245, 0.55)' }}
+                                                            style={{ padding: '0.3rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: selected ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255,255,255,0.05)', border: selected ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid #3f3f46', color: '#fff' }}
                                                         >{label}</button>
                                                     );
                                                 })}
@@ -1726,8 +1726,8 @@ export default function BusinessProfilesPage() {
                                             <label className="input-label" style={{ fontSize: '0.8rem', marginBottom: '0.4rem', display: 'block' }}>Horários de postagem</label>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
                                                 {(formData.contentSchedule?.preferredTimes || ['09:00','18:00']).map((t, i) => (
-                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(245, 245, 245, 0.15)', border: '1px solid rgba(245, 245, 245, 0.4)', borderRadius: '0.375rem', padding: '0.15rem 0.4rem' }}>
-                                                        <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#EAEBEB', fontSize: '0.8rem', outline: 'none', width: '5.5rem', cursor: 'pointer' }}
+                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(255, 255, 255, 0.07)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '0.375rem', padding: '0.15rem 0.4rem' }}>
+                                                        <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.8rem', outline: 'none', width: '5.5rem', cursor: 'pointer' }}
                                                             onChange={(e) => {
                                                                 const times = [...(formData.contentSchedule?.preferredTimes || [])];
                                                                 times[i] = e.target.value;
@@ -1736,14 +1736,14 @@ export default function BusinessProfilesPage() {
                                                         <button type="button" onClick={() => {
                                                             const times = (formData.contentSchedule?.preferredTimes || []).filter((_, idx) => idx !== i);
                                                             setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, preferredTimes: times } });
-                                                        }} style={{ background: 'none', border: 'none', color: 'rgba(245, 245, 245, 0.55)', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
+                                                        }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
                                                     </div>
                                                 ))}
                                                 {(formData.contentSchedule?.preferredTimes || []).length < 4 && (
                                                     <button type="button" onClick={() => {
                                                         const times = [...(formData.contentSchedule?.preferredTimes || []), '12:00'];
                                                         setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, preferredTimes: times } });
-                                                    }} style={{ padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.14)', color: 'rgba(245, 245, 245, 0.7)' }}>+ Horário</button>
+                                                    }} style={{ padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid #3f3f46', color: '#fff' }}>+ Horário</button>
                                                 )}
                                             </div>
                                         </div>
@@ -1753,8 +1753,8 @@ export default function BusinessProfilesPage() {
                                             <label className="input-label" style={{ fontSize: '0.8rem', marginBottom: '0.4rem', display: 'block' }}>Horários dos stories (por dia)</label>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
                                                 {(formData.contentSchedule?.storyPreferredTimes || ['08:00','20:00']).map((t, i) => (
-                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(16,185,129,0.15)', border: '1px solid #10b981', borderRadius: '0.375rem', padding: '0.15rem 0.4rem' }}>
-                                                        <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#6ee7b7', fontSize: '0.8rem', outline: 'none', width: '5.5rem', cursor: 'pointer' }}
+                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(255, 255, 255, 0.07)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '0.375rem', padding: '0.15rem 0.4rem' }}>
+                                                        <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.8rem', outline: 'none', width: '5.5rem', cursor: 'pointer' }}
                                                             onChange={(e) => {
                                                                 const times = [...(formData.contentSchedule?.storyPreferredTimes || [])];
                                                                 times[i] = e.target.value;
@@ -1763,14 +1763,14 @@ export default function BusinessProfilesPage() {
                                                         <button type="button" onClick={() => {
                                                             const times = (formData.contentSchedule?.storyPreferredTimes || []).filter((_, idx) => idx !== i);
                                                             setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, storyPreferredTimes: times } });
-                                                        }} style={{ background: 'none', border: 'none', color: 'rgba(245, 245, 245, 0.55)', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
+                                                        }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
                                                     </div>
                                                 ))}
                                                 {(formData.contentSchedule?.storyPreferredTimes || []).length < 4 && (
                                                     <button type="button" onClick={() => {
                                                         const times = [...(formData.contentSchedule?.storyPreferredTimes || []), '12:00'];
                                                         setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, storyPreferredTimes: times } });
-                                                    }} style={{ padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.14)', color: 'rgba(245, 245, 245, 0.7)' }}>+ Horário</button>
+                                                    }} style={{ padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid #3f3f46', color: '#fff' }}>+ Horário</button>
                                                 )}
                                             </div>
                                         </div>
@@ -1789,7 +1789,7 @@ export default function BusinessProfilesPage() {
                                                                 const updated = selected ? storyDays.filter(d => d !== val) : [...storyDays, val];
                                                                 setFormData({ ...formData, contentSchedule: { ...formData.contentSchedule, storyPreferredDays: updated } });
                                                             }}
-                                                            style={{ padding: '0.3rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: selected ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)', border: selected ? '1px solid #10b981' : '1px solid rgba(245, 245, 245, 0.14)', color: selected ? '#6ee7b7' : 'rgba(245, 245, 245, 0.55)' }}
+                                                            style={{ padding: '0.3rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.75rem', cursor: 'pointer', background: selected ? 'rgba(255, 255, 255, 0.10)' : 'rgba(255,255,255,0.05)', border: selected ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid #3f3f46', color: '#fff' }}
                                                         >{label}</button>
                                                     );
                                                 })}
@@ -1799,14 +1799,14 @@ export default function BusinessProfilesPage() {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                                             <div className="input-group" style={{ margin: 0 }}>
                                                 <label className="input-label" style={{ fontSize: '0.8rem' }}>Reutilizar stories salvos</label>
-                                                <label style={{ minHeight: '42px', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.75rem', border: '1px solid rgba(245, 245, 245, 0.14)', borderRadius: '0.5rem', cursor: 'pointer' }}>
+                                                <label style={{ minHeight: '42px', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.75rem', border: '1px solid #3f3f46', borderRadius: '0.5rem', cursor: 'pointer' }}>
                                                     <input type="checkbox"
                                                         checked={formData.contentSchedule?.reuseStories !== false}
                                                         onChange={(e) => setFormData({
                                                             ...formData,
                                                             contentSchedule: { ...formData.contentSchedule, reuseStories: e.target.checked }
                                                         })} />
-                                                    <span style={{ fontSize: '0.8rem', color: '#F5F5F5' }}>
+                                                    <span style={{ fontSize: '0.8rem', color: '#fff' }}>
                                                         {formData.contentSchedule?.reuseStories !== false ? 'Ativado' : 'Desativado'}
                                                     </span>
                                                 </label>
@@ -1821,7 +1821,7 @@ export default function BusinessProfilesPage() {
                                                             ...formData,
                                                             contentSchedule: { ...formData.contentSchedule, storyReuseCooldownDays: Number(e.target.value) }
                                                         })} />
-                                                    <span style={{ fontSize: '0.8rem', color: 'rgba(245, 245, 245, 0.55)' }}>dias</span>
+                                                    <span style={{ fontSize: '0.8rem', color: '#fff' }}>dias</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1829,7 +1829,7 @@ export default function BusinessProfilesPage() {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                                             <div className="input-group" style={{ margin: 0 }}>
                                                 <label className="input-label" style={{ fontSize: '0.8rem' }}>Geração automática semanal</label>
-                                                <label style={{ minHeight: '42px', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.75rem', border: '1px solid rgba(245, 245, 245, 0.14)', borderRadius: '0.5rem', cursor: 'pointer' }}>
+                                                <label style={{ minHeight: '42px', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.75rem', border: '1px solid #3f3f46', borderRadius: '0.5rem', cursor: 'pointer' }}>
                                                     <input type="checkbox"
                                                         checked={formData.contentSchedule?.autoGenerationEnabled !== false}
                                                         onChange={(e) => {
@@ -1844,7 +1844,7 @@ export default function BusinessProfilesPage() {
                                                                 }
                                                             });
                                                         }} />
-                                                    <span style={{ fontSize: '0.8rem', color: '#F5F5F5' }}>
+                                                    <span style={{ fontSize: '0.8rem', color: '#fff' }}>
                                                         {formData.contentSchedule?.autoGenerationEnabled !== false ? 'Ativada' : 'Desativada'}
                                                     </span>
                                                 </label>
@@ -1905,7 +1905,7 @@ export default function BusinessProfilesPage() {
                                             </select>
                                         </div>
 
-                                        <div style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', padding: '0.5rem', background: '#25292F', borderRadius: '0.375rem' }}>
+                                        <div style={{ fontSize: '0.75rem', color: '#fff', padding: '0.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.375rem' }}>
                                             {formData.contentSchedule?.autoGenerationEnabled === false
                                                 ? '✋ A geração semanal está desativada. Você ainda pode gerar conteúdo manualmente.'
                                                 : formData.contentSchedule?.publishingMode === 'auto'

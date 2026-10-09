@@ -65,8 +65,8 @@ export default function HistoryPage() {
                     <div>
                         <h1 style={{ marginBottom: '0.25rem' }}>Histórico de Gerações</h1>
                         {selectedProfile && (
-                            <p style={{ fontSize: '0.875rem', color: 'rgba(245, 245, 245, 0.7)' }}>
-                                🎯 Filtrado por: <strong style={{ color: '#EAEBEB' }}>{selectedProfile.name}</strong>
+                            <p style={{ fontSize: '0.875rem', color: '#fff' }}>
+                                🎯 Filtrado por: <strong style={{ color: '#fff' }}>{selectedProfile.name}</strong>
                             </p>
                         )}
                     </div>
@@ -79,7 +79,7 @@ export default function HistoryPage() {
                 ) : history.length === 0 ? (
                     <div className="card-glass text-center" style={{ padding: '3rem' }}>
                         <h2>Nenhuma geração encontrada</h2>
-                        <p style={{ color: 'rgba(245, 245, 245, 0.7)', marginTop: '0.5rem' }}>
+                        <p style={{ color: '#fff', marginTop: '0.5rem' }}>
                             {selectedProfile
                                 ? `Ainda não há gerações para o perfil "${selectedProfile.name}"`
                                 : 'Comece gerando imagens no AI Generator'
@@ -94,7 +94,7 @@ export default function HistoryPage() {
                                     <span className="badge badge-primary">
                                         {item.mode === 'carousel' ? '🎠 Carrossel' : '🖼️ Simples'}
                                     </span>
-                                    <span style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)' }}>
+                                    <span style={{ fontSize: '0.75rem', color: '#fff' }}>
                                         {new Date(item.createdAt?.seconds * 1000 || item.createdAt).toLocaleDateString('pt-BR', {
                                             day: '2-digit',
                                             month: 'short',
@@ -106,7 +106,7 @@ export default function HistoryPage() {
 
                                 <p style={{
                                     fontSize: '0.875rem',
-                                    color: '#F5F5F5',
+                                    color: '#fff',
                                     marginBottom: '1rem',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',

@@ -16,11 +16,11 @@ interface VariationPlannerProps {
 
 export default function VariationPlanner({ variations, onUpdateVariation, onGenerate, isGenerating, onCancel }: VariationPlannerProps) {
     return (
-        <div style={{ background: '#25292F', borderRadius: '1rem', padding: '1.5rem', border: '1px solid rgba(245, 245, 245, 0.08)', marginBottom: '2rem' }}>
+        <div style={{ background: '#18181b', borderRadius: '1rem', padding: '1.5rem', border: '1px solid #27272a', marginBottom: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#F5F5F5' }}>🎨 Planejamento de Variações</h3>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>🎨 Planejamento de Variações</h3>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button onClick={onCancel} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: 'transparent', border: '1px solid rgba(245, 245, 245, 0.14)', color: '#F5F5F5', cursor: 'pointer' }}>
+                    <button onClick={onCancel} style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: 'transparent', border: '1px solid #3f3f46', color: '#fff', cursor: 'pointer' }}>
                         Cancelar
                     </button>
                     <button
@@ -29,9 +29,9 @@ export default function VariationPlanner({ variations, onUpdateVariation, onGene
                         style={{
                             padding: '0.5rem 1.5rem',
                             borderRadius: '0.5rem',
-                            background: '#10b981',
+                            background: '#3f3f46',
                             border: 'none',
-                            color: '#F5F5F5',
+                            color: '#fff',
                             fontWeight: 600,
                             cursor: isGenerating ? 'not-allowed' : 'pointer',
                             opacity: isGenerating ? 0.7 : 1
@@ -44,29 +44,29 @@ export default function VariationPlanner({ variations, onUpdateVariation, onGene
 
             <div style={{ display: 'grid', gap: '1rem' }}>
                 {variations.map((v, i) => (
-                    <div key={i} style={{ background: '#25292F', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(245, 245, 245, 0.14)' }}>
+                    <div key={i} style={{ background: '#27272a', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #3f3f46' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase' }}>Variação {i + 1}</span>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fff', textTransform: 'uppercase' }}>Variação {i + 1}</span>
                         </div>
 
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.55)', marginBottom: '0.25rem' }}>MANCHETE (HEADLINE)</label>
+                                <label style={{ display: 'block', fontSize: '0.7rem', color: '#fff', marginBottom: '0.25rem' }}>MANCHETE (HEADLINE)</label>
                                 <input
                                     type="text"
                                     value={v.headline}
                                     onChange={(e) => onUpdateVariation(i, 'headline', e.target.value)}
-                                    style={{ width: '100%', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.14)', padding: '0.5rem', borderRadius: '0.25rem', color: '#F5F5F5', boxSizing: 'border-box' }}
+                                    style={{ width: '100%', background: '#18181b', border: '1px solid #3f3f46', padding: '0.5rem', borderRadius: '0.25rem', color: '#fff', boxSizing: 'border-box' }}
                                 />
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.55)', marginBottom: '0.25rem' }}>CONCEITO VISUAL (PROMPT BASE)</label>
+                                <label style={{ display: 'block', fontSize: '0.7rem', color: '#fff', marginBottom: '0.25rem' }}>CONCEITO VISUAL (PROMPT BASE)</label>
                                 <textarea
                                     value={v.visualConcept}
                                     onChange={(e) => onUpdateVariation(i, 'visualConcept', e.target.value)}
                                     rows={3}
-                                    style={{ width: '100%', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.14)', padding: '0.5rem', borderRadius: '0.25rem', color: '#F5F5F5', resize: 'vertical', boxSizing: 'border-box' }}
+                                    style={{ width: '100%', background: '#18181b', border: '1px solid #3f3f46', padding: '0.5rem', borderRadius: '0.25rem', color: '#fff', resize: 'vertical', boxSizing: 'border-box' }}
                                 />
                             </div>
                         </div>

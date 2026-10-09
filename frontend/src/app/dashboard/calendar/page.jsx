@@ -532,9 +532,9 @@ export default function CalendarPage() {
                     <div>
                         <h1>📅 Calendário de Posts</h1>
                         {selectedProfile ? (
-                            <p style={{ fontSize: '0.85rem', color: 'rgba(245, 245, 245, 0.7)' }}>Perfil: <strong style={{ color: '#EAEBEB' }}>{selectedProfile.name}</strong></p>
+                            <p style={{ fontSize: '0.85rem', color: '#fff' }}>Perfil: <strong style={{ color: '#fff' }}>{selectedProfile.name}</strong></p>
                         ) : (
-                            <p style={{ fontSize: '0.85rem', color: 'rgba(245, 245, 245, 0.7)' }}>Todos os perfis</p>
+                            <p style={{ fontSize: '0.85rem', color: '#fff' }}>Todos os perfis</p>
                         )}
                     </div>
 
@@ -548,7 +548,7 @@ export default function CalendarPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div style={{ padding: '0.5rem 1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '0.5rem', fontSize: '0.85rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                            <div style={{ padding: '0.5rem 1rem', background: 'rgba(255, 255, 255, 0.05)', color: '#fff', borderRadius: '0.5rem', fontSize: '0.85rem', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
                                 ⚠️ {selectedProfile ? 'Sem credenciais configuradas' : 'Selecione um perfil'}
                             </div>
                         )}
@@ -564,8 +564,8 @@ export default function CalendarPage() {
                         style={{
                             marginTop: '1rem',
                             padding: '1rem 1.5rem',
-                            background: 'rgba(245, 245, 245, 0.06)',
-                            borderLeft: '4px solid rgba(245, 245, 245, 0.4)',
+                            background: 'rgba(255, 255, 255, 0.06)',
+                            borderLeft: '4px solid rgba(255, 255, 255, 0.25)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -576,10 +576,10 @@ export default function CalendarPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <span style={{ fontSize: '1.5rem' }}>📝</span>
                             <div>
-                                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#F5F5F5' }}>
+                                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#fff' }}>
                                     Existem {drafts.length} rascunho(s) pendentes para {selectedProfile.name}
                                 </h4>
-                                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'rgba(245, 245, 245, 0.7)' }}>
+                                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#fff' }}>
                                     Aprove-os agora para que apareçam na grade do calendário.
                                 </p>
                             </div>
@@ -590,8 +590,7 @@ export default function CalendarPage() {
                             style={{
                                 fontSize: '0.85rem',
                                 padding: '0.5rem 1rem',
-                                background: '#F5F5F5',
-                                color: '#0C1014',
+                                background: '#3f3f46',
                                 fontWeight: '700'
                             }}
                         >
@@ -637,7 +636,7 @@ export default function CalendarPage() {
                                         textAlign: 'center',
                                         fontWeight: '600',
                                         fontSize: '0.875rem',
-                                        color: '#EAEBEB',
+                                        color: '#fff',
                                         padding: '0.5rem'
                                     }}
                                 >
@@ -668,10 +667,10 @@ export default function CalendarPage() {
                                             minHeight: '120px',
                                             padding: '0.5rem',
                                             background: !date ? 'transparent' :
-                                                isHovered ? 'rgba(245, 245, 245, 0.2)' :
-                                                    isToday ? 'rgba(245, 245, 245, 0.1)' :
+                                                isHovered ? 'rgba(255, 255, 255, 0.08)' :
+                                                    isToday ? 'rgba(255, 255, 255, 0.05)' :
                                                         'rgba(255,255,255,0.03)',
-                                            border: isToday ? '2px solid rgba(245, 245, 245, 0.4)' : '1px solid rgba(255,255,255,0.1)',
+                                            border: isToday ? '2px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255,255,255,0.1)',
                                             borderRadius: 'var(--radius-md)',
                                             opacity: isPast ? 0.5 : 1,
                                             cursor: date && !isPast ? 'pointer' : 'default',
@@ -684,7 +683,7 @@ export default function CalendarPage() {
                                                 <div style={{
                                                     fontSize: '0.875rem',
                                                     fontWeight: isToday ? '700' : '500',
-                                                    color: isToday ? '#EAEBEB' : 'var(--text-primary)',
+                                                    color: isToday ? '#fff' : 'var(--text-primary)',
                                                     marginBottom: '0.5rem'
                                                 }}>
                                                     {date.getDate()}
@@ -702,9 +701,9 @@ export default function CalendarPage() {
                                                                 style={{
                                                                     fontSize: '0.65rem',
                                                                     padding: '0.25rem',
-                                                                    background: isPosted ? 'rgba(34, 197, 94, 0.2)' : isInFlight ? 'rgba(251, 191, 36, 0.18)' : 'rgba(245, 245, 245, 0.3)',
+                                                                    background: isPosted ? 'rgba(255, 255, 255, 0.10)' : isInFlight ? 'rgba(255, 255, 255, 0.09)' : 'rgba(255, 255, 255, 0.12)',
                                                                     borderRadius: 'var(--radius-sm)',
-                                                                    borderLeft: isPosted ? '3px solid #22c55e' : isInFlight ? '3px solid #f59e0b' : '3px solid rgba(245, 245, 245, 0.4)',
+                                                                    borderLeft: isPosted ? '3px solid rgba(255, 255, 255, 0.25)' : isInFlight ? '3px solid rgba(255, 255, 255, 0.25)' : '3px solid rgba(255, 255, 255, 0.25)',
                                                                     overflow: 'hidden',
                                                                     display: 'flex',
                                                                     alignItems: 'center',
@@ -714,11 +713,11 @@ export default function CalendarPage() {
                                                                     opacity: isPosted ? 0.8 : 1
                                                                 }}
                                                                 onMouseEnter={(e) => {
-                                                                    e.currentTarget.style.background = isPosted ? 'rgba(34, 197, 94, 0.3)' : isInFlight ? 'rgba(251, 191, 36, 0.28)' : 'rgba(245, 245, 245, 0.5)';
+                                                                    e.currentTarget.style.background = isPosted ? 'rgba(255, 255, 255, 0.12)' : isInFlight ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.12)';
                                                                     e.currentTarget.style.transform = 'scale(1.02)';
                                                                 }}
                                                                 onMouseLeave={(e) => {
-                                                                    e.currentTarget.style.background = isPosted ? 'rgba(34, 197, 94, 0.2)' : isInFlight ? 'rgba(251, 191, 36, 0.18)' : 'rgba(245, 245, 245, 0.3)';
+                                                                    e.currentTarget.style.background = isPosted ? 'rgba(255, 255, 255, 0.10)' : isInFlight ? 'rgba(255, 255, 255, 0.09)' : 'rgba(255, 255, 255, 0.12)';
                                                                     e.currentTarget.style.transform = 'scale(1)';
                                                                 }}
                                                                 title={isPosted ? "Postado" : isInFlight ? "Enviado ao Upload-Post" : "Agendado: " + post.caption}
@@ -772,7 +771,7 @@ export default function CalendarPage() {
                                                                         <div style={{
                                                                             fontSize: '0.55rem',
                                                                             fontWeight: '700',
-                                                                            color: '#22c55e',
+                                                                            color: '#fff',
                                                                             display: 'flex',
                                                                             alignItems: 'center',
                                                                             gap: '2px',
@@ -785,7 +784,7 @@ export default function CalendarPage() {
                                                                         <div style={{
                                                                             fontSize: '0.55rem',
                                                                             fontWeight: '700',
-                                                                            color: '#fbbf24',
+                                                                            color: '#fff',
                                                                             display: 'flex',
                                                                             alignItems: 'center',
                                                                             gap: '2px',
@@ -815,8 +814,8 @@ export default function CalendarPage() {
                                                                             }
                                                                         }}
                                                                         style={{
-                                                                            background: 'rgba(239, 68, 68, 0.8)',
-                                                                            color: '#F5F5F5',
+                                                                            background: 'rgba(255, 255, 255, 0.12)',
+                                                                            color: 'white',
                                                                             border: 'none',
                                                                             borderRadius: '50%',
                                                                             width: '16px',
@@ -831,11 +830,11 @@ export default function CalendarPage() {
                                                                             zIndex: 10
                                                                         }}
                                                                         onMouseEnter={(e) => {
-                                                                            e.currentTarget.style.background = '#ef4444';
+                                                                            e.currentTarget.style.background = '#3f3f46';
                                                                             e.currentTarget.style.transform = 'scale(1.2)';
                                                                         }}
                                                                         onMouseLeave={(e) => {
-                                                                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.8)';
+                                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
                                                                             e.currentTarget.style.transform = 'scale(1)';
                                                                         }}
                                                                         title="Cancelar agendamento"
@@ -860,9 +859,9 @@ export default function CalendarPage() {
                                                             display: 'flex',
                                                             alignItems: 'center',
                                                             justifyContent: 'center',
-                                                            background: 'rgba(245, 245, 245, 0.3)',
+                                                            background: 'rgba(255, 255, 255, 0.12)',
                                                             borderRadius: 'var(--radius-md)',
-                                                            border: '2px dashed #EAEBEB'
+                                                            border: '2px dashed rgba(255, 255, 255, 0.25)'
                                                         }}>
                                                             <span style={{ fontSize: '1.5rem' }}>➕</span>
                                                         </div>
@@ -885,7 +884,7 @@ export default function CalendarPage() {
                                 ✅ Posts Prontos
                             </h3>
                             {mediaLibrary.length > 0 && (
-                                <span style={{ fontSize: '0.72rem', background: 'rgba(245, 245, 245, 0.15)', border: '1px solid rgba(245, 245, 245, 0.3)', color: '#EAEBEB', borderRadius: '20px', padding: '2px 9px', fontWeight: 600 }}>
+                                <span style={{ fontSize: '0.72rem', background: 'rgba(255, 255, 255, 0.07)', border: '1px solid rgba(255, 255, 255, 0.25)', color: '#fff', borderRadius: '20px', padding: '2px 9px', fontWeight: 600 }}>
                                     {mediaLibrary.length} {mediaLibrary.length === 1 ? 'post' : 'posts'}
                                 </span>
                             )}
@@ -897,12 +896,12 @@ export default function CalendarPage() {
                             {mediaLibrary.filter(i => !i.isScheduled && i.status !== 'posted').length > 0 && (
                                 <button
                                     onClick={handleOpenAutoFill}
-                                    style={{ cursor: 'pointer', padding: '6px 14px', background: 'rgba(245, 245, 245, 0.06)', border: '1px solid rgba(245, 245, 245, 0.5)', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, color: '#EAEBEB', display: 'flex', alignItems: 'center', gap: '5px' }}
+                                    style={{ cursor: 'pointer', padding: '6px 14px', background: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '5px' }}
                                 >
                                     🪄 Auto-Fill
                                 </button>
                             )}
-                            <label style={{ cursor: 'pointer', padding: '6px 14px', background: 'rgba(245, 245, 245, 0.15)', border: '1px solid rgba(245, 245, 245, 0.35)', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600, color: '#EAEBEB', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <label style={{ cursor: 'pointer', padding: '6px 14px', background: 'rgba(255, 255, 255, 0.07)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 ➕ Upload Rápido
                                 <input type="file" accept="image/*" multiple onChange={handleFileUpload} style={{ display: 'none' }} />
                             </label>
@@ -910,7 +909,7 @@ export default function CalendarPage() {
                     </div>
 
                     {mediaLibrary.length === 0 ? (
-                        <div style={{ padding: '1.5rem', background: '#25292F', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '12px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
+                        <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '12px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
                             Nenhum post marcado como "Pronto" neste perfil. Vá à Library e marque posts como prontos.
                         </div>
                     ) : (
@@ -926,7 +925,7 @@ export default function CalendarPage() {
                                         style={{
                                             flexShrink: 0,
                                             width: '90px',
-                                            background: '#25292F',
+                                            background: 'rgba(255,255,255,0.04)',
                                             border: locked ? '2px solid rgba(255,255,255,0.06)' : '2px solid transparent',
                                             borderRadius: '10px',
                                             overflow: 'hidden',
@@ -937,9 +936,9 @@ export default function CalendarPage() {
                                         }}
                                         onMouseEnter={(e) => {
                                             if (!locked) {
-                                                e.currentTarget.style.borderColor = 'rgba(245, 245, 245, 0.3)';
+                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                                 e.currentTarget.style.transform = 'translateY(-2px)';
-                                                e.currentTarget.style.boxShadow = 'none';
+                                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.3)';
                                             }
                                         }}
                                         onMouseLeave={(e) => {
@@ -949,7 +948,7 @@ export default function CalendarPage() {
                                         }}
                                     >
                                         {/* Thumbnail */}
-                                        <div style={{ position: 'relative', width: '90px', height: '90px', background: '#25292F' }}>
+                                        <div style={{ position: 'relative', width: '90px', height: '90px', background: '#111' }}>
                                             {item.thumbnail ? (
                                                 <img
                                                     src={item.thumbnail}
@@ -957,19 +956,19 @@ export default function CalendarPage() {
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', display: 'block' }}
                                                 />
                                             ) : (
-                                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', color: 'rgba(255,255,255,0.2)' }}>
+                                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', color: '#fff' }}>
                                                     {item.type?.includes('carousel') || item.type === 'html' ? '🎠' : item.type === 'video' ? '🎥' : '📸'}
                                                 </div>
                                             )}
 
                                             {/* type pill */}
-                                            <div style={{ position: 'absolute', bottom: '4px', left: '4px', fontSize: '0.58rem', fontWeight: 700, background: 'rgba(12, 16, 20, 0.7)', color: '#e2e8f0', borderRadius: '4px', padding: '1px 5px', pointerEvents: 'none' }}>
+                                            <div style={{ position: 'absolute', bottom: '4px', left: '4px', fontSize: '0.58rem', fontWeight: 700, background: 'rgba(0,0,0,0.7)', color: '#fff', borderRadius: '4px', padding: '1px 5px', pointerEvents: 'none' }}>
                                                 {item.type?.includes('carousel') || item.type === 'html' ? '🎠 ' + (item.type.includes('html') ? 'HTML' : 'Carrossel') : item.type === 'video' ? '🎥 Vídeo' : '📸 Estático'}
                                             </div>
 
                                             {/* status badge */}
                                             {item.isScheduled && (
-                                                <div style={{ position: 'absolute', top: '4px', right: '4px', fontSize: '0.55rem', fontWeight: 700, background: 'rgba(234,179,8,0.85)', color: '#000', borderRadius: '4px', padding: '1px 5px', pointerEvents: 'none' }}>
+                                                <div style={{ position: 'absolute', top: '4px', right: '4px', fontSize: '0.55rem', fontWeight: 700, background: 'rgba(255, 255, 255, 0.12)', color: '#fff', borderRadius: '4px', padding: '1px 5px', pointerEvents: 'none' }}>
                                                     AGEND.
                                                 </div>
                                             )}
@@ -977,7 +976,7 @@ export default function CalendarPage() {
 
                                         {/* caption */}
                                         <div style={{ padding: '5px 6px', fontSize: '0.62rem', color: 'var(--text-tertiary)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.3 }}>
-                                            {item.caption || <span style={{ color: 'rgba(255,255,255,0.15)', fontStyle: 'italic' }}>sem legenda</span>}
+                                            {item.caption || <span style={{ color: '#fff', fontStyle: 'italic' }}>sem legenda</span>}
                                         </div>
                                     </div>
                                 );
@@ -997,7 +996,7 @@ export default function CalendarPage() {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: 'rgba(12, 16, 20, 0.8)',
+                        background: 'rgba(0,0,0,0.8)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1017,7 +1016,7 @@ export default function CalendarPage() {
                                 color: 'var(--text-tertiary)',
                                 marginBottom: '1.5rem'
                             }}>
-                                Configure os detalhes do post para <strong style={{ color: '#EAEBEB' }}>
+                                Configure os detalhes do post para <strong style={{ color: '#fff' }}>
                                     {scheduleData.date?.toLocaleDateString('pt-BR')}
                                 </strong>
                             </p>
@@ -1027,7 +1026,7 @@ export default function CalendarPage() {
                                 <div 
                                     className="input" 
                                     style={{ 
-                                        background: '#25292F', 
+                                        background: 'rgba(255,255,255,0.05)', 
                                         color: 'var(--text-secondary)', 
                                         cursor: 'not-allowed', 
                                         display: 'flex', 
@@ -1086,11 +1085,11 @@ export default function CalendarPage() {
                                         className="btn"
                                         style={{
                                             flex: 1,
-                                            background: '#F5F5F5',
+                                            background: '#3f3f46',
                                             border: 'none',
-                                            color: '#0C1014',
+                                            color: '#fff',
                                             fontWeight: '600',
-                                            boxShadow: 'none'
+                                            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)'
                                         }}
                                     >
                                         🔥 Postar Agora
@@ -1127,7 +1126,7 @@ export default function CalendarPage() {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        background: 'rgba(12, 16, 20, 0.8)',
+                        background: 'rgba(0,0,0,0.8)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1147,7 +1146,7 @@ export default function CalendarPage() {
                                 color: 'var(--text-tertiary)',
                                 marginBottom: '1.5rem'
                             }}>
-                                Editando post de <strong style={{ color: '#EAEBEB' }}>
+                                Editando post de <strong style={{ color: '#fff' }}>
                                     {editData.date?.toLocaleDateString('pt-BR')}
                                 </strong>
                             </p>
@@ -1193,10 +1192,10 @@ export default function CalendarPage() {
                                     <div style={{
                                         width: '100%',
                                         padding: '1rem',
-                                        background: 'rgba(34, 197, 94, 0.1)',
-                                        border: '1px solid rgba(34, 197, 94, 0.2)',
+                                        background: 'rgba(255, 255, 255, 0.05)',
+                                        border: '1px solid rgba(255, 255, 255, 0.2)',
                                         borderRadius: 'var(--radius-md)',
-                                        color: '#22c55e',
+                                        color: '#fff',
                                         fontSize: '0.9rem',
                                         textAlign: 'center',
                                         fontWeight: '500'
@@ -1217,7 +1216,7 @@ export default function CalendarPage() {
                                         <button
                                             onClick={handleDeletePost}
                                             className="btn"
-                                            style={{ flex: 1, background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+                                            style={{ flex: 1, background: 'rgba(255, 255, 255, 0.10)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.25)' }}
                                         >
                                             🗑️ Excluir Post
                                         </button>
@@ -1235,7 +1234,7 @@ export default function CalendarPage() {
                                     right: '1rem',
                                     background: 'transparent',
                                     border: 'none',
-                                    color: '#F5F5F5',
+                                    color: '#fff',
                                     fontSize: '1.5rem',
                                     cursor: 'pointer'
                                 }}
@@ -1248,9 +1247,9 @@ export default function CalendarPage() {
             }
             {/* Auto-Fill Modal */}
             {showAutoFillModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(12, 16, 20, 0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '2rem' }}>
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '2rem' }}>
                     <div className="card-glass" style={{ maxWidth: '560px', width: '100%', padding: '2rem', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <button onClick={() => setShowAutoFillModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: '#F5F5F5', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+                        <button onClick={() => setShowAutoFillModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
 
                         <h2 style={{ marginBottom: '0.25rem' }}>🪄 Auto-Fill do Calendário</h2>
                         <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>
@@ -1264,10 +1263,10 @@ export default function CalendarPage() {
                             const posts = all.length - stories;
                             return (
                                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: '0.75rem', background: 'rgba(245, 245, 245, 0.15)', border: '1px solid rgba(245, 245, 245, 0.3)', color: '#EAEBEB', padding: '3px 10px', borderRadius: '20px' }}>
+                                    <span style={{ fontSize: '0.75rem', background: 'rgba(255, 255, 255, 0.07)', border: '1px solid rgba(255, 255, 255, 0.25)', color: '#fff', padding: '3px 10px', borderRadius: '20px' }}>
                                         {posts} post{posts !== 1 ? 's' : ''} prontos
                                     </span>
-                                    <span style={{ fontSize: '0.75rem', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7', padding: '3px 10px', borderRadius: '20px' }}>
+                                    <span style={{ fontSize: '0.75rem', background: 'rgba(255, 255, 255, 0.07)', border: '1px solid rgba(255, 255, 255, 0.25)', color: '#fff', padding: '3px 10px', borderRadius: '20px' }}>
                                         {stories} stor{stories !== 1 ? 'ies' : 'y'} prontos
                                     </span>
                                 </div>
@@ -1275,8 +1274,8 @@ export default function CalendarPage() {
                         })()}
 
                         {/* Posts config */}
-                        <div style={{ padding: '0.75rem', background: 'rgba(245, 245, 245, 0.07)', border: '1px solid rgba(245, 245, 245, 0.2)', borderRadius: '10px', marginBottom: '0.75rem' }}>
-                            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#EAEBEB', marginBottom: '0.6rem' }}>Posts</p>
+                        <div style={{ padding: '0.75rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '10px', marginBottom: '0.75rem' }}>
+                            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff', marginBottom: '0.6rem' }}>Posts</p>
                             <div style={{ marginBottom: '0.5rem' }}>
                                 <label style={{ fontSize: '0.73rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.35rem' }}>Dias</label>
                                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -1286,7 +1285,7 @@ export default function CalendarPage() {
                                             <button key={idx} onClick={() => {
                                                 const days = active ? autoFillConfig.postDays.filter(d => d !== idx) : [...autoFillConfig.postDays, idx].sort();
                                                 handleAutoFillConfigChange({ ...autoFillConfig, postDays: days });
-                                            }} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', background: active ? 'rgba(245, 245, 245, 0.35)' : 'rgba(255,255,255,0.05)', border: active ? '1px solid rgba(245, 245, 245, 0.7)' : '1px solid rgba(255,255,255,0.1)', color: active ? '#EAEBEB' : 'var(--text-tertiary)' }}>
+                                            }} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', background: active ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255,255,255,0.05)', border: active ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255,255,255,0.1)', color: active ? '#fff' : 'var(--text-tertiary)' }}>
                                                 {name}
                                             </button>
                                         );
@@ -1297,22 +1296,22 @@ export default function CalendarPage() {
                                 <label style={{ fontSize: '0.73rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.35rem' }}>Horários</label>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
                                     {(autoFillConfig.postTimes || []).map((t, i) => (
-                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(245, 245, 245, 0.2)', border: '1px solid rgba(245, 245, 245, 0.5)', borderRadius: '6px', padding: '2px 6px' }}>
-                                            <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#EAEBEB', fontSize: '0.78rem', outline: 'none', width: '5.2rem', cursor: 'pointer' }}
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(255, 255, 255, 0.10)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '6px', padding: '2px 6px' }}>
+                                            <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.78rem', outline: 'none', width: '5.2rem', cursor: 'pointer' }}
                                                 onChange={e => { const times = [...autoFillConfig.postTimes]; times[i] = e.target.value; handleAutoFillConfigChange({ ...autoFillConfig, postTimes: times }); }} />
-                                            <button onClick={() => { const times = autoFillConfig.postTimes.filter((_, idx) => idx !== i); handleAutoFillConfigChange({ ...autoFillConfig, postTimes: times }); }} style={{ background: 'none', border: 'none', color: 'rgba(245, 245, 245, 0.55)', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
+                                            <button onClick={() => { const times = autoFillConfig.postTimes.filter((_, idx) => idx !== i); handleAutoFillConfigChange({ ...autoFillConfig, postTimes: times }); }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
                                         </div>
                                     ))}
                                     {autoFillConfig.postTimes.length < 4 && (
-                                        <button onClick={() => handleAutoFillConfigChange({ ...autoFillConfig, postTimes: [...autoFillConfig.postTimes, '12:00'] })} style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.73rem', cursor: 'pointer', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.14)', color: 'rgba(245, 245, 245, 0.7)' }}>+ Horário</button>
+                                        <button onClick={() => handleAutoFillConfigChange({ ...autoFillConfig, postTimes: [...autoFillConfig.postTimes, '12:00'] })} style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.73rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid #3f3f46', color: '#fff' }}>+ Horário</button>
                                     )}
                                 </div>
                             </div>
                         </div>
 
                         {/* Stories config */}
-                        <div style={{ padding: '0.75rem', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', marginBottom: '0.75rem' }}>
-                            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#6ee7b7', marginBottom: '0.6rem' }}>Stories</p>
+                        <div style={{ padding: '0.75rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '10px', marginBottom: '0.75rem' }}>
+                            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff', marginBottom: '0.6rem' }}>Stories</p>
                             <div style={{ marginBottom: '0.5rem' }}>
                                 <label style={{ fontSize: '0.73rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.35rem' }}>Dias</label>
                                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -1322,7 +1321,7 @@ export default function CalendarPage() {
                                             <button key={idx} onClick={() => {
                                                 const days = active ? autoFillConfig.storyDays.filter(d => d !== idx) : [...autoFillConfig.storyDays, idx].sort();
                                                 handleAutoFillConfigChange({ ...autoFillConfig, storyDays: days });
-                                            }} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', background: active ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.05)', border: active ? '1px solid rgba(16,185,129,0.6)' : '1px solid rgba(255,255,255,0.1)', color: active ? '#6ee7b7' : 'var(--text-tertiary)' }}>
+                                            }} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', background: active ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255,255,255,0.05)', border: active ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255,255,255,0.1)', color: active ? '#fff' : 'var(--text-tertiary)' }}>
                                                 {name}
                                             </button>
                                         );
@@ -1333,14 +1332,14 @@ export default function CalendarPage() {
                                 <label style={{ fontSize: '0.73rem', color: 'var(--text-tertiary)', display: 'block', marginBottom: '0.35rem' }}>Horários</label>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
                                     {(autoFillConfig.storyTimes || []).map((t, i) => (
-                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: '6px', padding: '2px 6px' }}>
-                                            <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#6ee7b7', fontSize: '0.78rem', outline: 'none', width: '5.2rem', cursor: 'pointer' }}
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: 'rgba(255, 255, 255, 0.07)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '6px', padding: '2px 6px' }}>
+                                            <input type="time" value={t} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.78rem', outline: 'none', width: '5.2rem', cursor: 'pointer' }}
                                                 onChange={e => { const times = [...autoFillConfig.storyTimes]; times[i] = e.target.value; handleAutoFillConfigChange({ ...autoFillConfig, storyTimes: times }); }} />
-                                            <button onClick={() => { const times = autoFillConfig.storyTimes.filter((_, idx) => idx !== i); handleAutoFillConfigChange({ ...autoFillConfig, storyTimes: times }); }} style={{ background: 'none', border: 'none', color: 'rgba(245, 245, 245, 0.55)', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
+                                            <button onClick={() => { const times = autoFillConfig.storyTimes.filter((_, idx) => idx !== i); handleAutoFillConfigChange({ ...autoFillConfig, storyTimes: times }); }} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.9rem' }}>×</button>
                                         </div>
                                     ))}
                                     {autoFillConfig.storyTimes.length < 4 && (
-                                        <button onClick={() => handleAutoFillConfigChange({ ...autoFillConfig, storyTimes: [...autoFillConfig.storyTimes, '12:00'] })} style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.73rem', cursor: 'pointer', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.14)', color: 'rgba(245, 245, 245, 0.7)' }}>+ Horário</button>
+                                        <button onClick={() => handleAutoFillConfigChange({ ...autoFillConfig, storyTimes: [...autoFillConfig.storyTimes, '12:00'] })} style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.73rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid #3f3f46', color: '#fff' }}>+ Horário</button>
                                     )}
                                 </div>
                             </div>
@@ -1366,13 +1365,13 @@ export default function CalendarPage() {
                         </div>
 
                         {/* Preview */}
-                        <div style={{ marginTop: '0.75rem', padding: '1rem', background: 'rgba(245, 245, 245, 0.08)', border: '1px solid rgba(245, 245, 245, 0.2)', borderRadius: '10px' }}>
-                            <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#EAEBEB', marginBottom: '0.5rem' }}>
+                        <div style={{ marginTop: '0.75rem', padding: '1rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '10px' }}>
+                            <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff', marginBottom: '0.5rem' }}>
                                 📋 Preview — {autoFillPreview.length} item{autoFillPreview.length !== 1 ? 's' : ''} serão agendados
                                 {autoFillPreview.length > 0 && (() => {
                                     const sc = autoFillPreview.filter(p => p.slotType === 'story').length;
                                     const pc = autoFillPreview.length - sc;
-                                    return <span style={{ fontWeight: 400, color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}> ({pc} post{pc !== 1 ? 's' : ''} + {sc} stor{sc !== 1 ? 'ies' : 'y'})</span>;
+                                    return <span style={{ fontWeight: 400, color: '#fff', fontSize: '0.75rem' }}> ({pc} post{pc !== 1 ? 's' : ''} + {sc} stor{sc !== 1 ? 'ies' : 'y'})</span>;
                                 })()}
                             </p>
                             {autoFillPreview.length === 0 ? (
@@ -1381,10 +1380,10 @@ export default function CalendarPage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '180px', overflowY: 'auto' }}>
                                     {autoFillPreview.map(({ date, time, slotType, item }, i) => (
                                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                            <span style={{ color: slotType === 'story' ? '#10b981' : '#EAEBEB', fontWeight: 700, minWidth: '118px' }}>
+                                            <span style={{ color: slotType === 'story' ? '#fff' : '#fff', fontWeight: 700, minWidth: '118px' }}>
                                                 {date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })} {time}
                                             </span>
-                                            <span style={{ fontSize: '0.68rem', background: slotType === 'story' ? 'rgba(16,185,129,0.15)' : 'rgba(245, 245, 245, 0.15)', color: slotType === 'story' ? '#6ee7b7' : '#EAEBEB', padding: '1px 5px', borderRadius: '4px', flexShrink: 0 }}>
+                                            <span style={{ fontSize: '0.68rem', background: slotType === 'story' ? 'rgba(255, 255, 255, 0.07)' : 'rgba(255, 255, 255, 0.07)', color: slotType === 'story' ? '#fff' : '#fff', padding: '1px 5px', borderRadius: '4px', flexShrink: 0 }}>
                                                 {slotType === 'story' ? 'story' : (item?.type || 'post')}
                                             </span>
                                             {item?.thumbnail ? (
@@ -1393,7 +1392,7 @@ export default function CalendarPage() {
                                                 <span style={{ fontSize: '0.85rem', flexShrink: 0 }}>{slotType === 'story' ? '📖' : (item?.type === 'carousel' || item?.type === 'carousel-html') ? '🎠' : (item?.type === 'html' || item?.htmlCode) ? '🖥️' : item?.type === 'video' ? '🎥' : '📸'}</span>
                                             )}
                                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                                                {item?.caption || <span style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.2)' }}>sem legenda</span>}
+                                                {item?.caption || <span style={{ fontStyle: 'italic', color: '#fff' }}>sem legenda</span>}
                                             </span>
                                         </div>
                                     ))}
@@ -1407,8 +1406,8 @@ export default function CalendarPage() {
                                 disabled={autoFillLoading || autoFillPreview.length === 0}
                                 style={{
                                     flex: 1, padding: '0.75rem', borderRadius: '10px', border: 'none', cursor: autoFillPreview.length === 0 ? 'not-allowed' : 'pointer',
-                                    background: '#F5F5F5',
-                                    color: '#0C1014', fontWeight: 700, fontSize: '0.9rem', opacity: autoFillPreview.length === 0 ? 0.5 : 1,
+                                    background: '#3f3f46',
+                                    color: '#fff', fontWeight: 700, fontSize: '0.9rem', opacity: autoFillPreview.length === 0 ? 0.5 : 1,
                                     transition: 'opacity 0.15s ease'
                                 }}
                             >

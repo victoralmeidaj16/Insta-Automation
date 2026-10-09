@@ -24,16 +24,16 @@ export const SavedPromptsGallery: React.FC<SavedPromptsGalleryProps> = ({
         <div style={{ 
             marginBottom: '2rem', 
             padding: '1.25rem', 
-            background: '#25292F', 
+            background: 'rgba(24, 24, 27, 0.6)', 
             borderRadius: '1rem', 
-            border: '1px solid #25292F',
-            boxShadow: 'none'
+            border: '1px solid rgba(63, 63, 70, 0.6)',
+            boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.05)'
         }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F5F5F5', display: 'flex', alignItems: 'center', gap: '0.6rem', margin: 0 }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.6rem', margin: 0 }}>
                     🔖 Galeria de Prompts da Marca
                 </h3>
-                <p style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', margin: 0 }}>Salve ou use modelos de base para agilizar</p>
+                <p style={{ fontSize: '0.75rem', color: '#fff', margin: 0 }}>Salve ou use modelos de base para agilizar</p>
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
@@ -46,11 +46,11 @@ export const SavedPromptsGallery: React.FC<SavedPromptsGalleryProps> = ({
                     style={{
                         flex: 1,
                         background: 'rgba(0,0,0,0.3)',
-                        border: '1px solid rgba(245, 245, 245, 0.08)',
+                        border: '1px solid #27272a',
                         padding: '0.75rem 1rem',
                         borderRadius: '0.75rem',
                         fontSize: '0.875rem',
-                        color: '#F5F5F5',
+                        color: '#fff',
                         transition: 'border-color 0.2s'
                     }}
                 />
@@ -62,8 +62,8 @@ export const SavedPromptsGallery: React.FC<SavedPromptsGalleryProps> = ({
                     className="btn hover-lift"
                     style={{
                         padding: '0.5rem 1.25rem',
-                        background: !similarPromptBase ? '#25292F' : '#F5F5F5',
-                        color: !similarPromptBase ? '#F5F5F5' : '#0C1014',
+                        background: !similarPromptBase ? '#18181b' : '#3f3f46',
+                        color: '#fff',
                         border: 'none',
                         borderRadius: '0.75rem',
                         cursor: !similarPromptBase ? 'not-allowed' : 'pointer',
@@ -82,7 +82,7 @@ export const SavedPromptsGallery: React.FC<SavedPromptsGalleryProps> = ({
 
             {selectedProfile?.aiPreferences?.favoritePrompts && selectedProfile.aiPreferences.favoritePrompts.length > 0 && (
                 <div style={{ marginTop: '0.5rem' }}>
-                    <p style={{ fontSize: '0.8rem', color: 'rgba(245, 245, 245, 0.7)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <p style={{ fontSize: '0.8rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         📚 Clique para usar como base:
                     </p>
                     <div style={{ 
@@ -100,15 +100,15 @@ export const SavedPromptsGallery: React.FC<SavedPromptsGalleryProps> = ({
                                 className="hover-lift"
                                 style={{
                                     position: 'relative',
-                                    background: '#25292F',
+                                    background: '#18181b',
                                     borderRadius: '1rem',
                                     width: '180px',
                                     height: '240px',
                                     flexShrink: 0,
                                     cursor: 'pointer',
-                                    border: '1px solid rgba(245, 245, 245, 0.08)',
+                                    border: '1px solid #27272a',
                                     overflow: 'hidden',
-                                    boxShadow: 'none',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                                 }}
                             >
@@ -118,7 +118,7 @@ export const SavedPromptsGallery: React.FC<SavedPromptsGalleryProps> = ({
                                         height: '100%',
                                         background: savedPrompt.imageUrl
                                             ? `url(${savedPrompt.imageUrl}) center center / cover no-repeat`
-                                            : 'rgba(245, 245, 245, 0.06)',
+                                            : 'rgba(255, 255, 255, 0.06)',
                                         opacity: savedPrompt.imageUrl ? 0.7 : 1,
                                     }}
                                 />
@@ -128,7 +128,7 @@ export const SavedPromptsGallery: React.FC<SavedPromptsGalleryProps> = ({
                                     left: 0, 
                                     right: 0, 
                                     padding: '1rem', 
-                                    background: 'rgba(12, 16, 20, 0.78)', 
+                                    background: 'rgba(0, 0, 0, 0.75)', 
                                     display: 'flex', 
                                     flexDirection: 'column', 
                                     justifyContent: 'flex-end', 
@@ -138,12 +138,12 @@ export const SavedPromptsGallery: React.FC<SavedPromptsGalleryProps> = ({
                                     <strong style={{ 
                                         fontSize: '0.85rem', 
                                         display: 'block', 
-                                        color: '#F5F5F5', 
+                                        color: '#fff', 
                                         marginBottom: '0.25rem', 
                                         whiteSpace: 'nowrap', 
                                         overflow: 'hidden', 
                                         textOverflow: 'ellipsis',
-                                        textShadow: 'none'
+                                        textShadow: '0 1px 3px rgba(0,0,0,0.8)'
                                     }}>
                                         {savedPrompt.name}
                                     </strong>
@@ -157,8 +157,8 @@ export const SavedPromptsGallery: React.FC<SavedPromptsGalleryProps> = ({
                                             top: '50%',
                                             left: '50%',
                                             transform: 'translate(-50%, -50%)',
-                                            background: 'rgba(59, 130, 246, 0.95)',
-                                            color: '#F5F5F5',
+                                            background: 'rgba(255, 255, 255, 0.12)',
+                                            color: '#fff',
                                             border: 'none',
                                             borderRadius: '999px',
                                             padding: '0.6rem 1rem',
@@ -168,7 +168,7 @@ export const SavedPromptsGallery: React.FC<SavedPromptsGalleryProps> = ({
                                             zIndex: 10,
                                             whiteSpace: 'nowrap',
                                             opacity: generatingCoverFor === savedPrompt.id ? 0.7 : 1,
-                                            boxShadow: 'none'
+                                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)'
                                         }}
                                     >
                                         {generatingCoverFor === savedPrompt.id ? '⏳ Gerando...' : '🎨 Gerar Capa'}

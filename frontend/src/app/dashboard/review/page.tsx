@@ -204,8 +204,8 @@ function extractOverlayData(prompt: string) {
 // Constants
 // ---------------------------------------------------------------------------
 const PILLAR_COLORS = [
-    '#a3e635', '#60a5fa', '#fb923c', '#EAEBEB',
-    '#34d399', '#fbbf24', '#f87171', '#38bdf8',
+    '#ffffff', '#ffffff', '#ffffff', '#ffffff',
+    '#ffffff', '#ffffff', '#ffffff', '#ffffff',
 ];
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -452,14 +452,14 @@ function splitPremiumPromptBlocks(prompt: string) {
 function CheckItem({ ok, label, fix, tone = 'error' }: { ok: boolean; label: string; fix?: string; tone?: 'error' | 'warning' }) {
     const isWarning = !ok && tone === 'warning';
     const icon = ok ? '✅' : isWarning ? '⚠️' : '❌';
-    const labelColor = ok ? '#F5F5F5' : isWarning ? '#fbbf24' : '#fca5a5';
+    const labelColor = '#fff';
 
     return (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', padding: '0.6rem 0', borderBottom: '1px solid rgba(245, 245, 245, 0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', padding: '0.6rem 0', borderBottom: '1px solid #27272a' }}>
             <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: '0.1rem' }}>{icon}</span>
             <div>
                 <p style={{ margin: 0, fontSize: '0.875rem', color: labelColor }}>{label}</p>
-                {!ok && fix && <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)', marginTop: '0.2rem' }}>{fix}</p>}
+                {!ok && fix && <p style={{ margin: 0, fontSize: '0.75rem', color: '#fff', marginTop: '0.2rem' }}>{fix}</p>}
             </div>
         </div>
     );
@@ -1014,7 +1014,7 @@ export default function ReviewPage() {
         const activeProfile = profiles.find(p => p.id === profileId);
         const p = activeProfile;
         const isFitswap = (p?.name || '').toLowerCase().includes('fitswap') || (p?.brandKey || '').toLowerCase().includes('fitswap');
-        const defaultColor = isFitswap ? '#6F9800' : '#EAEBEB';
+        const defaultColor = isFitswap ? '#6F9800' : '#4C1D95';
 
         return {
             brandName: p?.name || 'Sua Marca',
@@ -1366,8 +1366,8 @@ export default function ReviewPage() {
 
             {/* Left: profile selector + checks */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', padding: '1.25rem' }}>
-                    <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: 'rgba(245, 245, 245, 0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perfil da Marca</h3>
+                <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '0.75rem', padding: '1.25rem' }}>
+                    <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Perfil da Marca</h3>
                     <select
                         className="input"
                         value={selectedProfileId}
@@ -1382,8 +1382,8 @@ export default function ReviewPage() {
                 </div>
 
                 {preview && (
-                    <div style={{ background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', padding: '1.25rem' }}>
-                        <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: 'rgba(245, 245, 245, 0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verificações</h3>
+                    <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '0.75rem', padding: '1.25rem' }}>
+                        <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verificações</h3>
                         <CheckItem
                             ok={preview.checks.hasAccount}
                             label={preview.checks.hasAccount ? "Conta Instagram vinculada e ativa" : "Conta Instagram não vinculada ou inativa"}
@@ -1427,22 +1427,22 @@ export default function ReviewPage() {
 
                 {/* Pillar distribution */}
                 {preview && preview.pillars.length > 0 && (
-                    <div style={{ background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', padding: '1.25rem' }}>
-                        <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: 'rgba(245, 245, 245, 0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mix de Pilares</h3>
-                        <p style={{ margin: '0 0 0.875rem', fontSize: '0.8rem', color: 'rgba(245, 245, 245, 0.55)', lineHeight: 1.45 }}>
+                    <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '0.75rem', padding: '1.25rem' }}>
+                        <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mix de Pilares</h3>
+                        <p style={{ margin: '0 0 0.875rem', fontSize: '0.8rem', color: '#fff', lineHeight: 1.45 }}>
                             Compare o peso configurado com a cobertura prevista do plano atual e o histórico recente.
                         </p>
-                        <div style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.9rem', fontSize: '0.72rem', color: 'rgba(245, 245, 245, 0.55)' }}>
+                        <div style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.9rem', fontSize: '0.72rem', color: '#fff' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                                <span style={{ width: '10px', height: '10px', borderRadius: '999px', background: 'rgba(245, 245, 245, 0.4)', display: 'inline-block' }} />
+                                <span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#52525b', display: 'inline-block' }} />
                                 Alvo configurado
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                                <span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#a3e635', display: 'inline-block' }} />
+                                <span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#3f3f46', display: 'inline-block' }} />
                                 Previsto no plano
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                                <span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.14)', display: 'inline-block' }} />
+                                <span style={{ width: '10px', height: '10px', borderRadius: '999px', background: '#27272a', border: '1px solid #3f3f46', display: 'inline-block' }} />
                                 Histórico recente
                             </div>
                         </div>
@@ -1456,25 +1456,25 @@ export default function ReviewPage() {
                             return (
                                 <div key={p.id} style={{ marginBottom: '0.75rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#F5F5F5' }}>{p.name}</span>
-                                        <span style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.4)' }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#fff' }}>{p.name}</span>
+                                        <span style={{ fontSize: '0.75rem', color: '#fff' }}>
                                             alvo {p.weight}% · previsto {plannedShare.toFixed(0)}% · {recent} recente{recent !== 1 ? 's' : ''}
                                         </span>
                                     </div>
                                     <div style={{ display: 'grid', gap: '0.35rem' }}>
-                                        <div style={{ height: '5px', background: '#25292F', borderRadius: '999px', overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', width: `${p.weight}%`, background: 'rgba(245, 245, 245, 0.4)', borderRadius: '999px' }} />
+                                        <div style={{ height: '5px', background: '#111113', borderRadius: '999px', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', width: `${p.weight}%`, background: '#52525b', borderRadius: '999px' }} />
                                         </div>
-                                        <div style={{ height: '6px', background: '#25292F', borderRadius: '999px', overflow: 'hidden' }}>
+                                        <div style={{ height: '6px', background: '#111113', borderRadius: '999px', overflow: 'hidden' }}>
                                             <div style={{ height: '100%', width: `${plannedShare}%`, background: color, borderRadius: '999px' }} />
                                         </div>
-                                        <div style={{ height: '4px', background: '#25292F', borderRadius: '999px', overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', width: `${recentShare}%`, background: '#25292F', borderRadius: '999px' }} />
+                                        <div style={{ height: '4px', background: '#111113', borderRadius: '999px', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', width: `${recentShare}%`, background: '#3f3f46', borderRadius: '999px' }} />
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', fontSize: '0.72rem', color: 'rgba(245, 245, 245, 0.55)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', fontSize: '0.72rem', color: '#fff' }}>
                                         <span>{planned} slot{planned !== 1 ? 's' : ''} no plano</span>
-                                        <span style={{ color: delta >= 0 ? '#86efac' : '#fca5a5' }}>
+                                        <span style={{ color: '#fff' }}>
                                             {delta >= 0 ? '+' : ''}{delta.toFixed(0)} p.p. vs alvo
                                         </span>
                                     </div>
@@ -1488,15 +1488,15 @@ export default function ReviewPage() {
             {/* Right: plan preview */}
             <div>
                 {loadingPreview && (
-                    <div style={{ textAlign: 'center', padding: '4rem', color: 'rgba(245, 245, 245, 0.4)' }}>Calculando plano...</div>
+                    <div style={{ textAlign: 'center', padding: '4rem', color: '#fff' }}>Calculando plano...</div>
                 )}
 
                 {!loadingPreview && !preview && selectedProfileId && (
-                    <div style={{ textAlign: 'center', padding: '4rem', color: 'rgba(245, 245, 245, 0.4)' }}>Selecione um perfil para ver o plano</div>
+                    <div style={{ textAlign: 'center', padding: '4rem', color: '#fff' }}>Selecione um perfil para ver o plano</div>
                 )}
 
                 {!loadingPreview && !selectedProfileId && (
-                    <div style={{ border: '2px dashed rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', padding: '4rem', textAlign: 'center', color: 'rgba(245, 245, 245, 0.4)' }}>
+                    <div style={{ border: '2px dashed #27272a', borderRadius: '0.75rem', padding: '4rem', textAlign: 'center', color: '#fff' }}>
                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎯</div>
                         <p>Selecione um perfil de negócio para ver o plano da semana</p>
                     </div>
@@ -1507,7 +1507,7 @@ export default function ReviewPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                             <h2 style={{ margin: 0, fontSize: '1.1rem' }}>
                                 Plano da Semana — {preview.profile.name}
-                                <span style={{ fontSize: '0.875rem', color: 'rgba(245, 245, 245, 0.4)', fontWeight: 400, marginLeft: '0.5rem' }}>
+                                <span style={{ fontSize: '0.875rem', color: '#fff', fontWeight: 400, marginLeft: '0.5rem' }}>
                                     ({editablePlan.length} conteúdos)
                                 </span>
                             </h2>
@@ -1532,25 +1532,25 @@ export default function ReviewPage() {
                             </div>
                         </div>
 
-                        <div style={{ marginBottom: '1rem', padding: '0.7rem 0.9rem', background: 'rgba(96,165,250,0.07)', border: '1px solid rgba(96,165,250,0.18)', borderRadius: '0.5rem', fontSize: '0.78rem', color: '#93c5fd' }}>
+                        <div style={{ marginBottom: '1rem', padding: '0.7rem 0.9rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.18)', borderRadius: '0.5rem', fontSize: '0.78rem', color: '#fff' }}>
                             🗓️ As ideias ainda não têm data. Cada post só recebe dia e horário quando você aprova o rascunho — sempre no próximo horário livre do cronograma. Pode excluir o que não quiser: as demais avançam e não sobra lacuna.
                         </div>
 
                         {editablePlan.length === 0 ? (
-                            <div style={{ border: '2px dashed rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', color: 'rgba(245, 245, 245, 0.4)' }}>
+                            <div style={{ border: '2px dashed #27272a', borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', color: '#fff' }}>
                                 <p>Nenhum conteúdo previsto para a semana.</p>
                                 <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>A frequência semanal está como 0 ou não há dias/horários configurados no perfil.</p>
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                 {editablePlan.map((slot, i) => {
-                                    const color = pillarColorMap[slot.pillarId] || '#EAEBEB';
+                                    const color = pillarColorMap[slot.pillarId] || '#fff';
                                     const pillarObj = preview.pillars.find(p => p.id === slot.pillarId);
                                     const availableFormats = pillarObj?.formats || Object.keys(FORMAT_LABELS);
                                     const isExpanded = expandedPlanSlot === i;
 
                                     return (
-                                        <div key={i} style={{ background: '#25292F', border: isExpanded ? `1px solid ${color}66` : '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', padding: '0.9rem 1rem' }}>
+                                        <div key={i} style={{ background: '#18181b', border: isExpanded ? `1px solid ${color}66` : '1px solid #27272a', borderRadius: '0.75rem', padding: '0.9rem 1rem' }}>
                                             <div style={{ display: 'grid', gridTemplateColumns: '34px minmax(170px, 1fr) 170px 44px 44px', gap: '0.75rem', alignItems: 'center' }}>
                                                 <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: `${color}22`, border: `1px solid ${color}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color, fontWeight: 700 }}>
                                                     {i + 1}
@@ -1581,7 +1581,7 @@ export default function ReviewPage() {
                                                 <button
                                                     onClick={() => setExpandedPlanSlot(isExpanded ? null : i)}
                                                     title={isExpanded ? 'Fechar briefing' : 'Editar briefing'}
-                                                    style={{ background: 'none', border: '1px solid rgba(245, 245, 245, 0.14)', borderRadius: '0.5rem', color: isExpanded ? color : 'rgba(245, 245, 245, 0.7)', cursor: 'pointer', padding: '0.45rem', fontSize: '0.95rem' }}
+                                                    style={{ background: 'none', border: '1px solid #3f3f46', borderRadius: '0.5rem', color: isExpanded ? color : '#fff', cursor: 'pointer', padding: '0.45rem', fontSize: '0.95rem' }}
                                                 >
                                                     {isExpanded ? '▴' : '▾'}
                                                 </button>
@@ -1589,9 +1589,9 @@ export default function ReviewPage() {
                                                 <button
                                                     onClick={() => removeSlot(i)}
                                                     title="Remover slot"
-                                                    style={{ background: 'none', border: '1px solid rgba(245, 245, 245, 0.14)', borderRadius: '0.5rem', color: 'rgba(245, 245, 245, 0.55)', cursor: 'pointer', padding: '0.45rem', fontSize: '0.9rem' }}
-                                                    onMouseEnter={e => { (e.currentTarget).style.borderColor = '#f87171'; (e.currentTarget).style.color = '#f87171'; }}
-                                                    onMouseLeave={e => { (e.currentTarget).style.borderColor = 'rgba(245, 245, 245, 0.08)'; (e.currentTarget).style.color = 'rgba(245, 245, 245, 0.55)'; }}
+                                                    style={{ background: 'none', border: '1px solid #3f3f46', borderRadius: '0.5rem', color: '#fff', cursor: 'pointer', padding: '0.45rem', fontSize: '0.9rem' }}
+                                                    onMouseEnter={e => { (e.currentTarget).style.borderColor = 'rgba(255, 255, 255, 0.25)'; (e.currentTarget).style.color = '#fff'; }}
+                                                    onMouseLeave={e => { (e.currentTarget).style.borderColor = '#3f3f46'; (e.currentTarget).style.color = '#fff'; }}
                                                 >✕</button>
                                             </div>
 
@@ -1599,36 +1599,36 @@ export default function ReviewPage() {
                                                 <span style={{ fontSize: '0.75rem', color: color, background: `${color}14`, border: `1px solid ${color}33`, borderRadius: '999px', padding: '0.18rem 0.55rem' }}>
                                                     {slot.pillarName}
                                                 </span>
-                                                <span style={{ fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)' }}>
+                                                <span style={{ fontSize: '0.75rem', color: '#fff' }}>
                                                     {slot.slotKind === 'story' ? 'Story' : 'Post'} · sem data
                                                 </span>
                                                 {slot.customTopic && (
-                                                    <span style={{ fontSize: '0.75rem', color: '#F5F5F5', background: '#25292F', borderRadius: '999px', padding: '0.18rem 0.55rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#fff', background: 'rgba(255,255,255,0.04)', borderRadius: '999px', padding: '0.18rem 0.55rem' }}>
                                                         Tema: {slot.customTopic}
                                                     </span>
                                                 )}
                                                 {slot.format === 'carousel-premium' && (
-                                                    <span style={{ fontSize: '0.75rem', color: '#f5d0fe', background: 'rgba(245, 245, 245, 0.12)', border: '1px solid rgba(245, 245, 245, 0.28)', borderRadius: '999px', padding: '0.18rem 0.55rem' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#fff', background: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '999px', padding: '0.18rem 0.55rem' }}>
                                                         {slot.slideCount || REVIEW_MODE_PREMIUM_CAROUSEL_SLIDE_COUNT} slides
                                                     </span>
                                                 )}
                                             </div>
 
                                             {isExpanded && (
-                                                <div style={{ marginTop: '0.9rem', paddingTop: '0.9rem', borderTop: '1px solid rgba(245, 245, 245, 0.08)', display: 'grid', gap: '0.75rem' }}>
+                                                <div style={{ marginTop: '0.9rem', paddingTop: '0.9rem', borderTop: '1px solid #27272a', display: 'grid', gap: '0.75rem' }}>
                                                     <div>
-                                                        <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.7)' }}>
+                                                        <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.75rem', color: '#fff' }}>
                                                             Conteúdo / tema a gerar (opcional)
                                                         </label>
                                                         <input
                                                             value={slot.customTopic || ''}
                                                             onChange={e => updateSlotField(i, 'customTopic', e.target.value)}
                                                             placeholder="Se quiser, defina um tema específico. Se deixar em branco, a IA usa o pilar e o contexto da marca."
-                                                            style={{ width: '100%', background: '#0C1014', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.5rem', color: '#F5F5F5', padding: '0.75rem', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                                            style={{ width: '100%', background: '#09090b', border: '1px solid #27272a', borderRadius: '0.5rem', color: '#fff', padding: '0.75rem', fontSize: '0.85rem', boxSizing: 'border-box' }}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.7)' }}>
+                                                        <label style={{ display: 'block', marginBottom: '0.35rem', fontSize: '0.75rem', color: '#fff' }}>
                                                             Descrição / input extra para a IA (opcional)
                                                         </label>
                                                         <textarea
@@ -1636,9 +1636,9 @@ export default function ReviewPage() {
                                                             onChange={e => updateSlotField(i, 'customBriefing', e.target.value)}
                                                             rows={4}
                                                             placeholder="Se quiser, detalhe instruções extras. Se deixar em branco, a IA gera só com base no pilar e nas informações da marca."
-                                                            style={{ width: '100%', background: '#0C1014', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.5rem', color: '#F5F5F5', padding: '0.75rem', fontSize: '0.85rem', resize: 'vertical', boxSizing: 'border-box' }}
+                                                            style={{ width: '100%', background: '#09090b', border: '1px solid #27272a', borderRadius: '0.5rem', color: '#fff', padding: '0.75rem', fontSize: '0.85rem', resize: 'vertical', boxSizing: 'border-box' }}
                                                         />
-                                                        <p style={{ margin: '0.4rem 0 0', fontSize: '0.72rem', color: 'rgba(245, 245, 245, 0.55)' }}>
+                                                        <p style={{ margin: '0.4rem 0 0', fontSize: '0.72rem', color: '#fff' }}>
                                                             Você pode deixar os dois campos vazios.
                                                         </p>
                                                     </div>
@@ -1650,9 +1650,9 @@ export default function ReviewPage() {
 
                                 <button
                                     onClick={addSlot}
-                                    style={{ background: 'none', border: '1px dashed rgba(245, 245, 245, 0.14)', borderRadius: '0.5rem', padding: '0.7rem 1rem', color: 'rgba(245, 245, 245, 0.55)', cursor: 'pointer', fontSize: '0.8rem', textAlign: 'left', transition: 'all 0.15s' }}
-                                    onMouseEnter={e => { (e.currentTarget).style.borderColor = 'rgba(245, 245, 245, 0.3)'; (e.currentTarget).style.color = '#EAEBEB'; }}
-                                    onMouseLeave={e => { (e.currentTarget).style.borderColor = 'rgba(245, 245, 245, 0.08)'; (e.currentTarget).style.color = 'rgba(245, 245, 245, 0.55)'; }}
+                                    style={{ background: 'none', border: '1px dashed #3f3f46', borderRadius: '0.5rem', padding: '0.7rem 1rem', color: '#fff', cursor: 'pointer', fontSize: '0.8rem', textAlign: 'left', transition: 'all 0.15s' }}
+                                    onMouseEnter={e => { (e.currentTarget).style.borderColor = 'rgba(255, 255, 255, 0.25)'; (e.currentTarget).style.color = '#fff'; }}
+                                    onMouseLeave={e => { (e.currentTarget).style.borderColor = '#3f3f46'; (e.currentTarget).style.color = '#fff'; }}
                                 >
                                     + Adicionar slot
                                 </button>
@@ -1660,13 +1660,13 @@ export default function ReviewPage() {
                         )}
 
                         {!allChecksOk && editablePlan.length > 0 && (
-                            <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '0.5rem', fontSize: '0.875rem', color: '#fca5a5' }}>
+                            <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '0.5rem', fontSize: '0.875rem', color: '#fff' }}>
                                 Corrija as verificações ao lado antes de gerar o conteúdo.
                             </div>
                         )}
 
                         {preview.checks.hasAccount === false && !automaticPublishingRequiresAccount && canAdvanceToApprove && (
-                            <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '0.5rem', fontSize: '0.875rem', color: '#fbbf24' }}>
+                            <div style={{ marginTop: '1rem', padding: '0.875rem 1rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '0.5rem', fontSize: '0.875rem', color: '#fff' }}>
                                 Você pode seguir para a aprovação do plano e gerar os rascunhos agora. A conta do Instagram só será exigida quando for aprovar/publicar os posts.
                             </div>
                         )}
@@ -1686,19 +1686,19 @@ export default function ReviewPage() {
         return (
             <div style={{ maxWidth: '640px', margin: '0 auto' }}>
                 {/* Header */}
-                <div style={{ background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', padding: '1.5rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '0.75rem', padding: '1.5rem', marginBottom: '1.5rem' }}>
                     <h2 style={{ margin: '0 0 0.25rem' }}>Confirmar plano de geração</h2>
-                    <p style={{ margin: 0, color: 'rgba(245, 245, 245, 0.55)', fontSize: '0.875rem' }}>
-                        Revise os {editablePlan.length} conteúdos que serão gerados para <strong style={{ color: '#F5F5F5' }}>{profile.name}</strong>. Após confirmar, a IA começará a criar as imagens e captions usando o contexto ajustado do perfil.
+                    <p style={{ margin: 0, color: '#fff', fontSize: '0.875rem' }}>
+                        Revise os {editablePlan.length} conteúdos que serão gerados para <strong style={{ color: '#fff' }}>{profile.name}</strong>. Após confirmar, a IA começará a criar as imagens e captions usando o contexto ajustado do perfil.
                     </p>
-                    <p style={{ margin: '0.6rem 0 0', color: '#93c5fd', fontSize: '0.8rem' }}>
+                    <p style={{ margin: '0.6rem 0 0', color: '#fff', fontSize: '0.8rem' }}>
                         🗓️ Os rascunhos nascem sem data. O dia e o horário são definidos na aprovação de cada post, no próximo horário livre do cronograma.
                     </p>
                 </div>
 
                 {/* Plan table — editable preview */}
-                <div style={{ background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', overflow: 'hidden', marginBottom: '1.5rem' }}>
-                    <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid rgba(245, 245, 245, 0.08)', display: 'grid', gridTemplateColumns: '2rem 1fr 110px 1.6fr 2rem', gap: '0.75rem', fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '0.75rem', overflow: 'hidden', marginBottom: '1.5rem' }}>
+                    <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #27272a', display: 'grid', gridTemplateColumns: '2rem 1fr 110px 1.6fr 2rem', gap: '0.75rem', fontSize: '0.7rem', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         <span>#</span>
                         <span>Pilar</span>
                         <span>Formato</span>
@@ -1706,7 +1706,7 @@ export default function ReviewPage() {
                         <span></span>
                     </div>
                     {editablePlan.map((slot, i) => {
-                        const color = pillarColorMap[slot.pillarId] || '#EAEBEB';
+                        const color = pillarColorMap[slot.pillarId] || '#fff';
                         const pillarObj = preview?.pillars.find(p => p.id === slot.pillarId);
                         const availableFormats = pillarObj?.formats || Object.keys(FORMAT_LABELS);
                         return (
@@ -1714,9 +1714,9 @@ export default function ReviewPage() {
                                 <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: `${color}22`, border: `1px solid ${color}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color, fontWeight: 700 }}>{i + 1}</span>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                     <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, flexShrink: 0 }} />
-                                    <span style={{ fontSize: '0.75rem', color: '#F5F5F5' }}>{slot.pillarName}</span>
+                                    <span style={{ fontSize: '0.75rem', color: '#fff' }}>{slot.pillarName}</span>
                                     {slot.format === 'carousel-premium' && (
-                                        <span style={{ fontSize: '0.68rem', color: '#EAEBEB', whiteSpace: 'nowrap' }}>
+                                        <span style={{ fontSize: '0.68rem', color: '#fff', whiteSpace: 'nowrap' }}>
                                             {slot.slideCount || REVIEW_MODE_PREMIUM_CAROUSEL_SLIDE_COUNT} slides
                                         </span>
                                     )}
@@ -1737,22 +1737,22 @@ export default function ReviewPage() {
                                         onChange={e => updateSlotField(i, 'customTopic', e.target.value)}
                                         placeholder="Tema..."
                                         className="input"
-                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem', width: '100%', background: '#25292F' }}
+                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem', width: '100%', background: 'rgba(255,255,255,0.02)' }}
                                     />
                                     <input
                                         value={slot.customBriefing || ''}
                                         onChange={e => updateSlotField(i, 'customBriefing', e.target.value)}
                                         placeholder="Briefing (opcional)..."
                                         className="input"
-                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.7rem', width: '100%', color: 'rgba(245, 245, 245, 0.7)', background: 'transparent' }}
+                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.7rem', width: '100%', color: '#fff', background: 'transparent' }}
                                     />
                                 </div>
                                 <button
                                     onClick={() => removeSlot(i)}
                                     title="Remover"
-                                    style={{ background: 'none', border: 'none', color: 'rgba(245, 245, 245, 0.4)', cursor: 'pointer', fontSize: '0.9rem', padding: '0.1rem 0.3rem', borderRadius: '0.25rem', transition: 'color 0.15s' }}
-                                    onMouseEnter={e => (e.target as HTMLElement).style.color = '#f87171'}
-                                    onMouseLeave={e => (e.target as HTMLElement).style.color = 'rgba(245, 245, 245, 0.4)'}
+                                    style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '0.9rem', padding: '0.1rem 0.3rem', borderRadius: '0.25rem', transition: 'color 0.15s' }}
+                                    onMouseEnter={e => (e.target as HTMLElement).style.color = '#fff'}
+                                    onMouseLeave={e => (e.target as HTMLElement).style.color = '#fff'}
                                 >✕</button>
                             </div>
                         );
@@ -1761,7 +1761,7 @@ export default function ReviewPage() {
 
                 {/* Warning if no account */}
                 {!preview.checks.hasAccount && (
-                    <div style={{ padding: '0.875rem 1rem', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '0.5rem', fontSize: '0.875rem', color: '#fbbf24', marginBottom: '1.5rem' }}>
+                    <div style={{ padding: '0.875rem 1rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '0.5rem', fontSize: '0.875rem', color: '#fff', marginBottom: '1.5rem' }}>
                         ⚠️ Nenhuma conta Instagram vinculada. Os posts serão gerados como rascunhos e você precisará vincular uma conta antes de aprová-los.
                     </div>
                 )}
@@ -1807,34 +1807,34 @@ export default function ReviewPage() {
             <div style={{ textAlign: 'center', padding: '4rem 2rem', maxWidth: '600px', margin: '0 auto' }}>
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤖</div>
                 <h2 style={{ marginBottom: '0.5rem' }}>Gerando conteúdo...</h2>
-                <p style={{ color: 'rgba(245, 245, 245, 0.55)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+                <p style={{ color: '#fff', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
                     A IA está criando imagens, carrosséis e captions de acordo com a sua estratégia.
                 </p>
                 
                 {total > 0 ? (
-                    <div style={{ textAlign: 'left', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', padding: '1.5rem', borderRadius: '0.75rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'rgba(245, 245, 245, 0.7)' }}>
+                    <div style={{ textAlign: 'left', background: '#18181b', border: '1px solid #27272a', padding: '1.5rem', borderRadius: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#fff' }}>
                             <span>Progresso</span>
                             <span>{progressPct}% ({completed.length}/{total})</span>
                         </div>
-                        <div style={{ height: '6px', background: '#25292F', borderRadius: '3px', overflow: 'hidden', marginBottom: '1.5rem' }}>
-                            <div style={{ width: `${progressPct}%`, height: '100%', background: '#F5F5F5', transition: 'width 0.3s ease' }} />
+                        <div style={{ height: '6px', background: '#27272a', borderRadius: '3px', overflow: 'hidden', marginBottom: '1.5rem' }}>
+                            <div style={{ width: `${progressPct}%`, height: '100%', background: '#3f3f46', transition: 'width 0.3s ease' }} />
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {completed.map(item => (
-                                <div key={'done-' + item.index} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#0C1014', borderRadius: '0.5rem', border: '1px solid rgba(245, 245, 245, 0.08)' }}>
+                                <div key={'done-' + item.index} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#09090b', borderRadius: '0.5rem', border: '1px solid #27272a' }}>
                                     <span style={{ fontSize: '1.1rem' }}>{item.status === 'done' ? '✅' : '❌'}</span>
                                     <span style={{ fontSize: '1.1rem' }} title={item.format}>{FORMAT_ICONS[item.format] || '🖼️'}</span>
-                                    <span style={{ fontSize: '0.9rem', color: '#F5F5F5', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</span>
+                                    <span style={{ fontSize: '0.9rem', color: '#fff', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</span>
                                 </div>
                             ))}
 
                             {currentIdx >= 0 && currentIdx < total && !completed.find(c => c.index === currentIdx) && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#0C1014', borderRadius: '0.5rem', border: '1px solid #7c3aed40' }}>
-                                    <div style={{ width: '1.1rem', height: '1.1rem', borderRadius: '50%', border: '2px solid rgba(245, 245, 245, 0.4)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', marginLeft: '2px' }} />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#09090b', borderRadius: '0.5rem', border: '1px solid #7c3aed40' }}>
+                                    <div style={{ width: '1.1rem', height: '1.1rem', borderRadius: '50%', border: '2px solid rgba(255, 255, 255, 0.25)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', marginLeft: '2px' }} />
                                     <span style={{ fontSize: '1.1rem' }}>⏳</span>
-                                    <span style={{ fontSize: '0.9rem', color: '#F5F5F5', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    <span style={{ fontSize: '0.9rem', color: '#fff', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         Gerando: {job?.currentPostTitle || 'Processando...'}
                                     </span>
                                 </div>
@@ -1843,10 +1843,10 @@ export default function ReviewPage() {
                             {Array.from({ length: total }).map((_, idx) => {
                                 if (idx <= currentIdx) return null;
                                 return (
-                                    <div key={'wait-' + idx} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#0C1014', borderRadius: '0.5rem', border: '1px solid rgba(245, 245, 245, 0.08)', opacity: 0.5 }}>
+                                    <div key={'wait-' + idx} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: '#09090b', borderRadius: '0.5rem', border: '1px solid #27272a', opacity: 0.5 }}>
                                         <span style={{ fontSize: '1.1rem' }}>⏳</span>
                                         <span style={{ fontSize: '1.1rem' }}>—</span>
-                                        <span style={{ fontSize: '0.9rem', color: 'rgba(245, 245, 245, 0.7)' }}>Aguardando...</span>
+                                        <span style={{ fontSize: '0.9rem', color: '#fff' }}>Aguardando...</span>
                                     </div>
                                 );
                             })}
@@ -1857,14 +1857,14 @@ export default function ReviewPage() {
                     <>
                         <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', marginBottom: '2rem' }}>
                             {[0, 1, 2].map(i => (
-                                <div key={i} style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F5F5F5', animation: `pulse 1.2s ease-in-out ${i * 0.4}s infinite` }} />
+                                <div key={i} style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3f3f46', animation: `pulse 1.2s ease-in-out ${i * 0.4}s infinite` }} />
                             ))}
                         </div>
                         <style>{`@keyframes pulse { 0%,100%{opacity:0.3;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.2)} }`}</style>
                     </>
                 )}
 
-                <p style={{ color: 'rgba(245, 245, 245, 0.4)', fontSize: '0.875rem', marginTop: '2rem' }}>
+                <p style={{ color: '#fff', fontSize: '0.875rem', marginTop: '2rem' }}>
                     ⏱ {elapsed} — atualizando
                 </p>
             </div>
@@ -1938,7 +1938,7 @@ export default function ReviewPage() {
                     <div>
                         <h2 style={{ margin: 0 }}>Mesa de Revisão</h2>
                         {generationResult && (
-                            <p style={{ margin: '0.25rem 0 0', color: 'rgba(245, 245, 245, 0.55)', fontSize: '0.875rem' }}>
+                            <p style={{ margin: '0.25rem 0 0', color: '#fff', fontSize: '0.875rem' }}>
                                 {generationResult.generated} posts gerados{generationResult.failed > 0 ? ` · ${generationResult.failed} falharam` : ''}
                             </p>
                         )}
@@ -1989,8 +1989,7 @@ export default function ReviewPage() {
                                 className="btn btn-primary"
                                 style={{
                                     fontSize: '0.875rem',
-                                    background: '#F5F5F5',
-                                    color: '#0C1014',
+                                    background: '#3f3f46',
                                     fontWeight: '700'
                                 }}
                             >
@@ -1999,7 +1998,7 @@ export default function ReviewPage() {
                         )}
                         {visibleDrafts.length > 1 && visibleDrafts.length !== drafts.length && (
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button onClick={() => handleRejectAll(visibleDrafts)} className="btn btn-secondary" style={{ fontSize: '0.875rem', border: '1px solid #ef4444', color: '#ef4444' }}>
+                                <button onClick={() => handleRejectAll(visibleDrafts)} className="btn btn-secondary" style={{ fontSize: '0.875rem', border: '1px solid rgba(255, 255, 255, 0.25)', color: '#fff' }}>
                                     🗑️ Rejeitar seção ({visibleDrafts.length})
                                 </button>
                             </div>
@@ -2008,8 +2007,8 @@ export default function ReviewPage() {
                 </div>
 
                 {recentGeneratedDraftIds.length > 0 && (
-                    <div style={{ marginBottom: '1.25rem', padding: '0.9rem 1rem', borderRadius: '0.75rem', background: 'rgba(245, 245, 245, 0.1)', border: '1px solid rgba(245, 245, 245, 0.25)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                        <div style={{ color: '#EAEBEB', fontSize: '0.85rem' }}>
+                    <div style={{ marginBottom: '1.25rem', padding: '0.9rem 1rem', borderRadius: '0.75rem', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.25)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                        <div style={{ color: '#fff', fontSize: '0.85rem' }}>
                             Exibindo apenas os {recentGeneratedDraftIds.length} rascunhos gerados nesta execução para este perfil.
                         </div>
                         <button
@@ -2024,13 +2023,13 @@ export default function ReviewPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.9rem', marginBottom: '1.25rem' }}>
                     {[
-                        { label: 'Inbox', value: filteredDrafts.length, color: '#60a5fa' },
-                        { label: 'Selecionados', value: selectedDraftIds.length, color: '#EAEBEB' },
-                        { label: 'Conflitos', value: conflicts.length, color: conflicts.length > 0 ? '#f87171' : '#34d399' },
-                        { label: 'Buracos', value: gaps, color: gaps > 0 ? '#fbbf24' : '#34d399' },
+                        { label: 'Inbox', value: filteredDrafts.length, color: '#fff' },
+                        { label: 'Selecionados', value: selectedDraftIds.length, color: '#fff' },
+                        { label: 'Conflitos', value: conflicts.length, color: '#fff' },
+                        { label: 'Buracos', value: gaps, color: '#fff' },
                     ].map(card => (
-                        <div key={card.label} style={{ background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', padding: '1rem' }}>
-                            <div style={{ fontSize: '0.72rem', color: 'rgba(245, 245, 245, 0.55)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>{card.label}</div>
+                        <div key={card.label} style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '0.75rem', padding: '1rem' }}>
+                            <div style={{ fontSize: '0.72rem', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>{card.label}</div>
                             <div style={{ fontSize: '1.6rem', fontWeight: 700, color: card.color }}>{card.value}</div>
                         </div>
                     ))}
@@ -2039,19 +2038,19 @@ export default function ReviewPage() {
                 {(conflicts.length > 0 || gaps > 0) && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
                         {conflicts.length > 0 && (
-                            <div style={{ padding: '1rem', borderRadius: '0.75rem', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                                <div style={{ color: '#fca5a5', fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.35rem' }}>Conflitos de agenda</div>
+                            <div style={{ padding: '1rem', borderRadius: '0.75rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                                <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.35rem' }}>Conflitos de agenda</div>
                                 {conflicts.slice(0, 3).map(conflict => (
-                                    <div key={conflict.key} style={{ color: '#fecaca', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                                    <div key={conflict.key} style={{ color: '#fff', fontSize: '0.8rem', marginTop: '0.25rem' }}>
                                         {formatDate(conflict.items[0]?.scheduledFor)} · {conflict.items.length} itens
                                     </div>
                                 ))}
                             </div>
                         )}
                         {gaps > 0 && (
-                            <div style={{ padding: '1rem', borderRadius: '0.75rem', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
-                                <div style={{ color: '#fbbf24', fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.35rem' }}>Buracos na agenda</div>
-                                <div style={{ color: '#fde68a', fontSize: '0.8rem' }}>
+                            <div style={{ padding: '1rem', borderRadius: '0.75rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                                <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.35rem' }}>Buracos na agenda</div>
+                                <div style={{ color: '#fff', fontSize: '0.8rem' }}>
                                     Faltam {gaps} peças para atingir a meta semanal atual deste perfil.
                                 </div>
                             </div>
@@ -2060,11 +2059,11 @@ export default function ReviewPage() {
                 )}
 
                 {selectedVisibleDrafts.length >= 2 && (
-                    <div style={{ marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)' }}>
+                    <div style={{ marginBottom: '1.25rem', padding: '1rem', borderRadius: '0.75rem', background: '#111113', border: '1px solid #27272a' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.9rem' }}>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: '1rem' }}>Comparação de variações</h3>
-                                <p style={{ margin: '0.3rem 0 0', color: 'rgba(245, 245, 245, 0.55)', fontSize: '0.8rem' }}>
+                                <p style={{ margin: '0.3rem 0 0', color: '#fff', fontSize: '0.8rem' }}>
                                     Selecione até 3 drafts desta seção para comparar lado a lado.
                                 </p>
                             </div>
@@ -2077,8 +2076,8 @@ export default function ReviewPage() {
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${selectedVisibleDrafts.length}, minmax(0, 1fr))`, gap: '1rem' }}>
                             {selectedVisibleDrafts.map(draft => (
-                                <div key={draft.id} style={{ background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', overflow: 'hidden' }}>
-                                    <div style={{ aspectRatio: getDraftAspectRatio(draft), background: '#0C1014' }}>
+                                <div key={draft.id} style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                                    <div style={{ aspectRatio: getDraftAspectRatio(draft), background: '#09090b' }}>
                                         {draft.htmlContent ? (
                                             <iframe
                                                 srcDoc={cleanHtmlCarousel(draft.htmlContent)}
@@ -2091,10 +2090,10 @@ export default function ReviewPage() {
                                         )}
                                     </div>
                                     <div style={{ padding: '0.85rem' }}>
-                                        <div style={{ fontSize: '0.75rem', color: '#EAEBEB', marginBottom: '0.35rem' }}>
+                                        <div style={{ fontSize: '0.75rem', color: '#fff', marginBottom: '0.35rem' }}>
                                             {draft.pillarName || 'Sem pilar'} · {getCampaignLabel(draft.scheduledFor, draft.createdAt)}
                                         </div>
-                                        <div style={{ fontSize: '0.8rem', color: '#F5F5F5', lineHeight: 1.45 }}>
+                                        <div style={{ fontSize: '0.8rem', color: '#fff', lineHeight: 1.45 }}>
                                             {(editingCaption[draft.id] ?? draft.caption ?? '').slice(0, 180) || 'Sem texto'}
                                         </div>
                                     </div>
@@ -2104,12 +2103,12 @@ export default function ReviewPage() {
                     </div>
                 )}
 
-                {loadingDrafts && <div style={{ textAlign: 'center', padding: '4rem', color: 'rgba(245, 245, 245, 0.4)' }}>Carregando...</div>}
+                {loadingDrafts && <div style={{ textAlign: 'center', padding: '4rem', color: '#fff' }}>Carregando...</div>}
 
                 {!loadingDrafts && drafts.length === 0 && (
-                    <div style={{ border: '2px dashed rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', padding: '4rem', textAlign: 'center', color: 'rgba(245, 245, 245, 0.4)' }}>
+                    <div style={{ border: '2px dashed #27272a', borderRadius: '0.75rem', padding: '4rem', textAlign: 'center', color: '#fff' }}>
                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-                        <h3 style={{ color: '#F5F5F5', marginBottom: '0.5rem' }}>Nenhum rascunho pendente</h3>
+                        <h3 style={{ color: '#fff', marginBottom: '0.5rem' }}>Nenhum rascunho pendente</h3>
                         <button onClick={() => setStep('plan')} className="btn btn-secondary" style={{ marginTop: '1rem' }}>
                             Criar novo plano
                         </button>
@@ -2128,9 +2127,9 @@ export default function ReviewPage() {
                                         style={{
                                             padding: '0.75rem 1rem',
                                             borderRadius: '999px',
-                                            border: isActive ? '1px solid rgba(245, 245, 245, 0.75)' : '1px solid rgba(245, 245, 245, 0.08)',
-                                            background: isActive ? 'rgba(245, 245, 245, 0.14)' : '#25292F',
-                                            color: isActive ? '#EAEBEB' : 'rgba(245, 245, 245, 0.7)',
+                                            border: isActive ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid #27272a',
+                                            background: isActive ? 'rgba(255, 255, 255, 0.07)' : '#18181b',
+                                            color: '#fff',
                                             cursor: 'pointer',
                                             fontSize: '0.85rem',
                                             display: 'flex',
@@ -2140,21 +2139,21 @@ export default function ReviewPage() {
                                     >
                                         <span>{tab.icon}</span>
                                         <span>{tab.label}</span>
-                                        <span style={{ color: isActive ? '#F5F5F5' : 'rgba(245, 245, 245, 0.55)' }}>{tabCounts[tab.key]}</span>
+                                        <span style={{ color: '#fff' }}>{tabCounts[tab.key]}</span>
                                     </button>
                                 );
                             })}
                         </div>
 
-                        <div style={{ marginBottom: '1rem', padding: '0.9rem 1rem', borderRadius: '0.75rem', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.85rem' }}>
-                            <strong style={{ color: '#F5F5F5' }}>{REVIEW_TABS.find(tab => tab.key === reviewTab)?.label}</strong>
+                        <div style={{ marginBottom: '1rem', padding: '0.9rem 1rem', borderRadius: '0.75rem', background: '#111113', border: '1px solid #27272a', color: '#fff', fontSize: '0.85rem' }}>
+                            <strong style={{ color: '#fff' }}>{REVIEW_TABS.find(tab => tab.key === reviewTab)?.label}</strong>
                             {' · '}
                             {reviewTab === 'feed' && 'preview com imagem, carrosséis HTML e caption/agendamento'}
                             {reviewTab === 'stories' && 'preview vertical com frames e elementos interativos'}
                         </div>
 
                         {visibleDrafts.length === 0 ? (
-                            <div style={{ border: '1px dashed rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', padding: '2.5rem', textAlign: 'center', color: 'rgba(245, 245, 245, 0.55)' }}>
+                            <div style={{ border: '1px dashed #27272a', borderRadius: '0.75rem', padding: '2.5rem', textAlign: 'center', color: '#fff' }}>
                                 Nenhum rascunho nesta seção para o filtro selecionado.
                             </div>
                         ) : (
@@ -2162,7 +2161,7 @@ export default function ReviewPage() {
                                 {visibleDrafts.map(draft => {
                                     const caption = editingCaption[draft.id] !== undefined ? editingCaption[draft.id] : (draft.caption || '');
                                     const pillarIdx = preview?.pillars.findIndex(p => p.id === draft.pillarId) ?? -1;
-                                    const color = pillarIdx >= 0 ? getPillarColor(pillarIdx) : '#EAEBEB';
+                                    const color = pillarIdx >= 0 ? getPillarColor(pillarIdx) : '#fff';
                                     const draftFormat = getDraftFormat(draft);
                                     const renderPremiumOverlay = shouldRenderPremiumOverlay(draft);
                                     const aspectRatio = getDraftAspectRatio(draft);
@@ -2182,10 +2181,10 @@ export default function ReviewPage() {
                                     const goToHtml = (n: number) => setSlideIndex(prev => ({ ...prev, [draft.id]: Math.max(0, Math.min(htmlTotal - 1, n)) }));
 
                                     return (
-                                        <div key={draft.id} style={{ background: '#25292F', border: selectedDraftIds.includes(draft.id) ? '1px solid rgba(245, 245, 245, 0.4)' : '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.75rem', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: selectedDraftIds.includes(draft.id) ? '0 0 0 1px rgba(245, 245, 245, 0.2)' : 'none' }}>
+                                        <div key={draft.id} style={{ background: '#18181b', border: selectedDraftIds.includes(draft.id) ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid #27272a', borderRadius: '0.75rem', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: selectedDraftIds.includes(draft.id) ? '0 0 0 1px rgba(0, 0, 0, 0.2)' : 'none' }}>
                                             {draft.htmlContent ? (
-                                                <div style={{ position: 'relative', aspectRatio, background: '#0C1014', overflow: 'hidden' }}>
-                                                    <label style={{ position: 'absolute', top: '0.55rem', left: '0.55rem', zIndex: 11, display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(12, 16, 20, 0.68)', borderRadius: '999px', padding: '0.25rem 0.5rem', color: '#F5F5F5', fontSize: '0.72rem' }}>
+                                                <div style={{ position: 'relative', aspectRatio, background: '#09090b', overflow: 'hidden' }}>
+                                                    <label style={{ position: 'absolute', top: '0.55rem', left: '0.55rem', zIndex: 11, display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(0,0,0,0.68)', borderRadius: '999px', padding: '0.25rem 0.5rem', color: '#fff', fontSize: '0.72rem' }}>
                                                         <input type="checkbox" checked={selectedDraftIds.includes(draft.id)} onChange={() => toggleDraftSelection(draft.id)} />
                                                         Comparar
                                                     </label>
@@ -2198,7 +2197,7 @@ export default function ReviewPage() {
                                                         title={`HTML Carousel Slide ${htmlIdx + 1}`}
                                                     />
                                                     {/* Badge */}
-                                                    <span style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(12, 16, 20, 0.7)', color: '#F5F5F5', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '999px', pointerEvents: 'none' }}>
+                                                    <span style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '999px', pointerEvents: 'none' }}>
                                                         🎨 HTML {htmlTotal > 1 ? `${htmlIdx + 1}/${htmlTotal}` : ''}
                                                     </span>
                                                     {/* Navigation arrows (only if more than 1 slide) */}
@@ -2207,25 +2206,25 @@ export default function ReviewPage() {
                                                             <button
                                                                 onClick={() => goToHtml(htmlIdx - 1)}
                                                                 disabled={htmlIdx === 0}
-                                                                style={{ position: 'absolute', left: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(12, 16, 20, 0.6)', border: 'none', color: '#F5F5F5', width: '30px', height: '30px', borderRadius: '50%', cursor: htmlIdx === 0 ? 'default' : 'pointer', opacity: htmlIdx === 0 ? 0.25 : 1, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+                                                                style={{ position: 'absolute', left: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', width: '30px', height: '30px', borderRadius: '50%', cursor: htmlIdx === 0 ? 'default' : 'pointer', opacity: htmlIdx === 0 ? 0.25 : 1, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
                                                             >‹</button>
                                                             <button
                                                                 onClick={() => goToHtml(htmlIdx + 1)}
                                                                 disabled={htmlIdx === htmlTotal - 1}
-                                                                style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(12, 16, 20, 0.6)', border: 'none', color: '#F5F5F5', width: '30px', height: '30px', borderRadius: '50%', cursor: htmlIdx === htmlTotal - 1 ? 'default' : 'pointer', opacity: htmlIdx === htmlTotal - 1 ? 0.25 : 1, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+                                                                style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', width: '30px', height: '30px', borderRadius: '50%', cursor: htmlIdx === htmlTotal - 1 ? 'default' : 'pointer', opacity: htmlIdx === htmlTotal - 1 ? 0.25 : 1, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
                                                             >›</button>
                                                             {/* Dot indicators */}
                                                             <div style={{ position: 'absolute', bottom: '0.5rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '0.3rem', zIndex: 10 }}>
                                                                 {htmlSlides.map((_, di) => (
-                                                                    <div key={di} onClick={() => goToHtml(di)} style={{ width: di === htmlIdx ? '16px' : '6px', height: '6px', borderRadius: '999px', background: di === htmlIdx ? '#F5F5F5' : 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'width 0.2s' }} />
+                                                                    <div key={di} onClick={() => goToHtml(di)} style={{ width: di === htmlIdx ? '16px' : '6px', height: '6px', borderRadius: '999px', background: di === htmlIdx ? '#fff' : 'rgba(255,255,255,0.45)', cursor: 'pointer', transition: 'width 0.2s' }} />
                                                                 ))}
                                                             </div>
                                                         </>
                                                     )}
                                                 </div>
                                             ) : total > 0 || currentMediaUrl ? (
-                                                <div style={{ position: 'relative', aspectRatio, background: '#0C1014', overflow: 'hidden' }}>
-                                                    <label style={{ position: 'absolute', top: '0.55rem', left: '0.55rem', zIndex: 11, display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(12, 16, 20, 0.68)', borderRadius: '999px', padding: '0.25rem 0.5rem', color: '#F5F5F5', fontSize: '0.72rem' }}>
+                                                <div style={{ position: 'relative', aspectRatio, background: '#09090b', overflow: 'hidden' }}>
+                                                    <label style={{ position: 'absolute', top: '0.55rem', left: '0.55rem', zIndex: 11, display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(0,0,0,0.68)', borderRadius: '999px', padding: '0.25rem 0.5rem', color: '#fff', fontSize: '0.72rem' }}>
                                                         <input type="checkbox" checked={selectedDraftIds.includes(draft.id)} onChange={() => toggleDraftSelection(draft.id)} />
                                                         Comparar
                                                     </label>
@@ -2241,22 +2240,22 @@ export default function ReviewPage() {
                                                     )}
                                                     {total > 1 && !renderPremiumOverlay && (
                                                         <>
-                                                            <span style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(12, 16, 20, 0.7)', color: '#F5F5F5', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '999px' }}>
+                                                            <span style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '999px' }}>
                                                                 {idx + 1} / {total}
                                                             </span>
                                                             <button
                                                                 onClick={() => goTo(idx - 1)}
                                                                 disabled={idx === 0}
-                                                                style={{ position: 'absolute', left: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(12, 16, 20, 0.55)', border: 'none', color: '#F5F5F5', width: '28px', height: '28px', borderRadius: '50%', cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                                style={{ position: 'absolute', left: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                                             >‹</button>
                                                             <button
                                                                 onClick={() => goTo(idx + 1)}
                                                                 disabled={idx === total - 1}
-                                                                style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(12, 16, 20, 0.55)', border: 'none', color: '#F5F5F5', width: '28px', height: '28px', borderRadius: '50%', cursor: idx === total - 1 ? 'default' : 'pointer', opacity: idx === total - 1 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                                style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', cursor: idx === total - 1 ? 'default' : 'pointer', opacity: idx === total - 1 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                                             >›</button>
                                                             <div style={{ position: 'absolute', bottom: '0.5rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '0.3rem' }}>
                                                                 {draft.mediaUrls.map((_, di) => (
-                                                                    <div key={di} onClick={() => goTo(di)} style={{ width: di === idx ? '16px' : '6px', height: '6px', borderRadius: '999px', background: di === idx ? '#F5F5F5' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'width 0.2s' }} />
+                                                                    <div key={di} onClick={() => goTo(di)} style={{ width: di === idx ? '16px' : '6px', height: '6px', borderRadius: '999px', background: di === idx ? '#fff' : 'rgba(255,255,255,0.4)', cursor: 'pointer', transition: 'width 0.2s' }} />
                                                                 ))}
                                                             </div>
                                                         </>
@@ -2267,12 +2266,12 @@ export default function ReviewPage() {
                                                             <button
                                                                 onClick={() => goTo(idx - 1)}
                                                                 disabled={idx === 0}
-                                                                style={{ position: 'absolute', left: '0.4rem', top: '30%', transform: 'translateY(-50%)', background: 'rgba(12, 16, 20, 0.55)', border: 'none', color: '#F5F5F5', width: '28px', height: '28px', borderRadius: '50%', cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}
+                                                                style={{ position: 'absolute', left: '0.4rem', top: '30%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}
                                                             >‹</button>
                                                             <button
                                                                 onClick={() => goTo(idx + 1)}
                                                                 disabled={idx === total - 1}
-                                                                style={{ position: 'absolute', right: '0.4rem', top: '30%', transform: 'translateY(-50%)', background: 'rgba(12, 16, 20, 0.55)', border: 'none', color: '#F5F5F5', width: '28px', height: '28px', borderRadius: '50%', cursor: idx === total - 1 ? 'default' : 'pointer', opacity: idx === total - 1 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}
+                                                                style={{ position: 'absolute', right: '0.4rem', top: '30%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', cursor: idx === total - 1 ? 'default' : 'pointer', opacity: idx === total - 1 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}
                                                             >›</button>
                                                         </>
                                                     )}
@@ -2306,10 +2305,10 @@ export default function ReviewPage() {
                                                                     position: 'relative',
                                                                     cursor: 'pointer',
                                                                     border: isActive
-                                                                        ? '2px solid rgba(245, 245, 245, 0.4)'
+                                                                        ? '2px solid rgba(255, 255, 255, 0.25)'
                                                                         : '2px solid rgba(255,255,255,0.08)',
                                                                     boxShadow: isActive
-                                                                        ? '0 0 0 1px rgba(245, 245, 245, 0.4)'
+                                                                        ? '0 0 0 1px rgba(0, 0, 0, 0.4)'
                                                                         : 'none',
                                                                     transition: 'border-color 0.15s, box-shadow 0.15s',
                                                                     opacity: isActive ? 1 : 0.65,
@@ -2326,7 +2325,7 @@ export default function ReviewPage() {
                                                                     right: '3px',
                                                                     fontSize: '9px',
                                                                     fontWeight: 700,
-                                                                    color: isActive ? '#EAEBEB' : 'rgba(255,255,255,0.5)',
+                                                                    color: '#fff',
                                                                     lineHeight: 1,
                                                                     pointerEvents: 'none',
                                                                 }}>
@@ -2340,22 +2339,22 @@ export default function ReviewPage() {
 
                                             {/* ── Refinar imagem com IA ────────────────────────── */}
                                             {!draft.htmlContent && (draft.mediaUrls?.length > 0) && (
-                                                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(245, 245, 245, 0.06)', borderTop: '1px solid rgba(245, 245, 245, 0.15)' }}>
+                                                <div style={{ padding: '0.6rem 0.75rem', background: 'rgba(255, 255, 255, 0.04)', borderTop: '1px solid rgba(255, 255, 255, 0.15)' }}>
                                                     {refinedPreview[draft.id] ? (
                                                         /* Show refined result with accept/discard */
                                                         <div>
-                                                            <p style={{ fontSize: '0.7rem', color: '#EAEBEB', marginBottom: '0.4rem', fontWeight: 600 }}>✨ Resultado do refinamento{total > 1 ? ` (slide ${idx + 1})` : ''}</p>
-                                                            <img src={refinedPreview[draft.id].imageUrl} alt="Refinada" style={{ width: '100%', maxHeight: '140px', objectFit: 'contain', borderRadius: '6px', marginBottom: '0.5rem', background: '#0C1014' }} />
+                                                            <p style={{ fontSize: '0.7rem', color: '#fff', marginBottom: '0.4rem', fontWeight: 600 }}>✨ Resultado do refinamento{total > 1 ? ` (slide ${idx + 1})` : ''}</p>
+                                                            <img src={refinedPreview[draft.id].imageUrl} alt="Refinada" style={{ width: '100%', maxHeight: '140px', objectFit: 'contain', borderRadius: '6px', marginBottom: '0.5rem', background: '#09090b' }} />
                                                             <div style={{ display: 'flex', gap: '0.4rem' }}>
                                                                 <button
                                                                     onClick={() => handleAcceptRefinement(draft)}
-                                                                    style={{ flex: 1, padding: '0.35rem', background: 'rgba(16,185,129,0.2)', border: '1px solid #10b981', borderRadius: '6px', color: '#6ee7b7', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
+                                                                    style={{ flex: 1, padding: '0.35rem', background: 'rgba(255, 255, 255, 0.10)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '6px', color: '#fff', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
                                                                 >
                                                                     ✅ Aplicar
                                                                 </button>
                                                                 <button
                                                                     onClick={() => setRefinedPreview(prev => { const n = { ...prev }; delete n[draft.id]; return n; })}
-                                                                    style={{ flex: 1, padding: '0.35rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', color: '#fca5a5', fontSize: '0.75rem', cursor: 'pointer' }}
+                                                                    style={{ flex: 1, padding: '0.35rem', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '6px', color: '#fff', fontSize: '0.75rem', cursor: 'pointer' }}
                                                                 >
                                                                     ✖ Descartar
                                                                 </button>
@@ -2370,12 +2369,12 @@ export default function ReviewPage() {
                                                                 value={refinePrompts[draft.id] || ''}
                                                                 onChange={e => setRefinePrompts(prev => ({ ...prev, [draft.id]: e.target.value }))}
                                                                 onKeyDown={e => e.key === 'Enter' && !refiningImage[draft.id] && handleRefineImage(draft, idx)}
-                                                                style={{ flex: 1, background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.3)', borderRadius: '6px', color: '#F5F5F5', padding: '0.35rem 0.5rem', fontSize: '0.75rem', fontFamily: 'inherit', outline: 'none' }}
+                                                                style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '6px', color: '#fff', padding: '0.35rem 0.5rem', fontSize: '0.75rem', fontFamily: 'inherit', outline: 'none' }}
                                                             />
                                                             <button
                                                                 onClick={() => handleRefineImage(draft, idx)}
                                                                 disabled={refiningImage[draft.id] || !refinePrompts[draft.id]?.trim()}
-                                                                style={{ padding: '0.35rem 0.6rem', background: refiningImage[draft.id] ? 'rgba(245, 245, 245, 0.2)' : 'rgba(245, 245, 245, 0.3)', border: '1px solid rgba(245, 245, 245, 0.5)', borderRadius: '6px', color: '#EAEBEB', fontSize: '0.75rem', cursor: refiningImage[draft.id] ? 'wait' : 'pointer', whiteSpace: 'nowrap', opacity: (!refinePrompts[draft.id]?.trim() && !refiningImage[draft.id]) ? 0.5 : 1 }}
+                                                                style={{ padding: '0.35rem 0.6rem', background: refiningImage[draft.id] ? 'rgba(255, 255, 255, 0.10)' : 'rgba(255, 255, 255, 0.12)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '6px', color: '#fff', fontSize: '0.75rem', cursor: refiningImage[draft.id] ? 'wait' : 'pointer', whiteSpace: 'nowrap', opacity: (!refinePrompts[draft.id]?.trim() && !refiningImage[draft.id]) ? 0.5 : 1 }}
                                                             >
                                                                 {refiningImage[draft.id] ? '⏳' : '✨'}
                                                             </button>
@@ -2392,42 +2391,42 @@ export default function ReviewPage() {
                                                         </span>
                                                     )}
                                                     {draftProfileFilter === 'all' && profileName && (
-                                                        <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: '#25292F', color: '#F5F5F5' }}>
+                                                        <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(255,255,255,0.06)', color: '#fff' }}>
                                                             🧩 {profileName}
                                                         </span>
                                                     )}
-                                                    <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: '#25292F', color: 'rgba(245, 245, 245, 0.55)' }}>
+                                                    <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(255,255,255,0.06)', color: '#fff' }}>
                                                         {FORMAT_ICONS[draftFormat]} {FORMAT_LABELS[draftFormat] || draftFormat}
                                                     </span>
-                                                    <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(245, 245, 245, 0.12)', color: '#EAEBEB' }}>
+                                                    <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.06)', color: '#fff' }}>
                                                         {isPausedStory(draft) ? 'Pausado para revisão' : getReviewStateLabel(draft.reviewState)}
                                                     </span>
                                                     {!isPausedStory(draft) && (draft.scheduledFor ? (
-                                                        <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: '#25292F', color: 'rgba(245, 245, 245, 0.55)' }}>
+                                                        <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(255,255,255,0.06)', color: '#fff' }}>
                                                             📅 {formatDate(draft.scheduledFor)}
                                                         </span>
                                                     ) : (
                                                         <span
                                                             title="A data é atribuída na aprovação, no próximo horário livre do cronograma."
-                                                            style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(148,163,184,0.12)', color: 'rgba(245, 245, 245, 0.55)', cursor: 'help' }}
+                                                            style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.06)', color: '#fff', cursor: 'help' }}
                                                         >
                                                             🕒 {slotProjection[draft.id] ? `Ao aprovar: ${formatDate(slotProjection[draft.id])}` : 'Sem data até a aprovação'}
                                                         </span>
                                                     ))}
-                                                    <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(96,165,250,0.12)', color: '#93c5fd' }}>
+                                                    <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.06)', color: '#fff' }}>
                                                         🎯 {getCampaignLabel(draft.scheduledFor, draft.createdAt)}
                                                     </span>
                                                     {getDraftQaWarnings(draft).length > 0 && (
                                                         <span
                                                             title={getDraftQaWarnings(draft).map(w => `• ${w.rule || 'regra'}: ${w.detail || ''}`).join('\n')}
-                                                            style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', color: '#fbbf24', cursor: 'help' }}
+                                                            style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(255, 255, 255, 0.07)', border: '1px solid rgba(255, 255, 255, 0.25)', color: '#fff', cursor: 'help' }}
                                                         >
                                                             ⚠️ {getDraftQaWarnings(draft).length} aviso{getDraftQaWarnings(draft).length > 1 ? 's' : ''} de marca
                                                         </span>
                                                     )}
                                                 </div>
 
-                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.75rem', color: 'rgba(245, 245, 245, 0.55)' }}>
+                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.75rem', color: '#fff' }}>
                                                     {tab === 'feed' && !draft.htmlContent && <span>{draft.draftModel || 'FeedPostDraft'}</span>}
                                                     {tab === 'feed' && draft.htmlContent && <span>🎨 {htmlSlides.length || draft.slideCount || 0} slide(s) HTML</span>}
                                                     {tab === 'feed' && draft.htmlContent && <span>exportação: {draft.exportStatus || 'not_exported'}</span>}
@@ -2436,13 +2435,13 @@ export default function ReviewPage() {
                                                 </div>
 
                                                 {!isPausedStory(draft) && <div>
-                                                    <label style={{ fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.4)', display: 'block', marginBottom: '0.3rem' }}>
-                                                        📅 Agendamento {!draft.scheduledFor && <span style={{ color: '#25292F' }}>(opcional)</span>}
+                                                    <label style={{ fontSize: '0.7rem', color: '#fff', display: 'block', marginBottom: '0.3rem' }}>
+                                                        📅 Agendamento {!draft.scheduledFor && <span style={{ color: '#3f3f46' }}>(opcional)</span>}
                                                     </label>
                                                     {!draft.scheduledFor && (
-                                                        <p style={{ margin: '0 0 0.35rem', fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.55)', lineHeight: 1.4 }}>
+                                                        <p style={{ margin: '0 0 0.35rem', fontSize: '0.7rem', color: '#fff', lineHeight: 1.4 }}>
                                                             {slotProjection[draft.id]
-                                                                ? <>Ao aprovar, vai para <strong style={{ color: 'rgba(245, 245, 245, 0.7)' }}>{formatDate(slotProjection[draft.id])}</strong> — o próximo horário livre. Preencha abaixo só se quiser outra data.</>
+                                                                ? <>Ao aprovar, vai para <strong style={{ color: '#fff' }}>{formatDate(slotProjection[draft.id])}</strong> — o próximo horário livre. Preencha abaixo só se quiser outra data.</>
                                                                 : <>Recebe o próximo horário livre do cronograma ao ser aprovado. Preencha abaixo só se quiser outra data.</>}
                                                         </p>
                                                     )}
@@ -2451,35 +2450,35 @@ export default function ReviewPage() {
                                                             type="datetime-local"
                                                             value={editingSchedule[draft.id] ?? formatDateTimeLocal(draft.scheduledFor)}
                                                             onChange={e => setEditingSchedule(prev => ({ ...prev, [draft.id]: e.target.value }))}
-                                                            style={{ flex: 1, background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.375rem', color: '#F5F5F5', padding: '0.4rem 0.5rem', fontSize: '0.8rem', fontFamily: 'inherit' }}
+                                                            style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid #27272a', borderRadius: '0.375rem', color: '#fff', padding: '0.4rem 0.5rem', fontSize: '0.8rem', fontFamily: 'inherit' }}
                                                         />
                                                         {editingSchedule[draft.id] !== undefined && (
                                                             <button
                                                                 onClick={() => handleSaveSchedule(draft.id)}
                                                                 disabled={savingSchedule[draft.id]}
-                                                                style={{ padding: '0.4rem 0.7rem', background: '#F5F5F5', border: 'none', borderRadius: '0.375rem', color: '#0C1014', fontSize: '0.75rem', cursor: 'pointer', opacity: savingSchedule[draft.id] ? 0.5 : 1 }}
+                                                                style={{ padding: '0.4rem 0.7rem', background: '#3f3f46', border: 'none', borderRadius: '0.375rem', color: '#fff', fontSize: '0.75rem', cursor: 'pointer', opacity: savingSchedule[draft.id] ? 0.5 : 1 }}
                                                             >
                                                                 {savingSchedule[draft.id] ? '...' : '✓'}
                                                             </button>
                                                         )}
                                                     </div>
                                                     {draft.scheduledFor && (
-                                                        <button onClick={() => { setEditingSchedule(prev => ({ ...prev, [draft.id]: '' })); }} disabled={savingSchedule[draft.id]} style={{ marginTop: '0.35rem', background: 'transparent', border: 0, color: '#EAEBEB', cursor: 'pointer', fontSize: '0.75rem' }}>
+                                                        <button onClick={() => { setEditingSchedule(prev => ({ ...prev, [draft.id]: '' })); }} disabled={savingSchedule[draft.id]} style={{ marginTop: '0.35rem', background: 'transparent', border: 0, color: '#fff', cursor: 'pointer', fontSize: '0.75rem' }}>
                                                             Usar próximo horário livre (depois clique em ✓)
                                                         </button>
                                                     )}
                                                 </div>}
 
                                                 <div>
-                                                    <label style={{ fontSize: '0.7rem', color: 'rgba(245, 245, 245, 0.4)', display: 'block', marginBottom: '0.3rem' }}>{getCaptionLabel(draft)}</label>
+                                                    <label style={{ fontSize: '0.7rem', color: '#fff', display: 'block', marginBottom: '0.3rem' }}>{getCaptionLabel(draft)}</label>
                                                     <textarea
                                                         value={caption}
                                                         onChange={e => setEditingCaption(prev => ({ ...prev, [draft.id]: e.target.value }))}
                                                         rows={4}
-                                                        style={{ width: '100%', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.375rem', color: '#F5F5F5', padding: '0.5rem', fontSize: '0.8rem', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, boxSizing: 'border-box' }}
+                                                        style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid #27272a', borderRadius: '0.375rem', color: '#fff', padding: '0.5rem', fontSize: '0.8rem', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5, boxSizing: 'border-box' }}
                                                     />
                                                     {editingCaption[draft.id] !== undefined && editingCaption[draft.id] !== (draft.caption || '') && (
-                                                        <p style={{ fontSize: '0.7rem', color: '#60a5fa', margin: '0.2rem 0 0' }}>Editado · será salvo ao aprovar</p>
+                                                        <p style={{ fontSize: '0.7rem', color: '#fff', margin: '0.2rem 0 0' }}>Editado · será salvo ao aprovar</p>
                                                     )}
                                                 </div>
 
@@ -2516,7 +2515,7 @@ export default function ReviewPage() {
                                                     <button
                                                         onClick={() => setRejectingDraft(draft)}
                                                         disabled={actioning[draft.id]}
-                                                        style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem', background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '0.375rem', cursor: 'pointer', opacity: actioning[draft.id] ? 0.4 : 1 }}
+                                                        style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem', background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.25)', color: '#fff', borderRadius: '0.375rem', cursor: 'pointer', opacity: actioning[draft.id] ? 0.4 : 1 }}
                                                         title="Rejeitar rascunho"
                                                     >
                                                         ❌
@@ -2539,11 +2538,11 @@ export default function ReviewPage() {
         const isLoading = actioning[rejectingDraft.id];
 
         return (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(12, 16, 20, 0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '1rem' }}>
-                <div style={{ background: '#25292F', border: '1px solid #ef444444', borderRadius: '1rem', width: '100%', maxWidth: '400px', padding: '2rem', textAlign: 'center' }}>
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '1rem' }}>
+                <div style={{ background: '#18181b', border: '1px solid #ef444444', borderRadius: '1rem', width: '100%', maxWidth: '400px', padding: '2rem', textAlign: 'center' }}>
                     <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>🗑️</div>
-                    <h3 style={{ margin: '0 0 1rem', color: '#F5F5F5' }}>Descartar Rascunho?</h3>
-                    <p style={{ color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.9rem', marginBottom: '2rem', lineHeight: 1.5 }}>
+                    <h3 style={{ margin: '0 0 1rem', color: '#fff' }}>Descartar Rascunho?</h3>
+                    <p style={{ color: '#fff', fontSize: '0.9rem', marginBottom: '2rem', lineHeight: 1.5 }}>
                         Tem certeza que deseja remover este conteúdo da mesa de revisão? Esta ação não pode ser desfeita.
                     </p>
 
@@ -2560,7 +2559,7 @@ export default function ReviewPage() {
                             onClick={() => handleReject(rejectingDraft.id)}
                             disabled={isLoading}
                             className="btn btn-primary"
-                            style={{ flex: 1, padding: '0.75rem', background: '#ef4444', borderColor: '#ef4444' }}
+                            style={{ flex: 1, padding: '0.75rem', background: '#3f3f46', borderColor: 'rgba(255, 255, 255, 0.25)' }}
                         >
                             {isLoading ? '...' : 'Sim, Descartar'}
                         </button>
@@ -2590,21 +2589,21 @@ export default function ReviewPage() {
         const htmlModalSlideTotal = htmlModalSlides.length;
 
         return (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(12, 16, 20, 0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '2rem' }}>
-                <div style={{ background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '1rem', width: '100%', maxWidth: '850px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ padding: '1.25rem', borderBottom: '1px solid rgba(245, 245, 245, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '2rem' }}>
+                <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '1rem', width: '100%', maxWidth: '850px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ padding: '1.25rem', borderBottom: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <span style={{ fontSize: '1.5rem' }}>🎨</span>
                             <h3 style={{ margin: 0 }}>Aprovação Visual e Sincronização</h3>
                         </div>
-                        <button onClick={() => setConfirmingDraft(null)} style={{ background: 'transparent', border: 'none', color: 'rgba(245, 245, 245, 0.55)', cursor: 'pointer', fontSize: '1.5rem' }}>&times;</button>
+                        <button onClick={() => setConfirmingDraft(null)} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '1.5rem' }}>&times;</button>
                     </div>
 
                     <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
                         {/* Preview Area */}
-                        <div style={{ flex: 1, padding: '2rem', background: '#0C1014', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ flex: 1, padding: '2rem', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ position: 'relative', width: '100%', maxWidth: reviewTabForDraft === 'stories' ? '270px' : '320px', aspectRatio, background: '#000', borderRadius: '0.75rem', overflow: 'hidden', boxShadow: 'none', border: '1px solid rgba(245, 245, 245, 0.08)' }}>
+                                <div style={{ position: 'relative', width: '100%', maxWidth: reviewTabForDraft === 'stories' ? '270px' : '320px', aspectRatio, background: '#000', borderRadius: '0.75rem', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', border: '1px solid #27272a' }}>
                                     {isHtmlDraft ? (
                                         <>
                                             <iframe
@@ -2616,22 +2615,22 @@ export default function ReviewPage() {
                                             />
                                             {htmlModalSlideTotal > 1 && (
                                                 <>
-                                                    <span style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(12, 16, 20, 0.7)', color: '#F5F5F5', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '999px', zIndex: 10 }}>
+                                                    <span style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '999px', zIndex: 10 }}>
                                                         {htmlModalSlideIdx + 1} / {htmlModalSlideTotal}
                                                     </span>
                                                     <button
                                                         onClick={() => setSlideIndex(prev => ({ ...prev, [confirmingDraft.id]: Math.max(0, htmlModalSlideIdx - 1) }))}
                                                         disabled={htmlModalSlideIdx === 0}
-                                                        style={{ position: 'absolute', left: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(12, 16, 20, 0.55)', border: 'none', color: '#F5F5F5', width: '28px', height: '28px', borderRadius: '50%', cursor: htmlModalSlideIdx === 0 ? 'default' : 'pointer', opacity: htmlModalSlideIdx === 0 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+                                                        style={{ position: 'absolute', left: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', cursor: htmlModalSlideIdx === 0 ? 'default' : 'pointer', opacity: htmlModalSlideIdx === 0 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
                                                     >‹</button>
                                                     <button
                                                         onClick={() => setSlideIndex(prev => ({ ...prev, [confirmingDraft.id]: Math.min(htmlModalSlideTotal - 1, htmlModalSlideIdx + 1) }))}
                                                         disabled={htmlModalSlideIdx === htmlModalSlideTotal - 1}
-                                                        style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(12, 16, 20, 0.55)', border: 'none', color: '#F5F5F5', width: '28px', height: '28px', borderRadius: '50%', cursor: htmlModalSlideIdx === htmlModalSlideTotal - 1 ? 'default' : 'pointer', opacity: htmlModalSlideIdx === htmlModalSlideTotal - 1 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+                                                        style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', cursor: htmlModalSlideIdx === htmlModalSlideTotal - 1 ? 'default' : 'pointer', opacity: htmlModalSlideIdx === htmlModalSlideTotal - 1 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
                                                     >›</button>
                                                     <div style={{ position: 'absolute', bottom: '0.5rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '0.3rem', zIndex: 10 }}>
                                                         {htmlModalSlides.map((_, di) => (
-                                                            <div key={di} onClick={() => setSlideIndex(prev => ({ ...prev, [confirmingDraft.id]: di }))} style={{ width: di === htmlModalSlideIdx ? '14px' : '4px', height: '4px', borderRadius: di === htmlModalSlideIdx ? '2px' : '50%', background: di === htmlModalSlideIdx ? '#F5F5F5' : 'rgba(255,255,255,0.3)', cursor: 'pointer', transition: 'all 0.2s' }} />
+                                                            <div key={di} onClick={() => setSlideIndex(prev => ({ ...prev, [confirmingDraft.id]: di }))} style={{ width: di === htmlModalSlideIdx ? '14px' : '4px', height: '4px', borderRadius: di === htmlModalSlideIdx ? '2px' : '50%', background: di === htmlModalSlideIdx ? '#fff' : 'rgba(255,255,255,0.3)', cursor: 'pointer', transition: 'all 0.2s' }} />
                                                         ))}
                                                     </div>
                                                 </>
@@ -2651,22 +2650,22 @@ export default function ReviewPage() {
                                     {/* Carousel navigation arrows for premium carousels */}
                                     {renderPremiumOverlay && modalSlideTotal > 1 && (
                                         <>
-                                            <span style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(12, 16, 20, 0.7)', color: '#F5F5F5', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '999px', zIndex: 10 }}>
+                                            <span style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '999px', zIndex: 10 }}>
                                                 {modalSlideIdx + 1} / {modalSlideTotal}
                                             </span>
                                             <button
                                                 onClick={() => setSlideIndex(prev => ({ ...prev, [confirmingDraft.id]: Math.max(0, (prev[confirmingDraft.id] || 0) - 1) }))}
                                                 disabled={modalSlideIdx === 0}
-                                                style={{ position: 'absolute', left: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(12, 16, 20, 0.55)', border: 'none', color: '#F5F5F5', width: '28px', height: '28px', borderRadius: '50%', cursor: modalSlideIdx === 0 ? 'default' : 'pointer', opacity: modalSlideIdx === 0 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+                                                style={{ position: 'absolute', left: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', cursor: modalSlideIdx === 0 ? 'default' : 'pointer', opacity: modalSlideIdx === 0 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
                                             >‹</button>
                                             <button
                                                 onClick={() => setSlideIndex(prev => ({ ...prev, [confirmingDraft.id]: Math.min(modalSlideTotal - 1, (prev[confirmingDraft.id] || 0) + 1) }))}
                                                 disabled={modalSlideIdx === modalSlideTotal - 1}
-                                                style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(12, 16, 20, 0.55)', border: 'none', color: '#F5F5F5', width: '28px', height: '28px', borderRadius: '50%', cursor: modalSlideIdx === modalSlideTotal - 1 ? 'default' : 'pointer', opacity: modalSlideIdx === modalSlideTotal - 1 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+                                                style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', cursor: modalSlideIdx === modalSlideTotal - 1 ? 'default' : 'pointer', opacity: modalSlideIdx === modalSlideTotal - 1 ? 0.3 : 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
                                             >›</button>
                                             <div style={{ position: 'absolute', bottom: '0.5rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '0.3rem', zIndex: 10 }}>
                                                 {confirmingDraft.mediaUrls.map((_, di) => (
-                                                    <div key={di} onClick={() => setSlideIndex(prev => ({ ...prev, [confirmingDraft.id]: di }))} style={{ width: di === modalSlideIdx ? '14px' : '4px', height: '4px', borderRadius: di === modalSlideIdx ? '2px' : '50%', background: di === modalSlideIdx ? '#F5F5F5' : 'rgba(255,255,255,0.3)', cursor: 'pointer', transition: 'all 0.2s' }} />
+                                                    <div key={di} onClick={() => setSlideIndex(prev => ({ ...prev, [confirmingDraft.id]: di }))} style={{ width: di === modalSlideIdx ? '14px' : '4px', height: '4px', borderRadius: di === modalSlideIdx ? '2px' : '50%', background: di === modalSlideIdx ? '#fff' : 'rgba(255,255,255,0.3)', cursor: 'pointer', transition: 'all 0.2s' }} />
                                                 ))}
                                             </div>
                                         </>
@@ -2674,12 +2673,12 @@ export default function ReviewPage() {
                                 </div>
                                 {/* Slide count badge below preview */}
                                 {isHtmlDraft && htmlModalSlideTotal > 1 && (
-                                    <span style={{ fontSize: '0.72rem', color: 'rgba(245, 245, 245, 0.55)' }}>
+                                    <span style={{ fontSize: '0.72rem', color: '#fff' }}>
                                         🖼️ {htmlModalSlideTotal} slides HTML — navegue para revisar cada um
                                     </span>
                                 )}
                                 {renderPremiumOverlay && modalSlideTotal > 1 && (
-                                    <span style={{ fontSize: '0.72rem', color: 'rgba(245, 245, 245, 0.55)' }}>
+                                    <span style={{ fontSize: '0.72rem', color: '#fff' }}>
                                         ✨ {modalSlideTotal} slides — navegue para revisar cada um
                                     </span>
                                 )}
@@ -2687,16 +2686,16 @@ export default function ReviewPage() {
                         </div>
 
                         {/* Confirmation Details */}
-                        <div style={{ width: '360px', padding: '1.5rem', borderLeft: '1px solid rgba(245, 245, 245, 0.08)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <div style={{ width: '360px', padding: '1.5rem', borderLeft: '1px solid #27272a', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
-                                <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#F5F5F5' }}>Próximos Passos:</h4>
+                                <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#fff' }}>Próximos Passos:</h4>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                     {[
                                         { icon: '🎨', text: isHtmlDraft ? 'Renderizar slides, converter para JPG e aprovar' : 'Aplicar overlays e validar o preview final' },
                                         { icon: '📚', text: 'Salvar na Library do Perfil de Negócio' },
                                         { icon: '🏷️', text: `Transição de estado: ${getReviewStateLabel(confirmingDraft.reviewState)} → Aprovado` },
                                     ].map((item, i) => (
-                                        <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', fontSize: '0.85rem', color: 'rgba(245, 245, 245, 0.7)' }}>
+                                        <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', fontSize: '0.85rem', color: '#fff' }}>
                                             <span style={{ fontSize: '1.1rem' }}>{item.icon}</span>
                                             <span>{item.text}</span>
                                         </div>
@@ -2705,7 +2704,7 @@ export default function ReviewPage() {
                             </div>
 
                             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                <div style={{ fontSize: '0.8rem', color: '#60a5fa', background: 'rgba(96,165,250,0.08)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid rgba(96,165,250,0.2)', lineHeight: 1.4 }}>
+                                <div style={{ fontSize: '0.8rem', color: '#fff', background: 'rgba(255, 255, 255, 0.04)', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid rgba(255, 255, 255, 0.2)', lineHeight: 1.4 }}>
                                     Escolha se este conteúdo deve seguir para agendamento ou se deve apenas entrar na Library.
                                 </div>
                                 {getDraftFormat(confirmingDraft) === 'carousel-premium' && (
@@ -2714,7 +2713,7 @@ export default function ReviewPage() {
                                             onClick={() => handleRegenerateSlide(confirmingDraft.id, modalSlideIdx)}
                                             disabled={isLoading}
                                             className="btn btn-secondary"
-                                            style={{ padding: '0.85rem', fontWeight: 600, color: '#fb923c', borderColor: 'rgba(251,146,60,0.3)', background: 'rgba(251,146,60,0.05)' }}
+                                            style={{ padding: '0.85rem', fontWeight: 600, color: '#fff', borderColor: 'rgba(255, 255, 255, 0.25)', background: 'rgba(255, 255, 255, 0.04)' }}
                                             title="Utilizar IA para gerar uma nova imagem apenas para o slide atual"
                                         >
                                             🔄 Regerar imagem {modalSlideIdx + 1} com IA
@@ -2766,14 +2765,14 @@ export default function ReviewPage() {
         const isLoading = approvalSelection.ids.some(id => actioning[id]);
 
         return (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(12, 16, 20, 0.82)', zIndex: 1090, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-                <div style={{ width: '100%', maxWidth: '520px', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '1rem', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 1090, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+                <div style={{ width: '100%', maxWidth: '520px', background: '#111113', border: '1px solid #27272a', borderRadius: '1rem', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div>
-                        <h3 style={{ margin: '0 0 0.35rem', color: '#F5F5F5' }}>Aprovar {approvalSelection.destinationLabel}</h3>
-                        <p style={{ margin: 0, color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                        <h3 style={{ margin: '0 0 0.35rem', color: '#fff' }}>Aprovar {approvalSelection.destinationLabel}</h3>
+                        <p style={{ margin: 0, color: '#fff', fontSize: '0.9rem', lineHeight: 1.5 }}>
                             {approvalSelection.ids.length} conteúdo(s) selecionado(s). Escolha o destino após a aprovação.
                         </p>
-                        <div style={{ marginTop: '0.65rem', color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.8rem', lineHeight: 1.5 }}>
+                        <div style={{ marginTop: '0.65rem', color: '#fff', fontSize: '0.8rem', lineHeight: 1.5 }}>
                             {Array.from(new Set(drafts.filter(draft => approvalSelection.ids.includes(draft.id)).map(draft => profiles.find(profile => profile.id === draft.businessProfileId)?.name || draft.businessProfileId))).join(', ')}
                             {' · '}
                             {Array.from(new Set(drafts.filter(draft => approvalSelection.ids.includes(draft.id)).map(draft => getDraftFormat(draft)))).join(', ')}
@@ -2781,7 +2780,7 @@ export default function ReviewPage() {
                             {Array.from(new Set(drafts.filter(draft => approvalSelection.ids.includes(draft.id)).map(draft => getCampaignLabel(draft.scheduledFor, draft.createdAt)))).join(', ')}
                         </div>
                     </div>
-                    <div style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', color: '#bfdbfe', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                    <div style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#fff', fontSize: '0.85rem', lineHeight: 1.5 }}>
                         `Agendar agora` mantém o fluxo operacional do post. `Enviar só para Library` aprova e arquiva o conteúdo apenas na biblioteca.
                     </div>
                     <button
@@ -2824,7 +2823,7 @@ export default function ReviewPage() {
                 {/* Page header + step indicator */}
                 <div style={{ marginBottom: '2rem' }}>
                     <h1 style={{ margin: '0 0 1rem' }}>Content Autopilot</h1>
-                    <div style={{ display: 'flex', gap: '0', background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.5rem', overflow: 'hidden', width: 'fit-content' }}>
+                    <div style={{ display: 'flex', gap: '0', background: '#18181b', border: '1px solid #27272a', borderRadius: '0.5rem', overflow: 'hidden', width: 'fit-content' }}>
                         {([
                             { key: 'plan', label: '1. Planejar', icon: '🗓️' },
                             { key: 'approve', label: '2. Aprovar plano', icon: '🔍' },
@@ -2839,26 +2838,26 @@ export default function ReviewPage() {
                             const canJumpToApprove = s.key === 'approve' && step === 'plan' && canAdvanceToApprove;
                             const isClickable = (isDone || canJumpToApprove) && step !== 'generating';
                             const textColor = isActive
-                                ? '#0C1014'
+                                ? '#fff'
                                 : isDone
-                                    ? 'rgba(245, 245, 245, 0.7)'
+                                    ? '#a1a1aa'
                                     : canJumpToApprove
-                                        ? '#F5F5F5'
-                                        : 'rgba(245, 245, 245, 0.4)';
+                                        ? '#d4d4d8'
+                                        : '#52525b';
                             const background = isActive
-                                ? '#F5F5F5'
+                                ? '#3f3f46'
                                 : canJumpToApprove
-                                    ? 'rgba(245, 245, 245, 0.08)'
+                                    ? 'rgba(255, 255, 255, 0.04)'
                                     : 'transparent';
                             return (
                                 <div
                                     key={s.key}
-                                    style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem', fontWeight: isActive ? 600 : 400, color: textColor, background, borderRight: '1px solid rgba(245, 245, 245, 0.08)', cursor: isClickable ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                                    style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem', fontWeight: isActive ? 600 : 400, color: textColor, background, borderRight: '1px solid #27272a', cursor: isClickable ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                                     onClick={() => isClickable ? setStep(s.key) : undefined}
                                 >
                                     <span>{s.icon}</span>
                                     <span>{s.label}</span>
-                                    {isDone && <span style={{ fontSize: '0.65rem', color: '#22c55e' }}>✓</span>}
+                                    {isDone && <span style={{ fontSize: '0.65rem', color: '#fff' }}>✓</span>}
                                 </div>
                             );
                         })}
@@ -2873,8 +2872,8 @@ export default function ReviewPage() {
 
                 {/* Pending drafts banner (when on plan/approve step and there are drafts) */}
                 {(step === 'plan' || step === 'approve') && !loadingDrafts && drafts.length > 0 && (
-                    <div style={{ marginTop: '2rem', padding: '1rem 1.25rem', background: 'rgba(245, 245, 245, 0.1)', border: '1px solid rgba(245, 245, 245, 0.3)', borderRadius: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#EAEBEB' }}>
+                    <div style={{ marginTop: '2rem', padding: '1rem 1.25rem', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#fff' }}>
                             📋 {drafts.length} rascunho{drafts.length !== 1 ? 's' : ''} aguardando sua revisão
                         </p>
                         <button onClick={() => setStep('review')} className="btn btn-secondary" style={{ fontSize: '0.875rem', padding: '0.4rem 1rem' }}>
@@ -2885,20 +2884,20 @@ export default function ReviewPage() {
             </div>
 
             {selectedDraftForPrompt && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(12, 16, 20, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-                    <div style={{ background: '#25292F', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '1rem', width: '100%', maxWidth: '600px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                    <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '1rem', width: '100%', maxWidth: '600px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h3 style={{ margin: 0 }}>Prompt de Geração</h3>
-                            <button onClick={() => setSelectedDraftForPrompt(null)} style={{ background: 'none', border: 'none', color: 'rgba(245, 245, 245, 0.55)', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+                            <button onClick={() => setSelectedDraftForPrompt(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.875rem', color: 'rgba(245, 245, 245, 0.7)' }}>
+                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#fff' }}>
                             Abaixo está a instrução utilizada pela IA. Você pode alterá-la para ajustar o estilo ou conteúdo e regerar o post.
                         </p>
                         <textarea
                             value={promptText}
                             onChange={e => setPromptText(e.target.value)}
                             rows={10}
-                            style={{ width: '100%', background: '#0C1014', border: '1px solid rgba(245, 245, 245, 0.08)', borderRadius: '0.5rem', color: '#F5F5F5', padding: '1rem', fontSize: '0.9rem', resize: 'vertical', fontFamily: 'monospace', lineHeight: 1.5, boxSizing: 'border-box' }}
+                            style={{ width: '100%', background: '#09090b', border: '1px solid #27272a', borderRadius: '0.5rem', color: '#fff', padding: '1rem', fontSize: '0.9rem', resize: 'vertical', fontFamily: 'monospace', lineHeight: 1.5, boxSizing: 'border-box' }}
                         />
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                             <button

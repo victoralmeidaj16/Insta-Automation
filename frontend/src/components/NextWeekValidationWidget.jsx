@@ -20,10 +20,10 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
     if (profileDrafts.length === 0) {
         return (
             <div className="card-glass mb-lg" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#F5F5F5' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#fff' }}>
                     📅 Validação da Próxima Semana
                 </h3>
-                <p style={{ color: 'rgba(245, 245, 245, 0.7)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                <p style={{ color: '#fff', fontSize: '0.9rem', marginBottom: '1rem' }}>
                     Nenhum post pendente de revisão para {selectedProfile.name}.
                 </p>
                 <Link href="/dashboard/generate" className="btn btn-secondary" style={{ fontSize: '0.85rem' }}>
@@ -79,8 +79,8 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                             📅 Validar Conteúdo da Próxima Semana
                             <span
                                 style={{
-                                    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-                                    color: '#f59e0b',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+                                    color: '#fff',
                                     fontSize: '0.75rem',
                                     padding: '0.2rem 0.6rem',
                                     borderRadius: '1rem',
@@ -90,7 +90,7 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                                 {profileDrafts.length} pendentes
                             </span>
                         </h2>
-                        <p style={{ fontSize: '0.875rem', color: 'rgba(245, 245, 245, 0.7)', margin: '0.25rem 0 0 0' }}>
+                        <p style={{ fontSize: '0.875rem', color: '#fff', margin: '0.25rem 0 0 0' }}>
                             Revise e aprove os posts gerados para a semana de {selectedProfile.name}.
                         </p>
                     </div>
@@ -109,8 +109,7 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                             style={{
                                 fontSize: '0.85rem',
                                 padding: '0.5rem 0.85rem',
-                                background: '#F5F5F5',
-                                color: '#0C1014',
+                                background: '#3f3f46',
                                 fontWeight: '700'
                             }}
                         >
@@ -135,7 +134,7 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                             <div
                                 key={draft.id}
                                 style={{
-                                    background: '#25292F',
+                                    background: 'rgba(255, 255, 255, 0.03)',
                                     border: '1px solid rgba(255, 255, 255, 0.08)',
                                     borderRadius: '12px',
                                     overflow: 'hidden',
@@ -147,7 +146,7 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                                 <div
                                     style={{
                                         height: '160px',
-                                        backgroundColor: '#25292F',
+                                        backgroundColor: '#18181b',
                                         position: 'relative',
                                         backgroundImage: `url(${thumbUrl})`,
                                         backgroundSize: 'cover',
@@ -159,8 +158,9 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                                             position: 'absolute',
                                             top: '8px',
                                             right: '8px',
-                                            backgroundColor: 'rgba(12, 16, 20, 0.65)',
-                                            color: '#F5F5F5',
+                                            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                                            backdropFilter: 'blur(4px)',
+                                            color: '#fff',
                                             fontSize: '0.75rem',
                                             padding: '0.2rem 0.5rem',
                                             borderRadius: '6px'
@@ -175,8 +175,8 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                                                 position: 'absolute',
                                                 bottom: '8px',
                                                 left: '8px',
-                                                backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                                                color: '#F5F5F5',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                                                color: '#fff',
                                                 fontSize: '0.7rem',
                                                 padding: '0.15rem 0.4rem',
                                                 borderRadius: '4px',
@@ -194,7 +194,7 @@ export default function NextWeekValidationWidget({ drafts = [], selectedProfile,
                                     <p
                                         style={{
                                             fontSize: '0.85rem',
-                                            color: '#F5F5F5',
+                                            color: '#fff',
                                             margin: '0 0 1rem 0',
                                             display: '-webkit-box',
                                             WebkitLineClamp: 3,

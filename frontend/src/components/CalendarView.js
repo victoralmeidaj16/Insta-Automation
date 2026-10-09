@@ -67,7 +67,7 @@ export default function CalendarView({ posts }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
                 {/* Empty Cells for previous month */}
                 {emptyDays.map((_, i) => (
-                    <div key={`empty-${i}`} style={{ height: '120px', background: '#25292F', borderRadius: 'var(--radius-sm)' }}></div>
+                    <div key={`empty-${i}`} style={{ height: '120px', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)' }}></div>
                 ))}
 
                 {/* Days */}
@@ -78,7 +78,7 @@ export default function CalendarView({ posts }) {
                             key={day.toString()}
                             style={{
                                 height: '120px',
-                                background: '#25292F',
+                                background: 'rgba(255,255,255,0.05)',
                                 borderRadius: 'var(--radius-sm)',
                                 padding: '0.5rem',
                                 border: isSameDay(day, new Date()) ? '1px solid var(--accent-primary)' : 'none',

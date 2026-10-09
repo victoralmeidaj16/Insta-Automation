@@ -84,7 +84,7 @@ export default function DashboardPage() {
 
                 {/* Profile Switcher */}
                 <div style={{ marginBottom: '2rem' }}>
-                    <h3 style={{ fontSize: '1rem', color: 'rgba(245, 245, 245, 0.7)', marginBottom: '0.75rem' }}>Perfil Selecionado</h3>
+                    <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '0.75rem' }}>Perfil Selecionado</h3>
                     <ProfileSwitcher style={{ width: '100%', maxWidth: '300px' }} />
                 </div>
 
@@ -121,7 +121,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="card-glass">
-                        <h3 style={{ color: 'var(--accent-warning)' }}>Agendados</h3>
+                        <h3 style={{ color: 'var(--text-primary)' }}>Agendados</h3>
                         <p style={{ fontSize: '2.5rem', fontWeight: '700', margin: '1rem 0' }}>{stats.pending}</p>
                         <p style={{ fontSize: '0.875rem' }}>Posts pendentes</p>
                     </div>

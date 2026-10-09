@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { getAutopilotSummary } from '@/lib/schedule';
 
 const TONES = {
-    on: { accent: '#10b981', wash: 'rgba(245, 245, 245, 0.06)' },
-    partial: { accent: '#38bdf8', wash: 'rgba(245, 245, 245, 0.06)' },
-    off: { accent: '#f59e0b', wash: 'rgba(245, 245, 245, 0.06)' },
+    on: { accent: '#3f3f46', wash: 'rgba(255, 255, 255, 0.06)' },
+    partial: { accent: '#3f3f46', wash: 'rgba(255, 255, 255, 0.06)' },
+    off: { accent: '#3f3f46', wash: 'rgba(255, 255, 255, 0.06)' },
 };
 
 function Step({ label, detail, on }) {
@@ -18,16 +18,16 @@ function Step({ label, detail, on }) {
                     marginTop: '0.15rem', width: '1rem', height: '1rem', flexShrink: 0, borderRadius: '999px',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem',
                     color: '#0b0f17', fontWeight: 900,
-                    background: on ? '#10b981' : 'rgba(148, 163, 184, 0.35)',
+                    background: on ? '#3f3f46' : 'rgba(255, 255, 255, 0.12)',
                 }}
             >
                 {on ? '✓' : '–'}
             </span>
             <div>
-                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: on ? '#F5F5F5' : 'rgba(245, 245, 245, 0.55)' }}>
+                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>
                     {label}
                 </p>
-                <p style={{ margin: '0.1rem 0 0', fontSize: '0.78rem', color: 'rgba(245, 245, 245, 0.55)', lineHeight: 1.4 }}>{detail}</p>
+                <p style={{ margin: '0.1rem 0 0', fontSize: '0.78rem', color: '#fff', lineHeight: 1.4 }}>{detail}</p>
             </div>
         </div>
     );
@@ -73,7 +73,7 @@ export default function AutopilotStatusBanner({ selectedProfile }) {
                         <h3 style={{ fontSize: '1.05rem', margin: 0 }}>
                             Piloto Automático: <span style={{ color: tone.accent, fontWeight: 'bold' }}>{headline}</span>
                         </h3>
-                        <p style={{ fontSize: '0.875rem', color: 'rgba(245, 245, 245, 0.7)', margin: '0.25rem 0 0' }}>{summary}</p>
+                        <p style={{ fontSize: '0.875rem', color: '#fff', margin: '0.25rem 0 0' }}>{summary}</p>
                     </div>
                 </div>
 
