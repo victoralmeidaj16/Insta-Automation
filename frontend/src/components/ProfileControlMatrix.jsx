@@ -62,12 +62,12 @@ function CoverageLine({ coverage }) {
     );
 }
 
-export default function ProfileControlMatrix({ onProfilesUpdated }) {
+export default function ProfileControlMatrix({ onProfilesUpdated, defaultCollapsed = true }) {
     const [profiles, setProfiles] = useState([]);
     const [coverage, setCoverage] = useState({});
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState(null);
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
     const loadProfiles = async () => {
         try {

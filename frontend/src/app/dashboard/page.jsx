@@ -88,18 +88,18 @@ export default function DashboardPage() {
                     <ProfileSwitcher style={{ width: '100%', maxWidth: '300px' }} />
                 </div>
 
-                <FailedPostsAlert />
-                <OperationalAlerts profileId={selectedProfile?.id || null} />
-
-                {/* Status do Autopilot Banner */}
-                <AutopilotStatusBanner selectedProfile={selectedProfile} />
-
                 {/* Widget de Validação do Conteúdo da Próxima Semana */}
                 <NextWeekValidationWidget
                     drafts={drafts}
                     selectedProfile={selectedProfile}
                     onRefresh={loadStats}
                 />
+
+                <FailedPostsAlert />
+                <OperationalAlerts profileId={selectedProfile?.id || null} />
+
+                {/* Status do Autopilot Banner */}
+                <AutopilotStatusBanner selectedProfile={selectedProfile} />
 
                 {/* Matriz de Controle dos Perfis (Toggles Rápidos) */}
                 <ProfileControlMatrix onProfilesUpdated={loadStats} />
