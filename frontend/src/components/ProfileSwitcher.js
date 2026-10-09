@@ -57,14 +57,14 @@ export default function ProfileSwitcher({ style = {}, className = '' }) {
                     MozAppearance: 'none',
                     padding: '0.8rem 2.8rem 0.8rem 2.5rem',
                     borderRadius: '0.9rem',
-                    background: selectedProfile ? 'rgba(124, 58, 237, 0.2)' : 'rgba(39, 39, 42, 0.85)',
-                    border: selectedProfile ? '1px solid rgba(124, 58, 237, 0.45)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    background: selectedProfile ? 'rgba(255, 255, 255, 0.10)' : 'rgba(39, 39, 42, 0.85)',
+                    border: selectedProfile ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255, 255, 255, 0.1)',
                     color: '#fff',
                     fontSize: '0.875rem',
                     fontWeight: 600,
                     cursor: 'pointer',
                     outline: 'none',
-                    boxShadow: selectedProfile ? '0 0 0 1px rgba(124, 58, 237, 0.12)' : 'none',
+                    boxShadow: selectedProfile ? '0 0 0 1px rgba(0, 0, 0, 0.12)' : 'none',
                     backdropFilter: 'blur(10px)',
                     textOverflow: 'ellipsis'
                 }}
@@ -85,7 +85,7 @@ export default function ProfileSwitcher({ style = {}, className = '' }) {
                     top: '50%',
                     transform: 'translateY(-50%)',
                     pointerEvents: 'none',
-                    color: 'rgba(255,255,255,0.8)',
+                    color: '#fff',
                     fontSize: '0.8rem'
                 }}
             >

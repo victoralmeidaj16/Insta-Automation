@@ -40,7 +40,7 @@ export default function PageHeader({
                     {subtitle && (
                         <p style={{
                             fontSize: '0.875rem',
-                            color: '#a1a1aa',
+                            color: '#fff',
                             margin: 0
                         }}>
                             {subtitle}

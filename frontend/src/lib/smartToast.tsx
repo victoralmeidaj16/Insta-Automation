@@ -43,7 +43,7 @@ export function showSmartToast(
                     }}
                     style={{
                         padding: '0.5rem 1rem',
-                        background: '#7c3aed',
+                        background: '#3f3f46',
                         border: 'none',
                         borderRadius: '0.5rem',
                         color: '#fff',

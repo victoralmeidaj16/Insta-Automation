@@ -86,8 +86,8 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                     position: 'absolute',
                     top: '1rem',
                     right: '4rem',
-                    background: 'rgba(124, 58, 237, 0.8)',
-                    border: '1px solid rgba(124, 58, 237, 1)',
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
                     color: '#fff',
                     padding: '0.5rem 1rem',
                     borderRadius: '0.5rem',
@@ -97,8 +97,8 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                     transition: 'all 0.2s',
                     zIndex: 2001
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(124, 58, 237, 1)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(124, 58, 237, 0.8)'}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#3f3f46'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'}
             >
                 ⬇️ Download
             </button>
@@ -234,7 +234,7 @@ export default function ImageLightbox({ images, currentIndex, onClose, onNavigat
                                 objectFit: 'cover',
                                 borderRadius: '0.375rem',
                                 cursor: 'pointer',
-                                border: idx === safeIndex ? '2px solid #7c3aed' : '2px solid transparent',
+                                border: idx === safeIndex ? '2px solid rgba(255, 255, 255, 0.25)' : '2px solid transparent',
                                 opacity: idx === safeIndex ? 1 : 0.6,
                                 transition: 'all 0.2s'
                             }}

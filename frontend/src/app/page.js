@@ -65,7 +65,7 @@ export default function HomePage() {
         <div className="flex-center animate-fade-in" style={{ minHeight: '100vh', padding: '2rem', background: 'var(--bg-primary)' }}>
             <div className="card-glass" style={{ maxWidth: '420px', width: '100%', padding: '2.5rem', boxShadow: 'var(--shadow-lg)' }}>
                 <div className="text-center" style={{ marginBottom: '2.5rem' }}>
-                    <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', background: 'var(--gradient-instagram)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: '#fff', }}>
                         📸 InstaBot
                     </h1>
                     <p style={{ color: 'var(--text-secondary)' }}>Acesse sua conta para gerenciar e agendar posts</p>

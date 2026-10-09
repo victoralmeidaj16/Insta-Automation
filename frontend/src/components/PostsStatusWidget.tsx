@@ -95,7 +95,7 @@ export default function PostsStatusWidget() {
                 minWidth: '200px'
             }}>
                 <div style={{ height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ color: '#71717a' }}>Carregando...</span>
+                    <span style={{ color: '#fff' }}>Carregando...</span>
                 </div>
             </div>
         );
@@ -120,7 +120,7 @@ export default function PostsStatusWidget() {
             }}
                 onMouseEnter={(e) => {
                     e.currentTarget.style.background = 'rgba(24, 24, 27, 0.8)';
-                    e.currentTarget.style.borderColor = '#7c3aed';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                 }}
                 onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'rgba(24, 24, 27, 0.6)';
@@ -129,7 +129,7 @@ export default function PostsStatusWidget() {
             >
                 <h3 style={{
                     fontSize: '0.875rem',
-                    color: '#a1a1aa',
+                    color: '#fff',
                     marginBottom: '1rem',
                     fontWeight: 600
                 }}>
@@ -142,9 +142,9 @@ export default function PostsStatusWidget() {
                             width: '8px',
                             height: '8px',
                             borderRadius: '50%',
-                            background: '#7c3aed'
+                            background: '#3f3f46'
                         }} />
-                        <span style={{ fontSize: '0.875rem', color: '#d4d4d8' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#fff' }}>
                             {stats.todayScheduled} Agendados
                         </span>
                     </div>
@@ -154,9 +154,9 @@ export default function PostsStatusWidget() {
                             width: '8px',
                             height: '8px',
                             borderRadius: '50%',
-                            background: '#22c55e'
+                            background: '#3f3f46'
                         }} />
-                        <span style={{ fontSize: '0.875rem', color: '#d4d4d8' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#fff' }}>
                             {stats.todayPublished} Publicado{stats.todayPublished !== 1 ? 's' : ''}
                         </span>
                     </div>
@@ -170,12 +170,12 @@ export default function PostsStatusWidget() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <span style={{ fontSize: '0.875rem' }}>⏰</span>
                                 <div>
-                                    <p style={{ fontSize: '0.75rem', color: '#71717a', margin: 0 }}>
+                                    <p style={{ fontSize: '0.75rem', color: '#fff', margin: 0 }}>
                                         Próximo às
                                     </p>
                                     <p style={{
                                         fontSize: '1rem',
-                                        color: '#7c3aed',
+                                        color: '#fff',
                                         fontWeight: 600,
                                         margin: 0
                                     }}>
@@ -190,7 +190,7 @@ export default function PostsStatusWidget() {
                         <div style={{
                             marginTop: '0.5rem',
                             fontSize: '0.75rem',
-                            color: '#71717a'
+                            color: '#fff'
                         }}>
                             {stats.totalPending} pendente{stats.totalPending !== 1 ? 's' : ''} no total
                         </div>

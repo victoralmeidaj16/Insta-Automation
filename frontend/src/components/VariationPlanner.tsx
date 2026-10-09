@@ -29,7 +29,7 @@ export default function VariationPlanner({ variations, onUpdateVariation, onGene
                         style={{
                             padding: '0.5rem 1.5rem',
                             borderRadius: '0.5rem',
-                            background: '#10b981',
+                            background: '#3f3f46',
                             border: 'none',
                             color: '#fff',
                             fontWeight: 600,
@@ -46,12 +46,12 @@ export default function VariationPlanner({ variations, onUpdateVariation, onGene
                 {variations.map((v, i) => (
                     <div key={i} style={{ background: '#27272a', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #3f3f46' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase' }}>Variação {i + 1}</span>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fff', textTransform: 'uppercase' }}>Variação {i + 1}</span>
                         </div>
 
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.7rem', color: '#71717a', marginBottom: '0.25rem' }}>MANCHETE (HEADLINE)</label>
+                                <label style={{ display: 'block', fontSize: '0.7rem', color: '#fff', marginBottom: '0.25rem' }}>MANCHETE (HEADLINE)</label>
                                 <input
                                     type="text"
                                     value={v.headline}
@@ -61,7 +61,7 @@ export default function VariationPlanner({ variations, onUpdateVariation, onGene
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.7rem', color: '#71717a', marginBottom: '0.25rem' }}>CONCEITO VISUAL (PROMPT BASE)</label>
+                                <label style={{ display: 'block', fontSize: '0.7rem', color: '#fff', marginBottom: '0.25rem' }}>CONCEITO VISUAL (PROMPT BASE)</label>
                                 <textarea
                                     value={v.visualConcept}
                                     onChange={(e) => onUpdateVariation(i, 'visualConcept', e.target.value)}

@@ -11,12 +11,6 @@
 }
 
 :root {
-  /* Instagram-inspired Colors */
-  --gradient-instagram: linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%);
-  --gradient-purple: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-blue: linear-gradient(135deg, #667eea 0%, #367aff 100%);
-  --gradient-sunset: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  
   /* Dark Theme */
   --bg-primary: #0a0a0a;
   --bg-secondary: #141414;
@@ -25,14 +19,14 @@
   
   /* Text */
   --text-primary: #ffffff;
-  --text-secondary: #a8a8a8;
-  --text-tertiary: #6b6b6b;
+  --text-secondary: #ffffff;
+  --text-tertiary: #ffffff;
   
-  /* Accent */
-  --accent-primary: #8e44ad;
-  --accent-secondary: #e74c3c;
-  --accent-success: #27ae60;
-  --accent-warning: #f39c12;
+  /* Accent (neutral — no chromatic colors) */
+  --accent-primary: #ffffff;
+  --accent-secondary: #3f3f46;
+  --accent-success: #3f3f46;
+  --accent-warning: #3f3f46;
   
   /* Borders */
   --border-color: rgba(255, 255, 255, 0.1);
@@ -55,7 +49,7 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --shadow-glow: 0 0 20px rgba(142, 68, 173, 0.3);
+  --shadow-glow: none;
   
   /* Transitions */
   --transition-fast: 0.2s ease;
@@ -84,10 +78,7 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
   font-size: 3rem;
-  background: var(--gradient-instagram);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #ffffff;
 }
 
 h2 {
@@ -100,7 +91,7 @@ h3 {
 
 p {
   margin-bottom: var(--spacing-sm);
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 /* ======================= */
@@ -122,7 +113,7 @@ p {
 }
 
 .btn-primary {
-  background: var(--gradient-instagram);
+  background: #3f3f46;
   color: white;
   box-shadow: var(--shadow-md);
 }
@@ -178,7 +169,7 @@ p {
 }
 
 .card-gradient {
-  background: var(--gradient-instagram);
+  background: var(--bg-tertiary);
   color: white;
 }
 
@@ -209,12 +200,12 @@ p {
 
 .input:focus {
   outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(142, 68, 173, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
 }
 
 .input::placeholder {
-  color: var(--text-tertiary);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 textarea.input {
@@ -251,23 +242,23 @@ textarea.input {
 }
 
 .badge-success {
-  background: rgba(39, 174, 96, 0.2);
-  color: var(--accent-success);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .badge-warning {
-  background: rgba(243, 156, 18, 0.2);
-  color: var(--accent-warning);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .badge-error {
-  background: rgba(231, 76, 60, 0.2);
-  color: var(--accent-secondary);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .badge-pending {
-  background: rgba(142, 68, 173, 0.2);
-  color: var(--accent-primary);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 /* ======================= */
@@ -377,13 +368,8 @@ textarea.input {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.05) 50%,
-    transparent 100%
-  );
-  animation: shimmer 2s infinite;
+  background: rgba(255, 255, 255, 0.04);
+  animation: pulse 1.5s infinite;
 }
 
 /* ======================= */

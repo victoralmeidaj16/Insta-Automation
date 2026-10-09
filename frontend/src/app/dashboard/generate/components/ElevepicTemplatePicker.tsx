@@ -493,14 +493,14 @@ export default function ElevepicTemplatePicker({
 
   return (
     <>
-      <div style={{ marginBottom: '1.5rem', background: 'rgba(236, 72, 153, 0.05)', border: '1px solid rgba(236, 72, 153, 0.2)', padding: '1rem', borderRadius: '0.75rem' }}>
-        <div style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '0.75rem' }}>
+      <div style={{ marginBottom: '1.5rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '1rem', borderRadius: '0.75rem' }}>
+        <div style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#fff', marginBottom: '0.75rem' }}>
           🎨 Template do Carrossel
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem', maxHeight: '520px', overflowY: 'auto', paddingRight: '2px' }}>
           {TEMPLATES.map((tpl) => {
             const isSelected = selected === tpl.id;
-            const accentColor = isSelected ? (primaryColor || tpl.color) : '#27272a';
+            const accentColor = isSelected ? '#ffffff' : '#27272a';
             const Preview = TEMPLATE_PREVIEWS[tpl.id];
             return (
               <div
@@ -535,23 +535,23 @@ export default function ElevepicTemplatePicker({
                 <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.25rem', marginBottom: '0.25rem' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isSelected ? '#fff' : '#d4d4d8', lineHeight: 1.2 }}>{tpl.name}</span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{tpl.name}</span>
                       <span style={{
                         flexShrink: 0,
                         fontSize: '0.6rem',
                         fontWeight: 600,
-                        color: tpl.color,
-                        background: `${tpl.color}22`,
-                        border: `1px solid ${tpl.color}44`,
+                        color: '#fff',
+                        background: `rgba(255, 255, 255, 0.08)`,
+                        border: `1px solid rgba(255, 255, 255, 0.2)`,
                         borderRadius: '4px',
                         padding: '1px 4px',
                         whiteSpace: 'nowrap',
                       }}>{tpl.badge}</span>
                     </div>
-                    <p style={{ margin: 0, fontSize: '0.67rem', color: '#71717a', lineHeight: 1.35 }}>{tpl.description}</p>
+                    <p style={{ margin: 0, fontSize: '0.67rem', color: '#fff', lineHeight: 1.35 }}>{tpl.description}</p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.375rem' }}>
-                    <span style={{ fontSize: '0.62rem', color: '#52525b' }}>
+                    <span style={{ fontSize: '0.62rem', color: '#fff' }}>
                       {typeof tpl.slides === 'number'
                         ? `${tpl.slides} slide${tpl.slides !== 1 ? 's' : ''}`
                         : `${tpl.slides} slides`}
@@ -570,9 +570,9 @@ export default function ElevepicTemplatePicker({
                           padding: '2px 7px',
                           fontSize: '0.6rem',
                           fontWeight: 600,
-                          color: tpl.color,
-                          background: `${tpl.color}18`,
-                          border: `1px solid ${tpl.color}44`,
+                          color: '#fff',
+                          background: `rgba(255, 255, 255, 0.08)`,
+                          border: `1px solid rgba(255, 255, 255, 0.2)`,
                           borderRadius: '4px',
                           cursor: 'pointer',
                           lineHeight: 1.6,
@@ -598,8 +598,8 @@ export default function ElevepicTemplatePicker({
 
       {/* Meus Modelos salvos */}
       {savedTemplates.length > 0 && (
-        <div style={{ marginBottom: '1.5rem', background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.2)', padding: '1rem', borderRadius: '0.75rem' }}>
-          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '0.75rem' }}>
+        <div style={{ marginBottom: '1.5rem', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '1rem', borderRadius: '0.75rem' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#fff', marginBottom: '0.75rem' }}>
             📐 Meus Modelos Salvos
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -613,8 +613,8 @@ export default function ElevepicTemplatePicker({
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0.5rem 0.75rem',
-                    background: isActive ? 'rgba(168, 85, 247, 0.18)' : '#18181b',
-                    border: `1px solid ${isActive ? '#a855f7' : '#27272a'}`,
+                    background: isActive ? 'rgba(255, 255, 255, 0.09)' : '#18181b',
+                    border: `1px solid ${isActive ? 'rgba(255, 255, 255, 0.25)' : '#27272a'}`,
                     borderRadius: '0.5rem',
                     cursor: 'pointer',
                     transition: 'border-color 0.15s, background 0.15s',
@@ -623,11 +623,11 @@ export default function ElevepicTemplatePicker({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                     <span style={{ fontSize: '0.85rem' }}>📄</span>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: isActive ? '#e9d5ff' : '#d4d4d8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {tpl.name}
                     </span>
                     {isActive && (
-                      <span style={{ flexShrink: 0, fontSize: '0.6rem', fontWeight: 700, color: '#a855f7', background: 'rgba(168,85,247,0.2)', border: '1px solid rgba(168,85,247,0.4)', borderRadius: '4px', padding: '1px 5px' }}>
+                      <span style={{ flexShrink: 0, fontSize: '0.6rem', fontWeight: 700, color: '#fff', background: 'rgba(255, 255, 255, 0.10)', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '4px', padding: '1px 5px' }}>
                         ATIVO
                       </span>
                     )}
@@ -635,7 +635,7 @@ export default function ElevepicTemplatePicker({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onDeleteCustomTemplate?.(tpl.id); }}
-                    style={{ flexShrink: 0, background: 'transparent', border: 'none', color: '#52525b', cursor: 'pointer', fontSize: '0.75rem', padding: '2px 4px', lineHeight: 1 }}
+                    style={{ flexShrink: 0, background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '0.75rem', padding: '2px 4px', lineHeight: 1 }}
                     title="Excluir modelo"
                   >
                     ✕
@@ -645,7 +645,7 @@ export default function ElevepicTemplatePicker({
             })}
           </div>
           {selectedCustomTemplateId && (
-            <p style={{ margin: '0.5rem 0 0', fontSize: '0.67rem', color: '#71717a' }}>
+            <p style={{ margin: '0.5rem 0 0', fontSize: '0.67rem', color: '#fff' }}>
               A IA usará este modelo como base para o próximo carrossel gerado.
             </p>
           )}
@@ -685,7 +685,7 @@ export default function ElevepicTemplatePicker({
                 title={`Preview ${previewTpl.name}`}
               />
             </div>
-            <p style={{ color: '#71717a', fontSize: '0.72rem', margin: 0 }}>Clique fora para fechar • Arraste para navegar os slides</p>
+            <p style={{ color: '#fff', fontSize: '0.72rem', margin: 0 }}>Clique fora para fechar • Arraste para navegar os slides</p>
           </div>
         </div>
       )}

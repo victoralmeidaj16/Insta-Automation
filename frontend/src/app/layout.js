@@ -31,14 +31,14 @@ export default function RootLayout({ children }) {
                             },
                             success: {
                                 iconTheme: {
-                                    primary: '#27ae60',
-                                    secondary: '#fff',
+                                    primary: '#fff',
+                                    secondary: '#000',
                                 },
                             },
                             error: {
                                 iconTheme: {
-                                    primary: '#e74c3c',
-                                    secondary: '#fff',
+                                    primary: '#fff',
+                                    secondary: '#000',
                                 },
                             },
                         }}

@@ -162,7 +162,7 @@ export default function UploadManagerPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Arquivos em Espera</h2>
-                                <p style={{ color: '#a1a1aa', fontSize: '0.85rem' }}>{files.length} arquivos selecionados</p>
+                                <p style={{ color: '#fff', fontSize: '0.85rem' }}>{files.length} arquivos selecionados</p>
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button
@@ -173,7 +173,7 @@ export default function UploadManagerPage() {
                                 </button>
                                 <label style={{
                                     padding: '0.5rem 1rem',
-                                    background: '#7c3aed',
+                                    background: '#3f3f46',
                                     borderRadius: '0.5rem',
                                     color: '#fff',
                                     cursor: 'pointer',
@@ -198,7 +198,7 @@ export default function UploadManagerPage() {
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: '#52525b'
+                                color: '#fff'
                             }}>
                                 <p style={{ fontSize: '3rem', marginBottom: '1rem' }}>📂</p>
                                 <p>Arraste arquivos ou clique em Adicionar</p>
@@ -219,7 +219,7 @@ export default function UploadManagerPage() {
                                             overflow: 'hidden',
                                             aspectRatio: '1',
                                             cursor: 'pointer',
-                                            border: selectedIndices.includes(i) ? '2px solid #7c3aed' : '2px solid transparent',
+                                            border: selectedIndices.includes(i) ? '2px solid rgba(255, 255, 255, 0.25)' : '2px solid transparent',
                                             transition: 'all 0.2s'
                                         }}
                                     >
@@ -235,7 +235,7 @@ export default function UploadManagerPage() {
                                             width: '1.25rem',
                                             height: '1.25rem',
                                             borderRadius: '50%',
-                                            background: selectedIndices.includes(i) ? '#7c3aed' : 'rgba(0,0,0,0.5)',
+                                            background: selectedIndices.includes(i) ? '#3f3f46' : 'rgba(0,0,0,0.5)',
                                             border: '2px solid #fff'
                                         }} />
                                     </div>
@@ -257,7 +257,7 @@ export default function UploadManagerPage() {
                             <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1.5rem' }}>Ações ({selectedIndices.length})</h3>
 
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', color: '#a1a1aa', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Conta de Destino</label>
+                                <label style={{ display: 'block', color: '#fff', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Conta de Destino</label>
                                 <select
                                     style={{
                                         width: '100%',
@@ -310,7 +310,7 @@ export default function UploadManagerPage() {
                                 style={{
                                     width: '100%',
                                     padding: '0.75rem',
-                                    background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                    background: '#3f3f46',
                                     border: 'none',
                                     borderRadius: '0.5rem',
                                     color: '#fff',
@@ -331,7 +331,7 @@ export default function UploadManagerPage() {
                                         padding: '0.5rem',
                                         background: 'transparent',
                                         border: 'none',
-                                        color: '#ef4444',
+                                        color: '#fff',
                                         fontSize: '0.85rem',
                                         cursor: 'pointer',
                                         textDecoration: 'underline'

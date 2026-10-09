@@ -39,7 +39,7 @@ describe('ProfileControlMatrix coverage', () => {
             }],
         });
 
-        render(<ProfileControlMatrix />);
+        render(<ProfileControlMatrix defaultCollapsed={false} />);
 
         expect(await screen.findByText(dayLabel(10))).toBeInTheDocument();
         expect(screen.getByText(/10 dias à frente/)).toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('ProfileControlMatrix coverage', () => {
             }],
         });
 
-        render(<ProfileControlMatrix />);
+        render(<ProfileControlMatrix defaultCollapsed={false} />);
 
         expect(await screen.findByText(dayLabel(2))).toBeInTheDocument();
         expect(screen.getByText(/5 aguardando você/)).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('ProfileControlMatrix coverage', () => {
             }],
         });
 
-        render(<ProfileControlMatrix />);
+        render(<ProfileControlMatrix defaultCollapsed={false} />);
 
         expect(await screen.findByText('sem fila')).toBeInTheDocument();
         expect(screen.getByText(/Nenhum post futuro garantido/)).toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('ProfileControlMatrix coverage', () => {
                 : Promise.resolve({ data: { profiles: [{ id: 'profile-1', name: 'Fitswap' }] } })
         ));
 
-        render(<ProfileControlMatrix />);
+        render(<ProfileControlMatrix defaultCollapsed={false} />);
 
         expect(await screen.findByText('Fitswap')).toBeInTheDocument();
         await waitFor(() => expect(screen.queryByText(/Conteúdo até/)).not.toBeInTheDocument());

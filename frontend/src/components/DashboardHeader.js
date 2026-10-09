@@ -39,9 +39,7 @@ export default function DashboardHeader() {
                     <h1 style={{
                         fontSize: '1.25rem',
                         fontWeight: 700,
-                        background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
+                        color: '#fff',
                         margin: 0
                     }}>
                         Insta-Automation
@@ -65,7 +63,7 @@ export default function DashboardHeader() {
                                     padding: '0.625rem 1rem',
                                     borderRadius: '0.75rem',
                                     background: isActive
-                                        ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
+                                        ? '#3f3f46'
                                         : 'rgba(39, 39, 42, 0.8)',
                                     border: '1px solid',
                                     borderColor: isActive ? 'transparent' : 'rgba(255, 255, 255, 0.05)',
@@ -79,14 +77,14 @@ export default function DashboardHeader() {
                                     gap: '0.5rem',
                                     backdropFilter: 'blur(8px)',
                                     boxShadow: isActive
-                                        ? '0 4px 12px rgba(124, 58, 237, 0.3)'
+                                        ? '0 4px 12px rgba(0, 0, 0, 0.3)'
                                         : 'none',
                                     transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
                                 }}
                                 onMouseEnter={(e) => {
                                     if (!isActive) {
                                         e.currentTarget.style.background = 'rgba(39, 39, 42, 1)';
-                                        e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.3)';
+                                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                         e.currentTarget.style.transform = 'translateY(-1px)';
                                     }
                                 }}
@@ -119,13 +117,13 @@ export default function DashboardHeader() {
                         width: '36px',
                         height: '36px',
                         borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                        background: '#3f3f46',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '0.875rem',
                         fontWeight: 600,
-                        boxShadow: '0 0 0 2px rgba(0, 0, 0, 0.5), 0 0 0 4px rgba(124, 58, 237, 0.2)',
+                        boxShadow: '0 0 0 2px rgba(0, 0, 0, 0.5), 0 0 0 4px rgba(0, 0, 0, 0.2)',
                         cursor: 'pointer',
                         transition: 'transform 0.2s',
                     }}

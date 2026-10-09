@@ -52,7 +52,7 @@ class ErrorBoundary extends React.Component {
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '2rem',
-                    background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)'
+                    background: '#1a1a1a'
                 }}>
                     <div className="card-glass" style={{
                         maxWidth: '600px',
@@ -69,9 +69,7 @@ class ErrorBoundary extends React.Component {
                         <h1 style={{
                             fontSize: '2rem',
                             marginBottom: '1rem',
-                            background: 'linear-gradient(135deg, #8e44ad 0%, #c44569 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
+                            color: '#fff',
                             backgroundClip: 'text'
                         }}>
                             Oops! Algo deu errado
@@ -89,15 +87,15 @@ class ErrorBoundary extends React.Component {
                             <details style={{
                                 marginBottom: '2rem',
                                 padding: '1rem',
-                                background: 'rgba(239, 68, 68, 0.1)',
+                                background: 'rgba(255, 255, 255, 0.05)',
                                 borderRadius: 'var(--radius-md)',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                border: '1px solid rgba(255, 255, 255, 0.25)',
                                 textAlign: 'left'
                             }}>
                                 <summary style={{
                                     cursor: 'pointer',
                                     fontWeight: '600',
-                                    color: '#ef4444',
+                                    color: '#fff',
                                     marginBottom: '0.5rem'
                                 }}>
                                     🐛 Detalhes do Erro (dev only)
@@ -105,7 +103,7 @@ class ErrorBoundary extends React.Component {
                                 <pre style={{
                                     fontSize: '0.75rem',
                                     overflow: 'auto',
-                                    color: '#fca5a5',
+                                    color: '#fff',
                                     whiteSpace: 'pre-wrap',
                                     wordBreak: 'break-word'
                                 }}>

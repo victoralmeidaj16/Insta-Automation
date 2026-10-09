@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { getAutopilotSummary } from '@/lib/schedule';
 
 const TONES = {
-    on: { accent: '#10b981', wash: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)' },
-    partial: { accent: '#38bdf8', wash: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(2, 132, 199, 0.05) 100%)' },
-    off: { accent: '#f59e0b', wash: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%)' },
+    on: { accent: '#3f3f46', wash: 'rgba(255, 255, 255, 0.06)' },
+    partial: { accent: '#3f3f46', wash: 'rgba(255, 255, 255, 0.06)' },
+    off: { accent: '#3f3f46', wash: 'rgba(255, 255, 255, 0.06)' },
 };
 
 function Step({ label, detail, on }) {
@@ -18,16 +18,16 @@ function Step({ label, detail, on }) {
                     marginTop: '0.15rem', width: '1rem', height: '1rem', flexShrink: 0, borderRadius: '999px',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem',
                     color: '#0b0f17', fontWeight: 900,
-                    background: on ? '#10b981' : 'rgba(148, 163, 184, 0.35)',
+                    background: on ? '#3f3f46' : 'rgba(255, 255, 255, 0.12)',
                 }}
             >
                 {on ? '✓' : '–'}
             </span>
             <div>
-                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: on ? '#f8fafc' : '#94a3b8' }}>
+                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#fff' }}>
                     {label}
                 </p>
-                <p style={{ margin: '0.1rem 0 0', fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.4 }}>{detail}</p>
+                <p style={{ margin: '0.1rem 0 0', fontSize: '0.78rem', color: '#fff', lineHeight: 1.4 }}>{detail}</p>
             </div>
         </div>
     );
@@ -73,7 +73,7 @@ export default function AutopilotStatusBanner({ selectedProfile }) {
                         <h3 style={{ fontSize: '1.05rem', margin: 0 }}>
                             Piloto Automático: <span style={{ color: tone.accent, fontWeight: 'bold' }}>{headline}</span>
                         </h3>
-                        <p style={{ fontSize: '0.875rem', color: '#a1a1aa', margin: '0.25rem 0 0' }}>{summary}</p>
+                        <p style={{ fontSize: '0.875rem', color: '#fff', margin: '0.25rem 0 0' }}>{summary}</p>
                     </div>
                 </div>
 

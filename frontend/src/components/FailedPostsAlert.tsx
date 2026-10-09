@@ -88,8 +88,8 @@ export default function FailedPostsAlert() {
 
     return (
         <div style={{
-            background: 'rgba(239, 68, 68, 0.08)',
-            border: '1px solid rgba(239, 68, 68, 0.4)',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
             borderRadius: '0.75rem',
             padding: '1rem 1.25rem',
             marginBottom: '1.5rem',
@@ -97,7 +97,7 @@ export default function FailedPostsAlert() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: visible.length > 1 ? '0.75rem' : 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontSize: '1rem' }}>⚠️</span>
-                    <span style={{ fontWeight: 600, color: '#f87171', fontSize: '0.9rem' }}>
+                    <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem' }}>
                         {visible.length} post{visible.length !== 1 ? 's' : ''} com falha
                     </span>
                 </div>
@@ -107,7 +107,7 @@ export default function FailedPostsAlert() {
                         style={{
                             background: 'none',
                             border: 'none',
-                            color: '#71717a',
+                            color: '#fff',
                             cursor: 'pointer',
                             fontSize: '0.75rem',
                             padding: '0.25rem 0.5rem',
@@ -127,20 +127,20 @@ export default function FailedPostsAlert() {
                             alignItems: 'flex-start',
                             justifyContent: 'space-between',
                             gap: '1rem',
-                            background: 'rgba(239, 68, 68, 0.06)',
+                            background: 'rgba(255, 255, 255, 0.04)',
                             borderRadius: '0.5rem',
                             padding: '0.6rem 0.75rem',
                         }}
                     >
                         <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#d4d4d8', fontFamily: 'monospace' }}>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#fff', fontFamily: 'monospace' }}>
                                 {post.format || 'post'} · {post.id.slice(0, 8)}
                             </p>
                             {post.caption && (
                                 <p style={{
                                     margin: '0.15rem 0 0',
                                     fontSize: '0.8rem',
-                                    color: '#a1a1aa',
+                                    color: '#fff',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
@@ -149,7 +149,7 @@ export default function FailedPostsAlert() {
                                 </p>
                             )}
                             {post.errorMessage && (
-                                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#f87171' }}>
+                                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#fff' }}>
                                     {post.errorMessage}
                                 </p>
                             )}
@@ -160,7 +160,7 @@ export default function FailedPostsAlert() {
                             style={{
                                 background: 'none',
                                 border: 'none',
-                                color: '#52525b',
+                                color: '#fff',
                                 cursor: 'pointer',
                                 fontSize: '1rem',
                                 lineHeight: 1,

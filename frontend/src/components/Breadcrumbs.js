@@ -34,24 +34,24 @@ export default function Breadcrumbs() {
             alignItems: 'center',
             gap: '0.5rem',
             fontSize: '0.875rem',
-            color: '#a1a1aa',
+            color: '#fff',
             marginBottom: '1.5rem'
         }}>
             {breadcrumbs.map((crumb, index) => (
                 <div key={crumb.path} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {index > 0 && <span style={{ color: '#52525b' }}>›</span>}
+                    {index > 0 && <span style={{ color: '#fff' }}>›</span>}
                     {index === breadcrumbs.length - 1 ? (
                         <span style={{ color: '#fff', fontWeight: 500 }}>{crumb.name}</span>
                     ) : (
                         <Link
                             href={crumb.path}
                             style={{
-                                color: '#a1a1aa',
+                                color: '#fff',
                                 textDecoration: 'none',
                                 transition: 'color 0.2s'
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-                            onMouseLeave={(e) => e.currentTarget.style.color = '#a1a1aa'}
+                            onMouseLeave={(e) => e.currentTarget.style.color = '#fff'}
                         >
                             {crumb.name}
                         </Link>

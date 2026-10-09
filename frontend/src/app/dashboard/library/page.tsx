@@ -1602,10 +1602,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
 
     const getStatusBadgeStyle = (status) => {
         const styles = {
-            pending: { background: 'rgba(167, 139, 250, 0.2)', color: '#a78bfa' },
-            success: { background: 'rgba(74, 222, 128, 0.2)', color: '#4ade80' },
-            processing: { background: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24' },
-            error: { background: 'rgba(248, 113, 113, 0.2)', color: '#f87171' },
+            pending: { background: 'rgba(255, 255, 255, 0.10)', color: '#fff' },
+            success: { background: 'rgba(255, 255, 255, 0.10)', color: '#fff' },
+            processing: { background: 'rgba(255, 255, 255, 0.10)', color: '#fff' },
+            error: { background: 'rgba(255, 255, 255, 0.10)', color: '#fff' },
         };
         return styles[status] || styles.pending;
     };
@@ -1614,41 +1614,41 @@ Replace broken text with refined, natural English that elevates the concept.`,
         if (isPosted || tag === 'postado') {
             return {
                 background: '#000000',
-                color: '#4ade80', // Green
-                border: '1px solid #22c55e',
-                boxShadow: '0 0 10px rgba(34, 197, 94, 0.2)'
+                color: '#fff', // Green
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)'
             };
         }
         if (status === 'processing') {
             return {
                 background: '#000000',
-                color: '#fbbf24',
-                border: '1px solid #f59e0b',
-                boxShadow: '0 0 10px rgba(245, 158, 11, 0.2)'
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)'
             };
         }
         if (isScheduled) {
             return {
                 background: '#000000',
-                color: '#a78bfa', // Purple
-                border: '1px solid #8b5cf6',
-                boxShadow: '0 0 10px rgba(139, 92, 246, 0.2)'
+                color: '#fff', // Purple
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)'
             };
         }
         if (tag === 'pronto') {
             return {
                 background: '#000000',
-                color: '#4ade80',
-                border: '1px solid #22c55e',
-                boxShadow: '0 0 10px rgba(34, 197, 94, 0.2)'
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)'
             };
         }
         // Default "A Editar"
         return {
             background: '#000000',
-            color: '#60a5fa',
-            border: '1px solid #3b82f6',
-            boxShadow: '0 0 10px rgba(59, 130, 246, 0.2)'
+            color: '#fff',
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            boxShadow: '0 0 10px rgba(0, 0, 0, 0.2)'
         };
     };
 
@@ -1664,12 +1664,12 @@ Replace broken text with refined, natural English that elevates the concept.`,
                 label: 'Stories',
                 icon: '📱',
                 style: {
-                    accent: '#f472b6',
-                    color: '#fbcfe8',
-                    iconBackground: 'rgba(244, 114, 182, 0.16)',
-                    iconBorder: 'rgba(244, 114, 182, 0.36)',
-                    railBackground: 'linear-gradient(180deg, rgba(244, 114, 182, 0.95) 0%, rgba(236, 72, 153, 0.78) 100%)',
-                    shadow: '0 12px 28px rgba(244, 114, 182, 0.18)'
+                    accent: '#3f3f46',
+                    color: '#fff',
+                    iconBackground: 'rgba(255, 255, 255, 0.08)',
+                    iconBorder: 'rgba(255, 255, 255, 0.16)',
+                    railBackground: '#3f3f46',
+                    shadow: '0 12px 28px rgba(0, 0, 0, 0.3)'
                 }
             };
         }
@@ -1685,12 +1685,12 @@ Replace broken text with refined, natural English that elevates the concept.`,
                 label: 'Carrossel',
                 icon: '🖼️',
                 style: {
-                    accent: '#f59e0b',
-                    color: '#fde68a',
-                    iconBackground: 'rgba(245, 158, 11, 0.16)',
-                    iconBorder: 'rgba(245, 158, 11, 0.34)',
-                    railBackground: 'linear-gradient(180deg, rgba(251, 191, 36, 0.95) 0%, rgba(245, 158, 11, 0.78) 100%)',
-                    shadow: '0 12px 28px rgba(245, 158, 11, 0.18)'
+                    accent: '#3f3f46',
+                    color: '#fff',
+                    iconBackground: 'rgba(255, 255, 255, 0.08)',
+                    iconBorder: 'rgba(255, 255, 255, 0.16)',
+                    railBackground: '#3f3f46',
+                    shadow: '0 12px 28px rgba(0, 0, 0, 0.3)'
                 }
             };
         }
@@ -1699,12 +1699,12 @@ Replace broken text with refined, natural English that elevates the concept.`,
             label: 'Estático',
             icon: '📸',
             style: {
-                accent: '#60a5fa',
-                color: '#bfdbfe',
-                iconBackground: 'rgba(96, 165, 250, 0.16)',
-                iconBorder: 'rgba(96, 165, 250, 0.34)',
-                railBackground: 'linear-gradient(180deg, rgba(147, 197, 253, 0.95) 0%, rgba(96, 165, 250, 0.78) 100%)',
-                shadow: '0 12px 28px rgba(96, 165, 250, 0.18)'
+                accent: '#3f3f46',
+                color: '#fff',
+                iconBackground: 'rgba(255, 255, 255, 0.08)',
+                iconBorder: 'rgba(255, 255, 255, 0.16)',
+                railBackground: '#3f3f46',
+                shadow: '0 12px 28px rgba(0, 0, 0, 0.3)'
             }
         };
     };
@@ -1761,7 +1761,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                         fontSize: '0.5rem',
                         letterSpacing: '0.12em',
                         textTransform: 'uppercase',
-                        color: 'rgba(255,255,255,0.45)',
+                        color: '#fff',
                         marginBottom: '0.18rem'
                     }}>
                         tipo
@@ -1842,15 +1842,15 @@ Replace broken text with refined, natural English that elevates the concept.`,
                     <div style={{
                         textAlign: 'center',
                         padding: '4rem 2rem',
-                        background: 'rgba(124, 58, 237, 0.08)',
+                        background: 'rgba(255, 255, 255, 0.04)',
                         borderRadius: '0.75rem',
-                        border: '1px solid rgba(124, 58, 237, 0.2)'
+                        border: '1px solid rgba(255, 255, 255, 0.2)'
                     }}>
                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📱</div>
-                        <h2 style={{ marginBottom: '0.5rem', color: '#a78bfa' }}>
+                        <h2 style={{ marginBottom: '0.5rem', color: '#fff' }}>
                             {profiles.length === 0 ? 'Nenhum Perfil de Negócio Encontrado' : 'Selecione um Perfil de Negócio'}
                         </h2>
-                        <p style={{ color: '#a1a1aa', marginBottom: '1.5rem' }}>
+                        <p style={{ color: '#fff', marginBottom: '1.5rem' }}>
                             {profiles.length === 0
                                 ? 'Você precisa criar um Perfil de Negócio antes de acessar a Library.'
                                 : 'Escolha um perfil no seletor acima para visualizar seus conteúdos salvos.'}
@@ -1860,7 +1860,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                 onClick={() => router.push('/dashboard/business-profiles')}
                                 style={{
                                     padding: '0.75rem 1.5rem',
-                                    background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                    background: '#3f3f46',
                                     color: '#fff',
                                     border: 'none',
                                     borderRadius: '0.5rem',
@@ -1875,7 +1875,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                 onClick={() => setSelectedProfile(profiles[0])}
                                 style={{
                                     padding: '0.75rem 1.5rem',
-                                    background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                    background: '#3f3f46',
                                     color: '#fff',
                                     border: 'none',
                                     borderRadius: '0.5rem',
@@ -1909,37 +1909,37 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                 <span style={{ fontSize: '1.25rem' }}>📊</span>
                                 <div>
                                     <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{stats.total}</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Itens carregados</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#fff' }}>Itens carregados</div>
                                 </div>
                             </div>
                             <div style={{
                                 padding: '0.75rem 1.25rem',
-                                background: 'rgba(74, 222, 128, 0.08)',
+                                background: 'rgba(255, 255, 255, 0.04)',
                                 borderRadius: '0.5rem',
-                                border: '1px solid rgba(74, 222, 128, 0.2)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '0.75rem'
                             }}>
                                 <span style={{ fontSize: '1.25rem' }}>✅</span>
                                 <div>
-                                    <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#4ade80' }}>{stats.published}</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Publicados carregados</div>
+                                    <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff' }}>{stats.published}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#fff' }}>Publicados carregados</div>
                                 </div>
                             </div>
                             <div style={{
                                 padding: '0.75rem 1.25rem',
-                                background: 'rgba(167, 139, 250, 0.08)',
+                                background: 'rgba(255, 255, 255, 0.04)',
                                 borderRadius: '0.5rem',
-                                border: '1px solid rgba(167, 139, 250, 0.2)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '0.75rem'
                             }}>
                                 <span style={{ fontSize: '1.25rem' }}>⏰</span>
                                 <div>
-                                    <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#a78bfa' }}>{stats.scheduled}</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Agendados carregados</div>
+                                    <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff' }}>{stats.scheduled}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#fff' }}>Agendados carregados</div>
                                 </div>
                             </div>
                         </section>
@@ -1956,7 +1956,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: '1.5rem', flexWrap: 'wrap' }}>
                                 <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                                     <div>
-                                        <label style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+                                        <label style={{ fontSize: '0.75rem', color: '#fff', display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
                                             📁 Tipo
                                         </label>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1967,9 +1967,9 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                     style={{
                                                         padding: '0.5rem 0.875rem',
                                                         background: typeFilter === type
-                                                            ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
+                                                            ? '#3f3f46'
                                                             : '#27272a',
-                                                        border: typeFilter === type ? '2px solid #a78bfa' : '2px solid transparent',
+                                                        border: typeFilter === type ? '2px solid rgba(255, 255, 255, 0.25)' : '2px solid transparent',
                                                         borderRadius: '0.5rem',
                                                         color: '#fff',
                                                         fontSize: '0.8rem',
@@ -1988,7 +1988,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     </div>
 
                                     <div>
-                                        <label style={{ fontSize: '0.75rem', color: '#a1a1aa', display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+                                        <label style={{ fontSize: '0.75rem', color: '#fff', display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
                                             🏷️ Status
                                         </label>
                                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -2005,9 +2005,9 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                     style={{
                                                         padding: '0.5rem 0.875rem',
                                                         background: statusFilter === value
-                                                            ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
+                                                            ? '#3f3f46'
                                                             : '#27272a',
-                                                        border: statusFilter === value ? '2px solid #a78bfa' : '2px solid transparent',
+                                                        border: statusFilter === value ? '2px solid rgba(255, 255, 255, 0.25)' : '2px solid transparent',
                                                         borderRadius: '0.5rem',
                                                         color: '#fff',
                                                         fontSize: '0.8rem',
@@ -2030,7 +2030,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                             style={{
                                                 background: 'transparent',
                                                 border: '1px solid #3f3f46',
-                                                color: '#d4d4d8',
+                                                color: '#fff',
                                                 padding: '0.5rem 1rem',
                                                 borderRadius: '0.5rem',
                                                 cursor: 'pointer',
@@ -2043,7 +2043,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
 
                                     <label style={{
                                         padding: '0.625rem 1.25rem',
-                                        background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                        background: '#3f3f46',
                                         border: 'none',
                                         borderRadius: '0.5rem',
                                         color: '#fff',
@@ -2094,7 +2094,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     style={{
                                         background: 'transparent',
                                         border: 'none',
-                                        color: '#a78bfa',
+                                        color: '#fff',
                                         cursor: 'pointer',
                                         fontWeight: 500,
                                         display: 'flex',
@@ -2109,7 +2109,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     style={{
                                         background: 'transparent',
                                         border: 'none',
-                                        color: '#ef4444',
+                                        color: '#fff',
                                         cursor: 'pointer',
                                         fontWeight: 500,
                                         display: 'flex',
@@ -2124,7 +2124,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     style={{
                                         background: 'transparent',
                                         border: 'none',
-                                        color: '#71717a',
+                                        color: '#fff',
                                         cursor: 'pointer',
                                         marginLeft: '0.5rem'
                                     }}
@@ -2149,7 +2149,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                             }}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
                                 <h2 style={{ marginBottom: '0.5rem' }}>Nenhum conteúdo encontrado</h2>
-                                <p style={{ color: '#a1a1aa' }}>Crie seu primeiro post para começar!</p>
+                                <p style={{ color: '#fff' }}>Crie seu primeiro post para começar!</p>
                             </div>
                         ) : (
                             <>
@@ -2179,7 +2179,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         }}
                                         onMouseEnter={(e) => {
                                             e.currentTarget.style.transform = 'translateY(-4px)';
-                                            e.currentTarget.style.boxShadow = '0 8px 24px rgba(124, 58, 237, 0.2)';
+                                            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.2)';
                                         }}
                                         onMouseLeave={(e) => {
                                             e.currentTarget.style.transform = 'translateY(0)';
@@ -2236,9 +2236,9 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         top: '50%',
                                                         left: '50%',
                                                         transform: 'translate(-50%, -50%)',
-                                                        background: 'rgba(34, 197, 94, 0.2)',
-                                                        border: '1px solid rgba(34, 197, 94, 0.5)',
-                                                        color: '#4ade80',
+                                                        background: 'rgba(255, 255, 255, 0.10)',
+                                                        border: '1px solid rgba(255, 255, 255, 0.25)',
+                                                        color: '#fff',
                                                         padding: '0.5rem 1rem',
                                                         borderRadius: '2rem',
                                                         fontWeight: 700,
@@ -2298,7 +2298,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                             padding: '0.2rem 0.45rem',
                                                             fontSize: '0.65rem',
                                                             fontWeight: 600,
-                                                            color: '#e4e4e7',
+                                                            color: '#fff',
                                                             letterSpacing: '0.02em',
                                                             pointerEvents: 'none',
                                                             fontFamily: 'monospace'
@@ -2317,12 +2317,12 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                                 gap: '0.35rem',
                                                                 background: 'rgba(0,0,0,0.82)',
                                                                 backdropFilter: 'blur(4px)',
-                                                                border: '1px solid rgba(251,146,60,0.4)',
+                                                                border: '1px solid rgba(255, 255, 255, 0.25)',
                                                                 borderRadius: '6px',
                                                                 padding: '0.2rem 0.4rem 0.2rem 0.35rem',
                                                                 fontSize: '0.62rem',
                                                                 fontWeight: 600,
-                                                                color: '#fb923c',
+                                                                color: '#fff',
                                                             }}>
                                                                 {formattingIds.has(post.id) ? (
                                                                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -2336,10 +2336,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                                             onClick={(e) => { e.stopPropagation(); handleFormatPost(post); }}
                                                                             title="Formatar para o tamanho ideal"
                                                                             style={{
-                                                                                background: 'rgba(251,146,60,0.18)',
-                                                                                border: '1px solid rgba(251,146,60,0.5)',
+                                                                                background: 'rgba(255, 255, 255, 0.09)',
+                                                                                border: '1px solid rgba(255, 255, 255, 0.25)',
                                                                                 borderRadius: '4px',
-                                                                                color: '#fb923c',
+                                                                                color: '#fff',
                                                                                 fontSize: '0.6rem',
                                                                                 fontWeight: 700,
                                                                                 padding: '0.1rem 0.3rem',
@@ -2349,8 +2349,8 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                                                 alignItems: 'center',
                                                                                 justifyContent: 'center'
                                                                             }}
-                                                                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(251,146,60,0.35)'; }}
-                                                                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(251,146,60,0.18)'; }}
+                                                                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; }}
+                                                                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.09)'; }}
                                                                         >
                                                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                                                                 <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
@@ -2425,15 +2425,15 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                 {/* "Ver" hint on hover via CSS is not doable inline; using a bottom bar instead */}
                                                 <div style={{
                                                     position: 'absolute', bottom: 0, inset: 'auto 0 0 0',
-                                                    background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
+                                                    background: 'rgba(0, 0, 0, 0.75)',
                                                     padding: '0.5rem 0.75rem 0.4rem',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
                                                     zIndex: 6,
                                                 }}>
                                                     <span style={{
                                                         fontSize: '0.65rem', fontWeight: 700,
-                                                        color: '#c9a84c', background: 'rgba(201,168,76,0.15)',
-                                                        border: '1px solid rgba(201,168,76,0.4)',
+                                                        color: '#fff', background: 'rgba(255, 255, 255, 0.07)',
+                                                        border: '1px solid rgba(255, 255, 255, 0.25)',
                                                         borderRadius: '4px', padding: '2px 8px',
                                                     }}>▶ Ver carrossel</span>
                                                 </div>
@@ -2448,7 +2448,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                     fontSize: '0.875rem',
                                                     marginBottom: '1rem',
                                                     lineHeight: 1.5,
-                                                    color: '#d4d4d8',
+                                                    color: '#fff',
                                                     display: '-webkit-box',
                                                     WebkitLineClamp: 3,
                                                     WebkitBoxOrient: 'vertical',
@@ -2528,10 +2528,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                     }}
                                                     style={{
                                                         padding: '0.625rem',
-                                                        background: selectedItems.has(post.id) ? '#7c3aed' : '#27272a',
-                                                        border: selectedItems.has(post.id) ? '1px solid #a78bfa' : '1px solid #3f3f46',
+                                                        background: selectedItems.has(post.id) ? '#3f3f46' : '#27272a',
+                                                        border: selectedItems.has(post.id) ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid #3f3f46',
                                                         borderRadius: '0.5rem',
-                                                        color: selectedItems.has(post.id) ? '#fff' : '#a1a1aa',
+                                                        color: '#fff',
                                                         cursor: 'pointer',
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -2558,7 +2558,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                             background: '#27272a',
                                                             border: '1px solid #3f3f46',
                                                             borderRadius: '0.5rem',
-                                                            color: '#e4e4e7',
+                                                            color: '#fff',
                                                             fontSize: '0.8rem',
                                                             fontWeight: 500,
                                                             cursor: 'pointer',
@@ -2574,7 +2574,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         }}
                                                         onMouseLeave={(e) => {
                                                             e.currentTarget.style.background = '#27272a';
-                                                            e.currentTarget.style.color = '#e4e4e7';
+                                                            e.currentTarget.style.color = '#fff';
                                                         }}
                                                     >
                                                         <CalendarIcon />
@@ -2590,11 +2590,11 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         style={{
                                                             padding: '0.625rem',
                                                             background: isHtmlLibraryPost(post)
-                                                                ? 'linear-gradient(135deg, #c9a84c 0%, #f5d98b 100%)'
-                                                                : 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                                                ? '#3f3f46'
+                                                                : '#3f3f46',
                                                             border: 'none',
                                                             borderRadius: '0.5rem',
-                                                            color: isHtmlLibraryPost(post) ? '#000' : '#fff',
+                                                            color: '#fff',
                                                             fontSize: '0.8rem',
                                                             fontWeight: 500,
                                                             cursor: processingPost === post.id ? 'not-allowed' : 'pointer',
@@ -2604,8 +2604,8 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                             justifyContent: 'center',
                                                             opacity: processingPost === post.id ? 0.7 : 1,
                                                             boxShadow: isHtmlLibraryPost(post)
-                                                                ? '0 2px 10px rgba(201, 168, 76, 0.3)'
-                                                                : '0 2px 10px rgba(124, 58, 237, 0.3)'
+                                                                ? '0 2px 10px rgba(0, 0, 0, 0.3)'
+                                                                : '0 2px 10px rgba(0, 0, 0, 0.3)'
                                                         }}
                                                         onMouseEnter={(e) => {
                                                             if (processingPost !== post.id) {
@@ -2629,10 +2629,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                     title={post.isPosted ? "Desmarcar como Postado" : "Marcar como Postado"}
                                                     style={{
                                                         padding: '0.625rem',
-                                                        background: post.isPosted ? 'rgba(34, 197, 94, 0.1)' : '#27272a',
-                                                        border: post.isPosted ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid #3f3f46',
+                                                        background: post.isPosted ? 'rgba(255, 255, 255, 0.05)' : '#27272a',
+                                                        border: post.isPosted ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid #3f3f46',
                                                         borderRadius: '0.5rem',
-                                                        color: post.isPosted ? '#4ade80' : '#a1a1aa',
+                                                        color: '#fff',
                                                         fontSize: '0.8rem',
                                                         fontWeight: 500,
                                                         cursor: 'pointer',
@@ -2647,15 +2647,15 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                             e.currentTarget.style.background = '#3f3f46';
                                                             e.currentTarget.style.color = '#fff';
                                                         } else {
-                                                            e.currentTarget.style.background = 'rgba(34, 197, 94, 0.2)';
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.10)';
                                                         }
                                                     }}
                                                     onMouseLeave={(e) => {
                                                         if (!post.isPosted) {
                                                             e.currentTarget.style.background = '#27272a';
-                                                            e.currentTarget.style.color = '#a1a1aa';
+                                                            e.currentTarget.style.color = '#fff';
                                                         } else {
-                                                            e.currentTarget.style.background = 'rgba(34, 197, 94, 0.1)';
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
                                                         }
                                                     }}
                                                 >
@@ -2675,10 +2675,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         title="Gerar Legenda com IA"
                                                         style={{
                                                             padding: '0.625rem',
-                                                            background: 'rgba(168, 85, 247, 0.1)',
-                                                            border: '1px solid rgba(168, 85, 247, 0.3)',
+                                                            background: 'rgba(255, 255, 255, 0.05)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.25)',
                                                             borderRadius: '0.5rem',
-                                                            color: '#d8b4fe',
+                                                            color: '#fff',
                                                             fontSize: '0.8rem',
                                                             fontWeight: 500,
                                                             cursor: quickCaptionId ? 'not-allowed' : 'pointer',
@@ -2691,14 +2691,14 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         }}
                                                         onMouseEnter={(e) => {
                                                             if (!quickCaptionId) {
-                                                                e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)';
-                                                                e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.5)';
+                                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.10)';
+                                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                                             }
                                                         }}
                                                         onMouseLeave={(e) => {
                                                             if (!quickCaptionId) {
-                                                                e.currentTarget.style.background = 'rgba(168, 85, 247, 0.1)';
-                                                                e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.3)';
+                                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                                             }
                                                         }}
                                                     >
@@ -2714,7 +2714,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         background: '#27272a',
                                                         border: '1px solid #3f3f46',
                                                         borderRadius: '0.5rem',
-                                                        color: '#e4e4e7',
+                                                        color: '#fff',
                                                         fontSize: '0.8rem',
                                                         fontWeight: 500,
                                                         cursor: 'pointer',
@@ -2731,7 +2731,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                     }}
                                                     onMouseLeave={(e) => {
                                                         e.currentTarget.style.background = '#27272a';
-                                                        e.currentTarget.style.color = '#e4e4e7';
+                                                        e.currentTarget.style.color = '#fff';
                                                     }}
                                                 >
                                                     <EditIcon /> Editar
@@ -2743,10 +2743,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         title={isPremiumLibraryPost(post) ? 'Ajustar enquadramento do carrossel premium' : 'Aplicar layout premium neste carrossel'}
                                                         style={{
                                                             padding: '0.625rem',
-                                                            background: 'rgba(250, 204, 21, 0.1)',
-                                                            border: '1px solid rgba(250, 204, 21, 0.3)',
+                                                            background: 'rgba(255, 255, 255, 0.05)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.25)',
                                                             borderRadius: '0.5rem',
-                                                            color: '#facc15',
+                                                            color: '#fff',
                                                             fontSize: '0.75rem',
                                                             fontWeight: 600,
                                                             cursor: 'pointer',
@@ -2758,12 +2758,12 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                             whiteSpace: 'nowrap'
                                                         }}
                                                         onMouseEnter={(e) => {
-                                                            e.currentTarget.style.background = 'rgba(250, 204, 21, 0.2)';
-                                                            e.currentTarget.style.borderColor = 'rgba(250, 204, 21, 0.5)';
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.10)';
+                                                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                                         }}
                                                         onMouseLeave={(e) => {
-                                                            e.currentTarget.style.background = 'rgba(250, 204, 21, 0.1)';
-                                                            e.currentTarget.style.borderColor = 'rgba(250, 204, 21, 0.3)';
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                                         }}
                                                     >
                                                         {isPremiumLibraryPost(post) ? '✨ Premium' : '✨ Aplicar'}
@@ -2778,10 +2778,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         title="Reaplicar template premium atual em todos os slides"
                                                         style={{
                                                             padding: '0.625rem',
-                                                            background: 'rgba(99, 102, 241, 0.1)',
-                                                            border: '1px solid rgba(99, 102, 241, 0.3)',
+                                                            background: 'rgba(255, 255, 255, 0.05)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.25)',
                                                             borderRadius: '0.5rem',
-                                                            color: '#a5b4fc',
+                                                            color: '#fff',
                                                             fontSize: '0.75rem',
                                                             fontWeight: 600,
                                                             cursor: rebakingId === post.id ? 'not-allowed' : 'pointer',
@@ -2804,10 +2804,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         title="Editar código HTML do carrosel"
                                                         style={{
                                                             padding: '0.625rem',
-                                                            background: 'rgba(20, 184, 166, 0.1)',
-                                                            border: '1px solid rgba(20, 184, 166, 0.3)',
+                                                            background: 'rgba(255, 255, 255, 0.05)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.25)',
                                                             borderRadius: '0.5rem',
-                                                            color: '#2dd4bf',
+                                                            color: '#fff',
                                                             fontSize: '0.75rem',
                                                             fontWeight: 600,
                                                             cursor: 'pointer',
@@ -2819,12 +2819,12 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                             whiteSpace: 'nowrap'
                                                         }}
                                                         onMouseEnter={(e) => {
-                                                            e.currentTarget.style.background = 'rgba(20, 184, 166, 0.2)';
-                                                            e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.5)';
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.10)';
+                                                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                                         }}
                                                         onMouseLeave={(e) => {
-                                                            e.currentTarget.style.background = 'rgba(20, 184, 166, 0.1)';
-                                                            e.currentTarget.style.borderColor = 'rgba(20, 184, 166, 0.3)';
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                                         }}
                                                     >
                                                         {'</>'}
@@ -2838,10 +2838,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         title="Editar imagens do carrosel"
                                                         style={{
                                                             padding: '0.625rem',
-                                                            background: 'rgba(249, 115, 22, 0.1)',
-                                                            border: '1px solid rgba(249, 115, 22, 0.3)',
+                                                            background: 'rgba(255, 255, 255, 0.05)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.25)',
                                                             borderRadius: '0.5rem',
-                                                            color: '#fb923c',
+                                                            color: '#fff',
                                                             fontSize: '0.75rem',
                                                             fontWeight: 600,
                                                             cursor: 'pointer',
@@ -2853,12 +2853,12 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                             whiteSpace: 'nowrap'
                                                         }}
                                                         onMouseEnter={(e) => {
-                                                            e.currentTarget.style.background = 'rgba(249, 115, 22, 0.2)';
-                                                            e.currentTarget.style.borderColor = 'rgba(249, 115, 22, 0.5)';
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.10)';
+                                                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                                         }}
                                                         onMouseLeave={(e) => {
-                                                            e.currentTarget.style.background = 'rgba(249, 115, 22, 0.1)';
-                                                            e.currentTarget.style.borderColor = 'rgba(249, 115, 22, 0.3)';
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                                         }}
                                                     >
                                                         🖼️
@@ -2872,7 +2872,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         background: '#27272a',
                                                         border: '1px solid #3f3f46',
                                                         borderRadius: '0.5rem',
-                                                        color: '#e4e4e7',
+                                                        color: '#fff',
                                                         fontSize: '0.8rem',
                                                         fontWeight: 500,
                                                         cursor: 'pointer',
@@ -2887,7 +2887,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                     }}
                                                     onMouseLeave={(e) => {
                                                         e.currentTarget.style.background = '#27272a';
-                                                        e.currentTarget.style.color = '#e4e4e7';
+                                                        e.currentTarget.style.color = '#fff';
                                                     }}
                                                 >
                                                     <DownloadIcon />
@@ -2897,10 +2897,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                     title="Excluir"
                                                     style={{
                                                         padding: '0.625rem',
-                                                        background: 'rgba(239, 68, 68, 0.1)',
-                                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                        background: 'rgba(255, 255, 255, 0.05)',
+                                                        border: '1px solid rgba(255, 255, 255, 0.2)',
                                                         borderRadius: '0.5rem',
-                                                        color: '#ef4444',
+                                                        color: '#fff',
                                                         fontSize: '0.8rem',
                                                         fontWeight: 500,
                                                         cursor: 'pointer',
@@ -2910,10 +2910,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         justifyContent: 'center'
                                                     }}
                                                     onMouseEnter={(e) => {
-                                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.10)';
                                                     }}
                                                     onMouseLeave={(e) => {
-                                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
                                                     }}
                                                 >
                                                     <TrashIcon />
@@ -2930,10 +2930,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         disabled={loadingMore}
                                         style={{
                                             padding: '0.75rem 2.5rem',
-                                            background: 'rgba(124, 58, 237, 0.12)',
-                                            border: '1px solid rgba(124, 58, 237, 0.4)',
+                                            background: 'rgba(255, 255, 255, 0.06)',
+                                            border: '1px solid rgba(255, 255, 255, 0.25)',
                                             borderRadius: '0.5rem',
-                                            color: '#a78bfa',
+                                            color: '#fff',
                                             fontSize: '0.875rem',
                                             fontWeight: 600,
                                             cursor: loadingMore ? 'default' : 'pointer',
@@ -2964,14 +2964,14 @@ Replace broken text with refined, natural English that elevates the concept.`,
                         onClick={() => setHtmlPreviewPost(null)}
                     >
                         {/* Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#e4e4e7' }}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#fff' }}
                              onClick={e => e.stopPropagation()}>
-                            <span style={{ fontSize: '0.875rem', color: '#a1a1aa', maxWidth: '320px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: '0.875rem', color: '#fff', maxWidth: '320px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {htmlPreviewPost.caption || 'Carrossel HTML'}
                             </span>
                             <button
                                 onClick={() => setHtmlPreviewPost(null)}
-                                style={{ marginLeft: 'auto', background: '#27272a', border: '1px solid #3f3f46', borderRadius: '0.5rem', color: '#a1a1aa', padding: '0.375rem 0.75rem', cursor: 'pointer', fontSize: '0.875rem' }}
+                                style={{ marginLeft: 'auto', background: '#27272a', border: '1px solid #3f3f46', borderRadius: '0.5rem', color: '#fff', padding: '0.375rem 0.75rem', cursor: 'pointer', fontSize: '0.875rem' }}
                             >✕ Fechar</button>
                         </div>
 
@@ -2987,7 +2987,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                             />
                         </div>
 
-                        <p style={{ fontSize: '0.75rem', color: '#52525b' }}>Clique fora para fechar</p>
+                        <p style={{ fontSize: '0.75rem', color: '#fff' }}>Clique fora para fechar</p>
                     </div>
                 )}
 
@@ -3027,8 +3027,8 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                 flexWrap: 'wrap'
                             }}>
                                 <div>
-                                    <h2 style={{ margin: 0, color: '#c9a84c' }}>🎠 Editar Carrossel HTML</h2>
-                                    <p style={{ margin: '0.35rem 0 0 0', color: '#a1a1aa', fontSize: '0.875rem' }}>
+                                    <h2 style={{ margin: 0, color: '#fff' }}>🎠 Editar Carrossel HTML</h2>
+                                    <p style={{ margin: '0.35rem 0 0 0', color: '#fff', fontSize: '0.875rem' }}>
                                         Edite o HTML salvo na biblioteca, visualize em tempo real e salve no mesmo card.
                                     </p>
                                 </div>
@@ -3038,7 +3038,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         background: '#18181b',
                                         border: '1px solid #3f3f46',
                                         borderRadius: '0.5rem',
-                                        color: '#a1a1aa',
+                                        color: '#fff',
                                         padding: '0.65rem 0.9rem',
                                         cursor: 'pointer',
                                         fontSize: '0.875rem',
@@ -3068,7 +3068,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         marginBottom: '1rem'
                                     }}>
                                         <div>
-                                            <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.8rem', color: '#a1a1aa' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.8rem', color: '#fff' }}>
                                                 Legenda
                                             </label>
                                             <input
@@ -3089,7 +3089,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         </div>
 
                                         <div>
-                                            <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.8rem', color: '#a1a1aa' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.8rem', color: '#fff' }}>
                                                 Tag
                                             </label>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -3102,9 +3102,9 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                             flex: 1,
                                                             padding: '0.75rem',
                                                             background: editHtmlTag === tag
-                                                                ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
+                                                                ? '#3f3f46'
                                                                 : '#18181b',
-                                                            border: editHtmlTag === tag ? '1px solid #a78bfa' : '1px solid rgba(255,255,255,0.1)',
+                                                            border: editHtmlTag === tag ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255,255,255,0.1)',
                                                             borderRadius: '0.5rem',
                                                             color: '#fff',
                                                             fontSize: '0.82rem',
@@ -3122,11 +3122,11 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     <div style={{
                                         marginBottom: '1rem',
                                         padding: '0.9rem',
-                                        background: 'rgba(201, 168, 76, 0.07)',
-                                        border: '1px solid rgba(201, 168, 76, 0.18)',
+                                        background: 'rgba(255, 255, 255, 0.04)',
+                                        border: '1px solid rgba(255, 255, 255, 0.18)',
                                         borderRadius: '0.75rem'
                                     }}>
-                                        <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.8rem', color: '#e7d19c', fontWeight: 600 }}>
+                                        <label style={{ display: 'block', marginBottom: '0.45rem', fontSize: '0.8rem', color: '#fff', fontWeight: 600 }}>
                                             ✨ Corrigir com IA
                                         </label>
                                         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
@@ -3153,10 +3153,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                 style={{
                                                     padding: '0.9rem 1rem',
                                                     minWidth: '140px',
-                                                    background: 'linear-gradient(135deg, #c9a84c 0%, #e7d19c 100%)',
+                                                    background: '#3f3f46',
                                                     border: 'none',
                                                     borderRadius: '0.5rem',
-                                                    color: '#000',
+                                                    color: '#fff',
                                                     fontSize: '0.85rem',
                                                     fontWeight: 700,
                                                     cursor: isFixingHtml || !htmlFixInstruction.trim() ? 'not-allowed' : 'pointer',
@@ -3176,10 +3176,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                             gap: '0.75rem',
                                             marginBottom: '0.45rem'
                                         }}>
-                                            <label style={{ fontSize: '0.8rem', color: '#a1a1aa' }}>
+                                            <label style={{ fontSize: '0.8rem', color: '#fff' }}>
                                                 HTML do Carrossel
                                             </label>
-                                            <span style={{ fontSize: '0.75rem', color: '#71717a' }}>
+                                            <span style={{ fontSize: '0.75rem', color: '#fff' }}>
                                                 Alterações no preview são em tempo real
                                             </span>
                                         </div>
@@ -3194,7 +3194,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                 background: '#050505',
                                                 border: '1px solid rgba(255, 255, 255, 0.08)',
                                                 borderRadius: '0.75rem',
-                                                color: '#e4e4e7',
+                                                color: '#fff',
                                                 fontSize: '0.8rem',
                                                 lineHeight: 1.5,
                                                 fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace',
@@ -3213,8 +3213,8 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     padding: '1rem'
                                 }}>
                                     <div style={{ marginBottom: '0.75rem' }}>
-                                        <div style={{ fontSize: '0.82rem', color: '#a1a1aa', marginBottom: '0.35rem' }}>Preview</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#71717a' }}>
+                                        <div style={{ fontSize: '0.82rem', color: '#fff', marginBottom: '0.35rem' }}>Preview</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#fff' }}>
                                             Renderização do HTML salvo no card.
                                         </div>
                                     </div>
@@ -3249,7 +3249,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                             style={{
                                                 flex: 1,
                                                 padding: '0.9rem 1rem',
-                                                background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                                background: '#3f3f46',
                                                 border: 'none',
                                                 borderRadius: '0.6rem',
                                                 color: '#fff',
@@ -3269,7 +3269,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                 background: '#18181b',
                                                 border: '1px solid #3f3f46',
                                                 borderRadius: '0.6rem',
-                                                color: '#d4d4d8',
+                                                color: '#fff',
                                                 fontSize: '0.9rem',
                                                 fontWeight: 600,
                                                 cursor: 'pointer'
@@ -3314,11 +3314,11 @@ Replace broken text with refined, natural English that elevates the concept.`,
                             }}
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <h2 style={{ marginBottom: '1.5rem', color: '#a78bfa' }}>📤 Upload de Conteúdo</h2>
+                            <h2 style={{ marginBottom: '1.5rem', color: '#fff' }}>📤 Upload de Conteúdo</h2>
 
                             {/* File Previews */}
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', color: '#a1a1aa' }}>
+                                <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', color: '#fff' }}>
                                     {selectedFiles.length} arquivo(s) selecionado(s)
                                 </label>
                                 <div style={{
@@ -3336,7 +3336,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                 borderRadius: '0.5rem',
                                                 overflow: 'hidden',
                                                 position: 'relative',
-                                                border: isDup ? '2px solid #ef4444' : 'none'
+                                                border: isDup ? '2px solid rgba(255, 255, 255, 0.25)' : 'none'
                                             }}>
                                                 <img
                                                     src={URL.createObjectURL(file)}
@@ -3354,7 +3354,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         position: 'absolute',
                                                         top: '4px',
                                                         right: '4px',
-                                                        background: '#ef4444',
+                                                        background: '#3f3f46',
                                                         color: '#fff',
                                                         fontSize: '10px',
                                                         fontWeight: 'bold',
@@ -3373,7 +3373,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
 
                             {/* Caption */}
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#a1a1aa' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#fff' }}>
                                     Caption (opcional)
                                 </label>
                                 <textarea
@@ -3396,7 +3396,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
 
                             {/* Tag */}
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#a1a1aa' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#fff' }}>
                                     Tag
                                 </label>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -3409,9 +3409,9 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                 flex: 1,
                                                 padding: '0.75rem',
                                                 background: uploadTag === tag
-                                                    ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
+                                                    ? '#3f3f46'
                                                     : '#27272a',
-                                                border: uploadTag === tag ? '2px solid #a78bfa' : '2px solid transparent',
+                                                border: uploadTag === tag ? '2px solid rgba(255, 255, 255, 0.25)' : '2px solid transparent',
                                                 borderRadius: '0.5rem',
                                                 color: '#fff',
                                                 fontSize: '0.875rem',
@@ -3429,11 +3429,11 @@ Replace broken text with refined, natural English that elevates the concept.`,
 
                             {/* Type */}
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#a1a1aa' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#fff' }}>
                                     Tipo de Conteúdo
                                 </label>
                                 {selectedFiles.length > 1 && (
-                                    <p style={{ fontSize: '0.75rem', color: '#a78bfa', marginBottom: '0.5rem' }}>
+                                    <p style={{ fontSize: '0.75rem', color: '#fff', marginBottom: '0.5rem' }}>
                                         💡 Múltiplos arquivos detectados - sugerimos "Carrossel"
                                     </p>
                                 )}
@@ -3451,9 +3451,9 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                 flex: 1,
                                                 padding: '0.75rem',
                                                 background: uploadType === typeOption.value
-                                                    ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
+                                                    ? '#3f3f46'
                                                     : '#27272a',
-                                                border: uploadType === typeOption.value ? '2px solid #a78bfa' : '2px solid transparent',
+                                                border: uploadType === typeOption.value ? '2px solid rgba(255, 255, 255, 0.25)' : '2px solid transparent',
                                                 borderRadius: '0.5rem',
                                                 color: '#fff',
                                                 fontSize: '0.875rem',
@@ -3479,7 +3479,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         padding: '0.875rem',
                                         background: uploading
                                             ? '#27272a'
-                                            : 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                            : '#3f3f46',
                                         border: 'none',
                                         borderRadius: '0.5rem',
                                         color: '#fff',
@@ -3505,7 +3505,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         background: '#27272a',
                                         border: '1px solid rgba(255, 255, 255, 0.1)',
                                         borderRadius: '0.5rem',
-                                        color: '#a1a1aa',
+                                        color: '#fff',
                                         fontSize: '0.95rem',
                                         fontWeight: 600,
                                         cursor: uploading ? 'not-allowed' : 'pointer',
@@ -3565,7 +3565,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     }}
                                 />
                                 {selectedItem.caption && (
-                                    <p style={{ fontSize: '0.875rem', color: '#d4d4d8', lineHeight: 1.5 }}>
+                                    <p style={{ fontSize: '0.875rem', color: '#fff', lineHeight: 1.5 }}>
                                         {selectedItem.caption}
                                     </p>
                                 )}
@@ -3573,7 +3573,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
 
                             {/* Date Input */}
                             <div style={{ marginBottom: '1rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#d4d4d8' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#fff' }}>
                                     📅 Data
                                 </label>
                                 <input
@@ -3595,7 +3595,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
 
                             {/* Time Input */}
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#d4d4d8' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#fff' }}>
                                     ⏰ Hora
                                 </label>
                                 <input
@@ -3621,7 +3621,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     style={{
                                         flex: 1,
                                         padding: '0.875rem',
-                                        background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                        background: '#3f3f46',
                                         border: 'none',
                                         borderRadius: '0.5rem',
                                         color: '#fff',
@@ -3642,7 +3642,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         background: '#27272a',
                                         border: '1px solid rgba(255, 255, 255, 0.1)',
                                         borderRadius: '0.5rem',
-                                        color: '#a1a1aa',
+                                        color: '#fff',
                                         fontSize: '0.95rem',
                                         fontWeight: 600,
                                         cursor: 'pointer'
@@ -3685,7 +3685,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                             <h3 style={{ marginBottom: '1rem', color: '#fff' }}>
                                 Editar Tags em Lote
                             </h3>
-                            <p style={{ color: '#a1a1aa', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+                            <p style={{ color: '#fff', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
                                 Selecione a nova tag para os {selectedItems.size} itens selecionados:
                             </p>
 
@@ -3696,9 +3696,9 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         flex: 1,
                                         padding: '0.75rem',
                                         background: bulkTagTarget === 'pronto' ? '#000' : '#27272a',
-                                        border: bulkTagTarget === 'pronto' ? '1px solid #22c55e' : '1px solid transparent',
+                                        border: bulkTagTarget === 'pronto' ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid transparent',
                                         borderRadius: '0.5rem',
-                                        color: bulkTagTarget === 'pronto' ? '#4ade80' : '#a1a1aa',
+                                        color: bulkTagTarget === 'pronto' ? '#fff' : '#fff',
                                         cursor: 'pointer',
                                         fontWeight: 600,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
@@ -3712,9 +3712,9 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         flex: 1,
                                         padding: '0.75rem',
                                         background: bulkTagTarget === 'editar' ? '#000' : '#27272a',
-                                        border: bulkTagTarget === 'editar' ? '1px solid #3b82f6' : '1px solid transparent',
+                                        border: bulkTagTarget === 'editar' ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid transparent',
                                         borderRadius: '0.5rem',
-                                        color: bulkTagTarget === 'editar' ? '#60a5fa' : '#a1a1aa',
+                                        color: bulkTagTarget === 'editar' ? '#fff' : '#fff',
                                         cursor: 'pointer',
                                         fontWeight: 600,
                                     }}
@@ -3729,7 +3729,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                     style={{
                                         flex: 1,
                                         padding: '0.75rem',
-                                        background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                        background: '#3f3f46',
                                         border: 'none',
                                         borderRadius: '0.5rem',
                                         color: '#fff',
@@ -3746,7 +3746,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         background: 'transparent',
                                         border: '1px solid #3f3f46',
                                         borderRadius: '0.5rem',
-                                        color: '#d4d4d8',
+                                        color: '#fff',
                                         cursor: 'pointer'
                                     }}
                                 >
@@ -3792,10 +3792,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                 }}
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <h2 style={{ marginBottom: '0.5rem', color: '#a78bfa', gridColumn: '1 / -1' }}>✏️ Editar Conteúdo</h2>
-                                <p style={{ color: '#a1a1aa', fontSize: '0.85rem', gridColumn: '1 / -1' }}>{selectedProfile?.name} · {editType} · {selectedPost.status || 'Biblioteca'}</p>
+                                <h2 style={{ marginBottom: '0.5rem', color: '#fff', gridColumn: '1 / -1' }}>✏️ Editar Conteúdo</h2>
+                                <p style={{ color: '#fff', fontSize: '0.85rem', gridColumn: '1 / -1' }}>{selectedProfile?.name} · {editType} · {selectedPost.status || 'Biblioteca'}</p>
                                 {linkedScheduledPosts.length > 0 && (
-                                    <div style={{ padding: '0.75rem', marginBottom: '1rem', border: '1px solid #f59e0b', borderRadius: 8, color: '#fbbf24', gridColumn: '1 / -1' }}>
+                                    <div style={{ padding: '0.75rem', marginBottom: '1rem', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: 8, color: '#fff', gridColumn: '1 / -1' }}>
                                         {linkedScheduledPosts.length} agendamento(s) ativo(s). Salvar mídia, legenda, tipo ou data substitui os jobs no provedor. Você também pode cancelar. IDs: {linkedScheduledPosts.map(post => post.id).join(', ')}.
                                         <button onClick={handleCancelLinkedSchedule} disabled={cancellingSchedule} className="btn btn-secondary" style={{ display: 'block', marginTop: '0.6rem' }}>
                                             {cancellingSchedule ? 'Cancelando...' : 'Cancelar agendamento'}
@@ -3843,7 +3843,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                         {selectedPost.mediaUrls.length > 1 && (
                                             <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', margin: '0.75rem 0' }}>
                                                 {selectedPost.mediaUrls.map((url, index) => (
-                                                    <button key={`${index}-${url}`} onClick={() => { setEditSlideIndex(index); setRefinedImageUrl(null); }} aria-label={`Editar slide ${index + 1}`} style={{ flex: '0 0 64px', padding: 2, border: index === editSlideIndex ? '2px solid #a78bfa' : '2px solid #3f3f46', borderRadius: 8, background: '#18181b', color: '#fff' }}>
+                                                    <button key={`${index}-${url}`} onClick={() => { setEditSlideIndex(index); setRefinedImageUrl(null); }} aria-label={`Editar slide ${index + 1}`} style={{ flex: '0 0 64px', padding: 2, border: index === editSlideIndex ? '2px solid rgba(255, 255, 255, 0.25)' : '2px solid #3f3f46', borderRadius: 8, background: '#18181b', color: '#fff' }}>
                                                         <img src={url} alt={`Slide ${index + 1}`} style={{ width: '100%', height: 65, objectFit: 'cover', borderRadius: 4 }} />
                                                         {index + 1}
                                                     </button>
@@ -3851,7 +3851,7 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                             </div>
                                         )}
                                         {selectedPost.mediaHistory?.length > 0 && (
-                                            <details style={{ marginBottom: '0.75rem', color: '#a1a1aa', fontSize: '0.8rem' }}>
+                                            <details style={{ marginBottom: '0.75rem', color: '#fff', fontSize: '0.8rem' }}>
                                                 <summary style={{ cursor: 'pointer' }}>Versões anteriores ({selectedPost.mediaHistory.length})</summary>
                                                 <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', marginTop: '0.5rem' }}>
                                                     {[...selectedPost.mediaHistory].reverse().map((version, index) => (
@@ -3881,10 +3881,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                     style={{
                                                         flex: 1,
                                                         padding: '0.85rem',
-                                                        background: 'rgba(250, 204, 21, 0.12)',
-                                                        border: '1px solid rgba(250, 204, 21, 0.28)',
+                                                        background: 'rgba(255, 255, 255, 0.06)',
+                                                        border: '1px solid rgba(255, 255, 255, 0.25)',
                                                         borderRadius: '0.75rem',
-                                                        color: '#fde68a',
+                                                        color: '#fff',
                                                         fontSize: '0.875rem',
                                                         fontWeight: 700,
                                                         cursor: 'pointer'
@@ -3901,10 +3901,10 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                                         title="Reaplicar template atual em todos os slides"
                                                         style={{
                                                             padding: '0.85rem 1rem',
-                                                            background: 'rgba(99, 102, 241, 0.12)',
-                                                            border: '1px solid rgba(99, 102, 241, 0.28)',
+                                                            background: 'rgba(255, 255, 255, 0.06)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.25)',
                                                             borderRadius: '0.75rem',
-                                                            color: '#a5b4fc',
+                                                            color: '#fff',
                                                             fontSize: '0.8rem',
                                                             fontWeight: 700,
                                                             cursor: rebakingId === selectedPost?.id ? 'not-allowed' : 'pointer',
@@ -3926,14 +3926,14 @@ Replace broken text with refined, natural English that elevates the concept.`,
                                 <div style={{
                                     marginBottom: '1.5rem',
                                     padding: '1.25rem',
-                                    background: 'rgba(124, 58, 237, 0.05)',
+                                    background: 'rgba(255, 255, 255, 0.04)',
                                     borderRadius: '0.75rem',
-                                    border: '1px solid rgba(124, 58, 237, 0.2)'
+                                    border: '1px solid rgba(255, 255, 255, 0.2)'
                                 }}>
-                                    <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: 600, color: '#a78bfa' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.875rem', fontWeight: 600, color: '#fff' }}>
                                         ✨ Refinar com IA (Banana Pro)
                                     </label>
-                                    <p style={{ fontSize: '0.75rem', color: '#a1a1aa', marginBottom: '0.5rem' }}>
+                                    <p style={{ fontSize: '0.75rem', color: '#fff', marginBottom: '0.5rem' }}>
                                         Descreva ajustes (ex: "Corrigir texto para ...", "Mudar cor de ...")
                                     </p>
 
@@ -3956,10 +3956,10 @@ Do NOT change the main visual elements (mirror, silhouettes, lighting, colors).
 Replace broken text with refined, natural English that elevates the concept.`)}
                                             style={{
                                                 padding: '0.35rem 0.75rem',
-                                                background: 'rgba(56, 189, 248, 0.1)',
-                                                border: '1px solid rgba(56, 189, 248, 0.3)',
+                                                background: 'rgba(255, 255, 255, 0.05)',
+                                                border: '1px solid rgba(255, 255, 255, 0.25)',
                                                 borderRadius: '0.5rem',
-                                                color: '#38bdf8',
+                                                color: '#fff',
                                                 fontSize: '0.75rem',
                                                 fontWeight: 500,
                                                 cursor: 'pointer',
@@ -3969,12 +3969,12 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                 gap: '0.25rem'
                                             }}
                                             onMouseEnter={(e) => {
-                                                e.currentTarget.style.background = 'rgba(56, 189, 248, 0.2)';
-                                                e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.10)';
+                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                             }}
                                             onMouseLeave={(e) => {
-                                                e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
-                                                e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                             }}
                                         >
                                             🪄 Super Prompt: Corrigir Inglês & Design
@@ -3991,10 +3991,10 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                 gap: '0.75rem',
                                                 padding: '0.75rem 1rem',
                                                 background: attachLogoToAI
-                                                    ? 'linear-gradient(135deg, rgba(0, 112, 243, 0.15) 0%, rgba(0, 200, 150, 0.15) 100%)'
+                                                    ? 'rgba(255, 255, 255, 0.06)'
                                                     : 'rgba(255, 255, 255, 0.03)',
                                                 border: attachLogoToAI
-                                                    ? '1px solid rgba(0, 200, 150, 0.4)'
+                                                    ? '1px solid rgba(255, 255, 255, 0.25)'
                                                     : '1px solid rgba(255, 255, 255, 0.1)',
                                                 borderRadius: '0.5rem',
                                                 marginBottom: '1rem',
@@ -4007,7 +4007,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                 height: '18px',
                                                 borderRadius: '4px',
                                                 border: attachLogoToAI ? 'none' : '2px solid rgba(255, 255, 255, 0.3)',
-                                                background: attachLogoToAI ? '#0070f3' : 'transparent',
+                                                background: attachLogoToAI ? '#3f3f46' : 'transparent',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center'
@@ -4015,7 +4015,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                 {attachLogoToAI && <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>✓</span>}
                                             </div>
                                             <img src="/logos/inner-boost-logo.png" alt="" style={{ width: '18px', height: '18px', borderRadius: '50%' }} />
-                                            <span style={{ fontSize: '0.875rem', color: attachLogoToAI ? '#67e8f9' : '#a1a1aa', fontWeight: attachLogoToAI ? 600 : 400 }}>
+                                            <span style={{ fontSize: '0.875rem', color: '#fff', fontWeight: attachLogoToAI ? 600 : 400 }}>
                                                 Anexar Logo Inner Boost na imagem
                                             </span>
                                         </div>
@@ -4042,7 +4042,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                             disabled={isRefining || (!refinePrompt && !attachLogoToAI)}
                                             style={{
                                                 padding: '0.75rem 1.25rem',
-                                                background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                                background: '#3f3f46',
                                                 border: 'none',
                                                 borderRadius: '0.5rem',
                                                 color: '#fff',
@@ -4063,10 +4063,10 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                 title="Substitui a tela do celular pelo screenshot real do app"
                                                 style={{
                                                     padding: '0.75rem 0.5rem',
-                                                    background: 'rgba(59, 130, 246, 0.1)',
-                                                    border: '1px solid rgba(59, 130, 246, 0.4)',
+                                                    background: 'rgba(255, 255, 255, 0.05)',
+                                                    border: '1px solid rgba(255, 255, 255, 0.25)',
                                                     borderRadius: '0.5rem',
-                                                    color: '#60a5fa',
+                                                    color: '#fff',
                                                     fontSize: '0.75rem',
                                                     fontWeight: 600,
                                                     cursor: isRefining ? 'not-allowed' : 'pointer',
@@ -4096,7 +4096,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                         width: '100%',
                                                         height: 'auto',
                                                         borderRadius: '0.5rem',
-                                                        border: '2px solid #7c3aed'
+                                                        border: '2px solid rgba(255, 255, 255, 0.25)'
                                                     }}
                                                 />
                                                 <div style={{
@@ -4110,7 +4110,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                         style={{
                                                             flex: 1,
                                                             padding: '0.75rem',
-                                                            background: '#22c55e',
+                                                            background: '#3f3f46',
                                                             border: 'none',
                                                             borderRadius: '0.5rem',
                                                             color: '#fff',
@@ -4133,7 +4133,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                         }}
                                                         style={{
                                                             padding: '0.75rem 1rem',
-                                                            background: '#7c3aed',
+                                                            background: '#3f3f46',
                                                             border: 'none',
                                                             borderRadius: '0.5rem',
                                                             color: '#fff',
@@ -4170,7 +4170,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                 {editType !== 'story' && editType !== 'stories' && (
                                     <div style={{ marginBottom: '1.5rem' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                            <label style={{ fontSize: '0.875rem', color: '#a1a1aa' }}>
+                                            <label style={{ fontSize: '0.875rem', color: '#fff' }}>
                                                 Caption
                                             </label>
                                             <button
@@ -4178,7 +4178,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                 disabled={generatingCaption}
                                                 style={{
                                                     padding: '0.25rem 0.75rem',
-                                                    background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                                    background: '#3f3f46',
                                                     border: 'none',
                                                     borderRadius: '0.375rem',
                                                     color: '#fff',
@@ -4215,7 +4215,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                 {/* Scheduled Date */}
                                 {['pending', 'schedule_error'].includes(selectedPost.status) && (
                                     <div style={{ marginBottom: '1.5rem' }}>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#a1a1aa' }}>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#fff' }}>
                                             Data/Hora Agendada
                                         </label>
                                         <input
@@ -4237,7 +4237,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
 
                                 {/* Tag */}
                                 <div style={{ marginBottom: '1.5rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#a1a1aa' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#fff' }}>
                                         Tag
                                     </label>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -4249,9 +4249,9 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                     flex: 1,
                                                     padding: '0.75rem',
                                                     background: editTag === tag
-                                                        ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
+                                                        ? '#3f3f46'
                                                         : '#27272a',
-                                                    border: editTag === tag ? '2px solid #a78bfa' : '2px solid transparent',
+                                                    border: editTag === tag ? '2px solid rgba(255, 255, 255, 0.25)' : '2px solid transparent',
                                                     borderRadius: '0.5rem',
                                                     color: '#fff',
                                                     fontSize: '0.875rem',
@@ -4268,7 +4268,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
 
                                 {/* Type */}
                                 <div style={{ marginBottom: '1.5rem' }}>
-                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#a1a1aa' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: '#fff' }}>
                                         Tipo de Conteúdo
                                     </label>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -4284,9 +4284,9 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                                     flex: 1,
                                                     padding: '0.75rem',
                                                     background: editType === typeOption.value
-                                                        ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
+                                                        ? '#3f3f46'
                                                         : '#27272a',
-                                                    border: editType === typeOption.value ? '2px solid #a78bfa' : '2px solid transparent',
+                                                    border: editType === typeOption.value ? '2px solid rgba(255, 255, 255, 0.25)' : '2px solid transparent',
                                                     borderRadius: '0.5rem',
                                                     color: '#fff',
                                                     fontSize: '0.875rem',
@@ -4310,7 +4310,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                         style={{
                                             flex: 1,
                                             padding: '0.875rem',
-                                            background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                                            background: '#3f3f46',
                                             border: 'none',
                                             borderRadius: '0.5rem',
                                             color: '#fff',
@@ -4328,7 +4328,7 @@ Replace broken text with refined, natural English that elevates the concept.`)}
                                             background: '#27272a',
                                             border: '1px solid rgba(255, 255, 255, 0.1)',
                                             borderRadius: '0.5rem',
-                                            color: '#a1a1aa',
+                                            color: '#fff',
                                             fontSize: '0.95rem',
                                             fontWeight: 600,
                                             cursor: 'pointer'

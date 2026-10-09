@@ -84,15 +84,9 @@ export default function DashboardPage() {
 
                 {/* Profile Switcher */}
                 <div style={{ marginBottom: '2rem' }}>
-                    <h3 style={{ fontSize: '1rem', color: '#a1a1aa', marginBottom: '0.75rem' }}>Perfil Selecionado</h3>
+                    <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '0.75rem' }}>Perfil Selecionado</h3>
                     <ProfileSwitcher style={{ width: '100%', maxWidth: '300px' }} />
                 </div>
-
-                <FailedPostsAlert />
-                <OperationalAlerts profileId={selectedProfile?.id || null} />
-
-                {/* Status do Autopilot Banner */}
-                <AutopilotStatusBanner selectedProfile={selectedProfile} />
 
                 {/* Widget de Validação do Conteúdo da Próxima Semana */}
                 <NextWeekValidationWidget
@@ -100,6 +94,12 @@ export default function DashboardPage() {
                     selectedProfile={selectedProfile}
                     onRefresh={loadStats}
                 />
+
+                <FailedPostsAlert />
+                <OperationalAlerts profileId={selectedProfile?.id || null} />
+
+                {/* Status do Autopilot Banner */}
+                <AutopilotStatusBanner selectedProfile={selectedProfile} />
 
                 {/* Matriz de Controle dos Perfis (Toggles Rápidos) */}
                 <ProfileControlMatrix onProfilesUpdated={loadStats} />
@@ -121,7 +121,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="card-glass">
-                        <h3 style={{ color: 'var(--accent-warning)' }}>Agendados</h3>
+                        <h3 style={{ color: 'var(--text-primary)' }}>Agendados</h3>
                         <p style={{ fontSize: '2.5rem', fontWeight: '700', margin: '1rem 0' }}>{stats.pending}</p>
                         <p style={{ fontSize: '0.875rem' }}>Posts pendentes</p>
                     </div>

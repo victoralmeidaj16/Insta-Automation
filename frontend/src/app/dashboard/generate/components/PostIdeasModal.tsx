@@ -48,13 +48,13 @@ export const PostIdeasModal: React.FC<PostIdeasModalProps> = ({
                         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', margin: 0 }}>
                             ✨ Brainstorm de Ideias
                         </h2>
-                        <p style={{ color: '#a1a1aa', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                        <p style={{ color: '#fff', fontSize: '0.875rem', marginTop: '0.25rem' }}>
                             Sugestões baseadas no perfil <b>{selectedProfile?.name}</b>
                         </p>
                     </div>
                     <button
                         onClick={() => setShowIdeasModal(false)}
-                        style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', fontSize: '1.5rem' }}
+                        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '1.5rem' }}
                     >
                         ×
                     </button>
@@ -74,7 +74,7 @@ export const PostIdeasModal: React.FC<PostIdeasModalProps> = ({
                             cursor: 'pointer'
                         }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = '#7c3aed';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                                 e.currentTarget.style.transform = 'translateY(-2px)';
                             }}
                             onMouseLeave={(e) => {
@@ -83,8 +83,8 @@ export const PostIdeasModal: React.FC<PostIdeasModalProps> = ({
                             }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{
-                                    background: idea.type === 'carousel' ? 'rgba(124, 58, 237, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                                    color: idea.type === 'carousel' ? '#a78bfa' : '#34d399',
+                                    background: idea.type === 'carousel' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.05)',
+                                    color: idea.type === 'carousel' ? '#fff' : '#fff',
                                     fontSize: '0.75rem',
                                     fontWeight: 600,
                                     padding: '0.25rem 0.75rem',
@@ -98,7 +98,7 @@ export const PostIdeasModal: React.FC<PostIdeasModalProps> = ({
                                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#fff', marginBottom: '0.5rem', lineHeight: '1.3' }}>
                                     {idea.title}
                                 </h3>
-                                <p style={{ fontSize: '0.875rem', color: '#d4d4d8', lineHeight: '1.5' }}>
+                                <p style={{ fontSize: '0.875rem', color: '#fff', lineHeight: '1.5' }}>
                                     {idea.description.split(/(\*\*.*?\*\*)/).map((part, i) =>
                                         part.startsWith('**') && part.endsWith('**')
                                             ? <strong key={i} style={{ color: '#fff' }}>{part.slice(2, -2)}</strong>
@@ -107,7 +107,7 @@ export const PostIdeasModal: React.FC<PostIdeasModalProps> = ({
                                 </p>
                             </div>
 
-                            <div style={{ fontSize: '0.75rem', color: '#71717a', fontStyle: 'italic', borderTop: '1px solid #27272a', paddingTop: '1rem', marginTop: 'auto' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#fff', fontStyle: 'italic', borderTop: '1px solid #27272a', paddingTop: '1rem', marginTop: 'auto' }}>
                                 💡 {idea.reason}
                             </div>
 
@@ -118,7 +118,7 @@ export const PostIdeasModal: React.FC<PostIdeasModalProps> = ({
                                     width: '100%',
                                     marginTop: '1rem',
                                     padding: '0.75rem',
-                                    background: '#7c3aed',
+                                    background: '#3f3f46',
                                     border: 'none',
                                     borderRadius: '0.5rem',
                                     color: '#fff',

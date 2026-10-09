@@ -1042,7 +1042,7 @@ export function PremiumEditorModal({
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                             <h2 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>Editor Premium</h2>
-                            <p style={{ margin: '0.25rem 0 0', color: '#a1a1aa', fontSize: '0.875rem' }}>
+                            <p style={{ margin: '0.25rem 0 0', color: '#fff', fontSize: '0.875rem' }}>
                                 Ajuste headline, destaque e branding antes de finalizar a arte premium.
                             </p>
                         </div>
@@ -1054,7 +1054,7 @@ export function PremiumEditorModal({
                             <input type="checkbox" checked={Boolean(layout.hideOverlay)} onChange={event => onChange('hideOverlay', event.target.checked)} style={{ width: '1.1rem', height: '1.1rem' }} />
                             Apenas Imagem (Sem Template HD)
                         </label>
-                        <span style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>O texto será preservado apenas para visualização de limites do template, mas a arte final exportará somente a imagem posicionada.</span>
+                        <span style={{ fontSize: '0.75rem', color: '#fff' }}>O texto será preservado apenas para visualização de limites do template, mas a arte final exportará somente a imagem posicionada.</span>
                     </div>
 
                     {!layout.hideOverlay && (
@@ -1063,20 +1063,20 @@ export function PremiumEditorModal({
                                 📝 Texto do Card (Headline)
                             </span>
 
-                            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#fff', textTransform: 'uppercase' }}>
                                 Título Principal (Headline)
                                 <textarea value={layout.title} onChange={event => onChange('title', event.target.value)} className="input" rows={3} placeholder="Digite a headline..." />
-                                <span style={{ fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'none' }}>
+                                <span style={{ fontSize: '0.75rem', color: '#fff', textTransform: 'none' }}>
                                     O tamanho do texto é padronizado pelo número de linhas. Títulos curtos (1–2 linhas) saem bem maiores e mais engajantes.
                                 </span>
                             </label>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#fff', textTransform: 'uppercase' }}>
                                     Palavra em Destaque
                                     <input value={layout.highlightText} onChange={event => onChange('highlightText', event.target.value)} className="input" />
                                 </label>
-                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#fff', textTransform: 'uppercase' }}>
                                     Cor do Destaque
                                     <input type="color" value={layout.primaryColor} onChange={event => onChange('primaryColor', event.target.value)} style={{ width: '100%', height: '42px', borderRadius: '0.5rem', border: '1px solid #3f3f46', background: 'transparent', padding: '0.15rem' }} />
                                 </label>
@@ -1085,15 +1085,15 @@ export function PremiumEditorModal({
                     )}
 
                     <div style={{ display: 'grid', gap: '0.85rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.75rem', color: '#fff', textTransform: 'uppercase' }}>
                             Ajustar Imagem
-                            <span style={{ fontSize: '0.8rem', color: '#a1a1aa', textTransform: 'none' }}>Você pode arrastar e rolar o scroll na imagem ao lado para mover e dar zoom na imagem interativamente!</span>
+                            <span style={{ fontSize: '0.8rem', color: '#fff', textTransform: 'none' }}>Você pode arrastar e rolar o scroll na imagem ao lado para mover e dar zoom na imagem interativamente!</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
                                 <button type="button" className="btn" onClick={() => { onChange('imageOffsetX', 0); onChange('imageOffsetY', 0); onChange('imageScale', 1); }} style={{ padding: '0.4rem 0.8rem' }}>Zerar Ajustes</button>
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.75rem', color: '#fff', textTransform: 'uppercase' }}>
                             Zoom da Imagem
                             <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr 48px', gap: '0.6rem', alignItems: 'center' }}>
                                 <button type="button" className="btn" onClick={() => adjustZoomBy(-0.05)} style={{ padding: 0 }}>−</button>
@@ -1107,12 +1107,12 @@ export function PremiumEditorModal({
                                 />
                                 <button type="button" className="btn" onClick={() => adjustZoomBy(0.05)} style={{ padding: 0 }}>+</button>
                             </div>
-                            <span style={{ fontSize: '0.8rem', color: '#d4d4d8', textTransform: 'none' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#fff', textTransform: 'none' }}>
                                 {Number(layout.imageScale || 1).toFixed(2)}x
                             </span>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.75rem', color: '#fff', textTransform: 'uppercase' }}>
                             Gradiente de Transição
                             <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr 48px', gap: '0.6rem', alignItems: 'center' }}>
                                 <button type="button" className="btn" onClick={() => onChange('gradientOpacity', Math.max(0, Number(layout.gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT) - 0.05))} style={{ padding: 0 }}>−</button>
@@ -1126,7 +1126,7 @@ export function PremiumEditorModal({
                                 />
                                 <button type="button" className="btn" onClick={() => onChange('gradientOpacity', Math.min(1, Number(layout.gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT) + 0.05))} style={{ padding: 0 }}>+</button>
                             </div>
-                            <span style={{ fontSize: '0.8rem', color: '#d4d4d8', textTransform: 'none' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#fff', textTransform: 'none' }}>
                                 {Math.round(Number(layout.gradientOpacity ?? PREMIUM_GRADIENT_OPACITY_DEFAULT) * 100)}% opacidade
                             </span>
                         </div>
@@ -1134,7 +1134,7 @@ export function PremiumEditorModal({
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem', alignItems: 'end' }}>
                         {!layout.hideOverlay ? (
-                            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#fff', textTransform: 'uppercase' }}>
                                 Cor de Destaque
                                 <input type="color" value={layout.primaryColor} onChange={event => onChange('primaryColor', event.target.value)} style={{ width: '100%', height: '46px', borderRadius: '0.75rem', border: '1px solid #3f3f46', background: 'transparent', padding: '0.2rem' }} />
                             </label>
@@ -1142,7 +1142,7 @@ export function PremiumEditorModal({
                             <div />
                         )}
                         {allowBackgroundUpload ? (
-                            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#a1a1aa', textTransform: 'uppercase' }}>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: '#fff', textTransform: 'uppercase' }}>
                                 Upload Fundo
                                 <input
                                     type="file"
@@ -1169,7 +1169,7 @@ export function PremiumEditorModal({
                             style={{
                                 width: '100%',
                                 marginTop: '1rem',
-                                color: '#a1a1aa',
+                                color: '#fff',
                                 border: '1px solid #3f3f46',
                                 fontWeight: 600,
                                 opacity: secondaryActionDisabled ? 0.6 : 1,
@@ -1187,8 +1187,8 @@ export function PremiumEditorModal({
                             className="btn"
                             style={{
                                 width: '100%',
-                                background: 'linear-gradient(90deg, #FFD700 0%, #FFA500 100%)',
-                                color: '#111',
+                                background: '#3f3f46',
+                                color: '#fff',
                                 border: 'none',
                                 fontWeight: 700,
                                 opacity: actionDisabled ? 0.6 : 1,
@@ -1246,7 +1246,7 @@ export function PremiumEditorModal({
                             >
                                 ← Anterior
                             </button>
-                            <span style={{ color: '#f4f4f5', fontSize: '0.9rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                            <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 700, letterSpacing: '0.02em' }}>
                                 {slideLabel || `Slide ${(layout.slideIndex || 0) + 1}`}
                             </span>
                             <button
@@ -1282,7 +1282,7 @@ export function PremiumEditorModal({
                                 borderRadius: '0.75rem',
                                 border: '1px solid rgba(255,255,255,0.15)',
                                 background: 'rgba(255,255,255,0.06)',
-                                color: '#d4d4d8',
+                                color: '#fff',
                                 fontWeight: 600,
                                 fontSize: '0.85rem',
                                 cursor: secondaryActionDisabled ? 'default' : 'pointer',
